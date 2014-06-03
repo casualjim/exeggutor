@@ -2,7 +2,8 @@ package state_test
 
 import (
 	"fmt"
-	. "reverb/exeggutor/state"
+
+	. "github.com/reverb/exeggutor/state"
 
 	"github.com/reverb/go-utils/rvb_zk"
 

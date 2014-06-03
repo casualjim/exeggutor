@@ -5,8 +5,8 @@ import (
 
 	"github.com/reverb/exeggutor/state"
 	"github.com/reverb/exeggutor/store"
-	"github.com/reverb/go-util/rvb_zk"
 	"github.com/reverb/go-utils/flake"
+	"github.com/reverb/go-utils/rvb_zk"
 
 	"code.google.com/p/goprotobuf/proto"
 	"github.com/revel/revel"
