@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/rcrowley/go-metrics"
 	"github.com/reverb/exeggutor/framework/app/controllers"
 	"github.com/reverb/exeggutor/framework/app/scheduler"
 
