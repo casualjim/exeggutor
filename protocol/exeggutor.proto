@@ -1,0 +1,93 @@
+package protocol;
+
+option optimize_for = LITE_RUNTIME;
+option java_package = "com.reverb.exeggutor.protocol";
+option cc_generic_services = false;
+option java_generic_services = false;
+option py_generic_services = false;
+
+message StringKeyValue {
+  required string key = 1;
+  required string value = 2;
+}
+
+
+enum AppStatus {
+  ABSENT = 1;
+  DEPLOYING = 2;
+  STOPPED = 3;
+  STOPPING = 4;
+  STARTING = 5;
+  STARTED = 6;
+  VERY_BUSY = 7;
+  UNHEALTHY = 8;
+}
+
+enum ComponentType {
+  // A long-running service
+  SERVICE = 0;
+  // A short one-off task
+  TASK = 1;
+  // A task scheduled to repeat on a schedule or to be executed at a later, scheduled time
+  CRON = 2;
+  // A spark job
+  SPARK_JOB = 3;
+}
+
+
+enum Distribution {
+  // Distributed as a package for the OS package manager (RPM, DEB, ...)
+  PACKAGE = 0;
+  // Distributed as a Docker Container
+  DOCKER = 1;
+  // Ad-Hoc script, fat-jar, single-binary
+  SCRIPT = 2;
+  // Distributed as executable jar
+  FAT_JAR = 3;
+}
+
+message ApplicationComponent {
+
+  required string name = 1;
+  required float cpus = 2;
+  required float mem = 3;
+  required string dist_url = 4;
+  required string command = 5;
+  repeated StringKeyValue env = 6;
+  repeated int32 ports = 7;
+  required string version = 8;
+
+  required AppStatus status = 9 [ default = ABSENT ];
+  optional string log_dir = 10;
+  optional string work_dir = 11;
+  optional string conf_dir = 12;
+
+  required Distribution distribution = 14 [ default = PACKAGE ];
+
+  required ComponentType component_type = 15 [ default = SERVICE ];
+}
+
+message ApplicationManifest {
+  required string name = 1;
+  repeated ApplicationComponent components = 2;
+
+  optional AppStatus status = 3 [default = ABSENT];
+}
+
+message HealthCheck {
+  enum HealthCheckMode {
+    REST = 0;
+    TCP = 1;
+  }
+
+  required HealthCheckMode mode = 1 [ default = REST ];
+  required string host = 2;
+  required int32 port = 3;
+  required int64 interval_millis = 4;
+  optional string path = 10 [ default = "/api/api-docs" ];
+  optional string scheme = 11 [ default = "http" ];
+}
+message ApplicationSLA {
+  required int32 instances = 1 [ default = 1 ];
+  required HealthCheck health_check = 2;
+}
