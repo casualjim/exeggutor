@@ -17,7 +17,7 @@ import (
 
 func TestState(t *testing.T) {
 	RegisterFailHandler(Fail)
-	pth := fmt.Sprintf("../../../../test-reports/junit_exeggutor_store_%d.xml", config.GinkgoConfig.ParallelNode)
+	pth := fmt.Sprintf("../test-reports/junit_exeggutor_store_%d.xml", config.GinkgoConfig.ParallelNode)
 	junitReporter := reporters.NewJUnitReporter(pth)
 	RunSpecsWithDefaultAndCustomReporters(t, "Exeggutor Store Test Suite", []Reporter{junitReporter})
 }

@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/rcrowley/go-metrics"
-	"github.com/reverb/exeggutor/framework/app/controllers"
-	"github.com/reverb/exeggutor/framework/app/scheduler"
+	"github.com/reverb/exeggutor/agora/app/controllers"
+	"github.com/reverb/exeggutor/scheduler"
 
 	"github.com/revel/revel"
 )

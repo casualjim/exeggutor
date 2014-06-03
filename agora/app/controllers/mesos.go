@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"github.com/reverb/exeggutor/framework/app/scheduler"
+	"github.com/reverb/exeggutor/scheduler"
 
 	"github.com/revel/revel"
 )

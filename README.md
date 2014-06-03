@@ -23,3 +23,30 @@ To start the VM:
 ```bash
 vagrant up
 ```
+
+autosourcing a file
+
+in bash:
+
+```bash
+cd () {
+  builtin cd "$@"
+  case $PWD in
+    /some/directory) . ./projectSettings.bash;;
+  esac
+}
+```
+
+in zsh:
+
+```bash
+# http://stackoverflow.com/questions/17051123/source-a-file-in-zsh-when-entering-a-directory
+autoload -U add-zsh-hook
+load-local-conf() {
+     # check file exists, is regular file and is readable:
+     if [[ -f .reverb-env && -r .reverb-env ]]; then
+       source .reverb-env
+     fi
+}
+add-zsh-hook chpwd load-local-conf
+```
