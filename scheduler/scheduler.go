@@ -16,6 +16,10 @@ import (
 
 var log = logging.MustGetLogger("exeggutor.scheduler")
 
+type SchedulerConfig struct {
+	ZookeeperUrl, MesosMaster, DataDirectory string
+}
+
 var (
 	// FrameworkIDState the zookeeper backed framework id state for this application
 	FrameworkIDState *state.FrameworkIDState
@@ -70,8 +74,8 @@ func resourceOffer(driver *mesos.SchedulerDriver, offers []mesos.Offer) {
 }
 
 // Start initializes the scheduler and everything it depends on
-func Start() {
-	uri := "zk://localhost:2181/exeggutor"
+func Start(config SchedulerConfig) {
+	uri := config.ZookeeperUrl
 	hosts, node, err := rvb_zk.ParseZookeeperUri(uri)
 	if err != nil {
 		log.Error("%v", err)
@@ -95,13 +99,10 @@ func Start() {
 	if err != nil {
 		log.Panicf("Couldn't connect to zookeeper because %v", err)
 	}
-	FrameworkIDState = state.NewFrameworkIDState("/exeggutor/framework/id", Curator)
+	FrameworkIDState = state.NewFrameworkIDState(node+"/framework/id", Curator)
 	FrameworkIDState.Start(true)
 
-	Store = store.NewEmptyInMemoryStore()
-	Store.Start()
-
-	master := "zk://localhost:2181/mesos"
+	master := config.MesosMaster
 	log.Debug("Creating mesos scheduler driver")
 	driver = mesos.SchedulerDriver{
 		Master: master,
@@ -158,7 +159,6 @@ func Stop() {
 
 	driver.Stop(false)
 	driver.Destroy()
-	Store.Stop()
 	FrameworkIDState.Stop()
 	// Curator.Close()
 
