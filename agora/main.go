@@ -14,29 +14,11 @@ import (
 	"github.com/jessevdk/go-flags"
 	"github.com/op/go-logging"
 	"github.com/reverb/exeggutor"
+	"github.com/reverb/exeggutor/agora/api"
 	"github.com/reverb/exeggutor/agora/middlewares"
-	"github.com/reverb/exeggutor/scheduler"
-	"github.com/reverb/exeggutor/state"
 )
 
 var log = logging.MustGetLogger("exeggutor.main")
-
-type Context struct {
-	FrameworkIDState *state.FrameworkIDState
-}
-
-type fwID struct {
-	Value *string `json:"frameworkId"`
-}
-
-// FrameworkID returns a json structure for the framework id of this application
-func (m *Context) ShowFrameworkID(rw web.ResponseWriter, req *web.Request) {
-	state := scheduler.FrameworkIDState.Get()
-	id := state.GetValue()
-	enc := json.NewEncoder(rw)
-	rw.Header().Set("Content-Type", "application/json;charset=utf-8")
-	enc.Encode(&fwID{Value: &id})
-}
 
 var config exeggutor.Config
 
@@ -46,15 +28,16 @@ func init() {
 }
 
 func main() {
-	scheduler.Start(scheduler.SchedulerConfig{ZookeeperUrl: config.ZookeeperUrl, MesosMaster: config.MesosMaster, DataDirectory: config.DataDirectory})
-	router := web.New(Context{FrameworkIDState: scheduler.FrameworkIDState}). // Create your router
-											Middleware(middlewares.RequestLogging). // Use some included middleware
-											Middleware(middlewares.RequestTiming).  // Use some included middleware
-											Get("/fwid", (*Context).ShowFrameworkID)
+	// scheduler.Start(scheduler.SchedulerConfig{ZookeeperUrl: config.ZookeeperUrl, MesosMaster: config.MesosMaster, DataDirectory: config.DataDirectory})
 
+	apiRouter := web.New(api.ApplicationsContext{}).Middleware(middlewares.RequestTiming)
+	apiRouter.Get("/", (*api.ApplicationsContext).ListAll)
+
+	http.Handle("/api", apiRouter)
+	http.Handle("/", http.FileServer(http.Dir("./static/build")))
 	trapExit()
-	log.Notice("starting agora at %s:%v", config.Interface, config.Port)
-	http.ListenAndServe(fmt.Sprintf("%s:%v", config.Interface, config.Port), router) // Start the server!
+	log.Notice("Starting agora at %s:%v", config.Interface, config.Port)
+	http.ListenAndServe(fmt.Sprintf("%s:%v", config.Interface, config.Port), nil) // Start the server!
 }
 
 func trapExit() {
@@ -63,7 +46,7 @@ func trapExit() {
 	go func() {
 		sig := <-c
 		log.Debug("Stopping because %v", sig)
-		scheduler.Stop()
+		// scheduler.Stop()
 		log.Notice("Stopped agora application")
 		os.Exit(0)
 	}()

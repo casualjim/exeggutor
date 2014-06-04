@@ -1,6 +1,7 @@
 {
   "dataDirectory": "./data",
   "logDirectory": "./logs",
+  "staticFiles": "./static/build",
   "zookeeper": "zk://localhost:2181/exeggutor",
   "mesos": "zk://localhost:2181/mesos",
   "port": 8000,
