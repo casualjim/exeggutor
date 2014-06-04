@@ -7,18 +7,20 @@ import (
 	"github.com/reverb/exeggutor/store"
 	"github.com/reverb/go-utils/flake"
 	"github.com/reverb/go-utils/rvb_zk"
+	"github.com/samuel/go-zookeeper/zk"
 
 	"code.google.com/p/goprotobuf/proto"
-	"github.com/revel/revel"
+	"github.com/op/go-logging"
 	"github.com/reverb/go-mesos/mesos"
-	"github.com/samuel/go-zookeeper/zk"
 )
+
+var log = logging.MustGetLogger("exeggutor.scheduler")
 
 var (
 	// FrameworkIDState the zookeeper backed framework id state for this application
 	FrameworkIDState *state.FrameworkIDState
 	// Curator the zookeeper client library
-	Curator *rvb_zk.Curator
+	Curator rvb_zk.Curator
 	// Store a generic store for data (to be renamed and specialized)
 	Store store.KVStore
 	// Driver the driver for the mesos framework
@@ -28,7 +30,7 @@ var (
 var launched = false
 
 func resourceOffer(driver *mesos.SchedulerDriver, offers []mesos.Offer) {
-	revel.INFO.Println("Received", len(offers), "offers.")
+	log.Notice("Received %d offers.", len(offers))
 
 	// executor :=
 
@@ -69,23 +71,30 @@ func resourceOffer(driver *mesos.SchedulerDriver, offers []mesos.Offer) {
 
 // Start initializes the scheduler and everything it depends on
 func Start() {
-	revel.TRACE.Println("Connecting to zookeeper on localhost:2181")
-	servers, recvTimeout := []string{"localhost:2181"}, 5*time.Second
-
-	zkClient, evt, err := zk.Connect(servers, recvTimeout)
+	uri := "zk://localhost:2181/exeggutor"
+	hosts, node, err := rvb_zk.ParseZookeeperUri(uri)
 	if err != nil {
-		revel.ERROR.Println(err)
+		log.Error("%v", err)
+		return
+	}
+	conn, evt, err := zk.Connect(hosts, 5*time.Second)
+
+	if err != nil {
+		log.Error("%v", err)
+		return
 	}
 
 	for {
 		e := <-evt
 		if e.State == zk.StateHasSession {
-			revel.INFO.Println("Connected to zookeeper on localhost:2181")
+			log.Info("Connected to zookeeper(s) on %s", uri)
 			break
 		}
 	}
-
-	Curator = rvb_zk.NewCurator(zkClient)
+	Curator := rvb_zk.NewCurator(conn, node)
+	if err != nil {
+		log.Panicf("Couldn't connect to zookeeper because %v", err)
+	}
 	FrameworkIDState = state.NewFrameworkIDState("/exeggutor/framework/id", Curator)
 	FrameworkIDState.Start(true)
 
@@ -93,7 +102,7 @@ func Start() {
 	Store.Start()
 
 	master := "zk://localhost:2181/mesos"
-	revel.TRACE.Println("Creating mesos scheduler driver")
+	log.Debug("Creating mesos scheduler driver")
 	driver = mesos.SchedulerDriver{
 		Master: master,
 		Framework: mesos.FrameworkInfo{
@@ -103,55 +112,56 @@ func Start() {
 		},
 		Scheduler: &mesos.Scheduler{
 			Registered: func(driver *mesos.SchedulerDriver, fwID mesos.FrameworkID, masterInfo mesos.MasterInfo) {
-				revel.INFO.Println("registered framework", fwID.GetValue(), "with master", masterInfo.GetId())
+				log.Info("registered framework %v with master %v", fwID.GetValue(), masterInfo.GetId())
 				FrameworkIDState.Set(&fwID)
 			},
 			OfferRescinded: func(driver *mesos.SchedulerDriver, offer mesos.OfferID) {
-				revel.INFO.Println("the offer", offer.GetValue(), "was rescinded")
+				log.Info("the offer %s was rescinded", offer.GetValue())
 			},
 			Disconnected: func(driver *mesos.SchedulerDriver) {
-				revel.WARN.Println("Disconnected from master!")
+				log.Warning("Disconnected from master!")
 			},
 			Reregistered: func(driver *mesos.SchedulerDriver, masterInfo mesos.MasterInfo) {
-				revel.INFO.Printf("Re-registered with master %s:%d\n", masterInfo.GetHostname(), masterInfo.GetPort())
+				log.Info("Re-registered with master %s:%d\n", masterInfo.GetHostname(), masterInfo.GetPort())
 			},
 			SlaveLost: func(driver *mesos.SchedulerDriver, slaveID mesos.SlaveID) {
-				revel.WARN.Println("Lost slave", slaveID.GetValue())
+				log.Warning("Lost slave", slaveID.GetValue())
 			},
 			Error: func(driver *mesos.SchedulerDriver, message string) {
-				revel.ERROR.Println("Got an error:", message)
+				log.Error("Got an error:", message)
 			},
 			StatusUpdate: func(driver *mesos.SchedulerDriver, status mesos.TaskStatus) {
-				revel.INFO.Printf("Status update: %+v", status)
+				log.Info("Status update: %+v", status)
 			},
 			FrameworkMessage: func(driver *mesos.SchedulerDriver, executorID mesos.ExecutorID, slaveID mesos.SlaveID, data string) {
-				revel.INFO.Printf("Got framework message from executor %s, slave %s, and data: %s\n", executorID.GetValue(), slaveID.GetValue(), data)
+				log.Info("Got framework message from executor %s, slave %s, and data: %s\n", executorID.GetValue(), slaveID.GetValue(), data)
 			},
 			ExecutorLost: func(driver *mesos.SchedulerDriver, executorID mesos.ExecutorID, slaveID mesos.SlaveID, status int) {
-				revel.ERROR.Printf("Lost executor %s, on slave %s with status code %d\n", executorID.GetValue(), slaveID.GetValue(), status)
+				log.Error("Lost executor %s, on slave %s with status code %d\n", executorID.GetValue(), slaveID.GetValue(), status)
 			},
 			ResourceOffers: resourceOffer,
 		},
 	}
 	err = driver.Init()
 	if err != nil {
-		revel.ERROR.Println("Couldn't initialize the mesos scheduler driver, because", err)
-		panic(err)
+		log.Panicf("Couldn't initialize the mesos scheduler driver, because %v", err)
 	}
 	err = driver.Start()
 	if err != nil {
-		revel.ERROR.Println("Couldn't start the mesos scheduler driver, because", err)
-		panic(err)
+		log.Panicf("Couldn't start the mesos scheduler driver, because %v", err)
 	}
-
+	log.Notice("Started the exeggutor scheduler")
 }
 
 // Stop stops the mesos scheduler driver
 func Stop() {
-	driver.Destroy()
+
 	driver.Stop(false)
+	driver.Destroy()
 	Store.Stop()
 	FrameworkIDState.Stop()
-	Curator.Close()
-	revel.INFO.Println("Stopped the mesos scheduler and relevant stores")
+	// Curator.Close()
+
+	log.Notice("Stopped the mesos scheduler and relevant stores")
+
 }

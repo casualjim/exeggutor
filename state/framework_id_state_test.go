@@ -31,7 +31,7 @@ var _ = Describe("FrameworkIDState", func() {
 		if err != nil {
 			Fail(fmt.Sprintf("%v", err))
 		}
-		curator = rvb_zk.NewCurator(c)
+		curator = rvb_zk.NewCurator(c, "")
 	})
 
 	AfterEach(func() {
