@@ -11,6 +11,11 @@ message StringKeyValue {
   required string value = 2;
 }
 
+message StringIntKeyValue {
+  required string key = 1;
+  required int32  value = 2;
+}
+
 
 enum AppStatus {
   ABSENT = 1;
@@ -54,7 +59,7 @@ message ApplicationComponent {
   required string dist_url = 4;
   required string command = 5;
   repeated StringKeyValue env = 6;
-  repeated int32 ports = 7;
+  repeated StringIntKeyValue ports = 7;
   required string version = 8;
 
   required AppStatus status = 9 [ default = ABSENT ];

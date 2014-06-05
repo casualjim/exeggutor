@@ -4,41 +4,40 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/reverb/exeggutor/agora/api"
+	"github.com/reverb/exeggutor/store"
 )
 
 var _ = Describe("ApplicationsApi", func() {
 
+	var (
+		data store.KVStore
+	)
+
+	BeforeEach(func() {
+		data = store.NewEmptyInMemoryStore()
+		data.Start()
+	})
+
+	AfterEach(func() {
+		data.Stop()
+	})
+
 	Context("List all applications", func() {
 		It("returns a 200 Status Code", func() {
-			Get("/", ApplicationsContext{}, (*ApplicationsContext).ListAll)
+			Mount(ApplicationsContext{Store: data}, (*ApplicationsContext).ListAll).Get("/")
 			Expect(response.Code).To(Equal(200))
-			Expect(response.Body.String()).To(Equal("hello"))
+			Expect(response.Body.String()).To(Equal("[]"))
 		})
 	})
 
-	// Context("Create a Todo", func() {
+	// Context("Create an application"), func() {
+	// 	It("returns 200 when the item is created", func() {
+	// 		client := Mount(ApplicationsContext{Store: data}, (*ApplicationsContext).Save)
+	// 		client.Post("/", App{
 
-	// 	BeforeEach(func() {
-	// 		todo := Todo{"keep things green"}
-	// 		body, err = json.Marshal(todo)
-	// 		if err != nil {
-	// 			log.Println("Unable to marshal todo")
-	// 		}
-	// 	})
-
-	// 	It("returns a 200 Status Code", func() {
-	// 		PostRequest("POST", "/todos", HandleNewTodo, bytes.NewReader(body))
+	// 		})
 	// 		Expect(response.Code).To(Equal(200))
-	// 	})
-	// })
-
-	// Context("Returns a single created todo", func() {
-	// 	It("returns a 200 Status Code", func() {
-	// 		Request("GET", "/todos", HandleIndex)
-	// 		log.Println(response)
-	// 		log.Println(response.Body)
 	// 		Expect(response.Code).To(Equal(200))
-	// 		Expect(response.Body).To(MatchJSON(`[{"Name":"keep things green"}]`))
 	// 	})
 	// })
 })

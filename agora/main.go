@@ -16,6 +16,7 @@ import (
 	"github.com/reverb/exeggutor"
 	"github.com/reverb/exeggutor/agora/api"
 	"github.com/reverb/exeggutor/agora/middlewares"
+	"github.com/reverb/exeggutor/scheduler"
 )
 
 var log = logging.MustGetLogger("exeggutor.main")
@@ -28,16 +29,36 @@ func init() {
 }
 
 func main() {
-	// scheduler.Start(scheduler.SchedulerConfig{ZookeeperUrl: config.ZookeeperUrl, MesosMaster: config.MesosMaster, DataDirectory: config.DataDirectory})
+	schedulerConfig := scheduler.SchedulerConfig{
+		ZookeeperUrl:  config.ZookeeperUrl,
+		MesosMaster:   config.MesosMaster,
+		DataDirectory: config.DataDirectory,
+	}
+	scheduler.Start(schedulerConfig)
+	rootRouter := web.
+		New(api.APIContext{FrameworkIDState: scheduler.FrameworkIDState}).
+		Middleware(web.StaticMiddleware("./static/build"))
 
-	apiRouter := web.New(api.ApplicationsContext{}).Middleware(middlewares.RequestTiming)
-	apiRouter.Get("/", (*api.ApplicationsContext).ListAll)
+	apiRouter := rootRouter.
+		Subrouter(api.APIContext{}, "/api").
+		Middleware(middlewares.RequestTiming).
+		Middleware(middlewares.JSONOnlyAPI)
 
-	http.Handle("/api", apiRouter)
-	http.Handle("/", http.FileServer(http.Dir("./static/build")))
+	apiRouter.
+		Subrouter(api.ApplicationsContext{}, "/applications").
+		Get("/", (*api.ApplicationsContext).ListAll).
+		Get("/:name", (*api.ApplicationsContext).ShowOne).
+		Post("/", (*api.ApplicationsContext).Save).
+		Put("/:name", (*api.ApplicationsContext).Save).
+		Delete("/:name", (*api.ApplicationsContext).Delete)
+
+	apiRouter.
+		Subrouter(api.APIContext{FrameworkIDState: scheduler.FrameworkIDState}, "/audit").
+		Get("/mesos/id", (*api.APIContext).ShowFrameworkID)
+
 	trapExit()
 	log.Notice("Starting agora at %s:%v", config.Interface, config.Port)
-	http.ListenAndServe(fmt.Sprintf("%s:%v", config.Interface, config.Port), nil) // Start the server!
+	http.ListenAndServe(fmt.Sprintf("%s:%v", config.Interface, config.Port), apiRouter) // Start the server!
 }
 
 func trapExit() {
@@ -46,7 +67,7 @@ func trapExit() {
 	go func() {
 		sig := <-c
 		log.Debug("Stopping because %v", sig)
-		// scheduler.Stop()
+		scheduler.Stop()
 		log.Notice("Stopped agora application")
 		os.Exit(0)
 	}()

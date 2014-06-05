@@ -10,6 +10,7 @@ It is generated from these files:
 
 It has these top-level messages:
 	StringKeyValue
+	StringIntKeyValue
 	ApplicationComponent
 	ApplicationManifest
 	HealthCheck
@@ -218,22 +219,46 @@ func (m *StringKeyValue) GetValue() string {
 	return ""
 }
 
+type StringIntKeyValue struct {
+	Key              *string `protobuf:"bytes,1,req,name=key" json:"key,omitempty"`
+	Value            *int32  `protobuf:"varint,2,req,name=value" json:"value,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *StringIntKeyValue) Reset()         { *m = StringIntKeyValue{} }
+func (m *StringIntKeyValue) String() string { return proto.CompactTextString(m) }
+func (*StringIntKeyValue) ProtoMessage()    {}
+
+func (m *StringIntKeyValue) GetKey() string {
+	if m != nil && m.Key != nil {
+		return *m.Key
+	}
+	return ""
+}
+
+func (m *StringIntKeyValue) GetValue() int32 {
+	if m != nil && m.Value != nil {
+		return *m.Value
+	}
+	return 0
+}
+
 type ApplicationComponent struct {
-	Name             *string           `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
-	Cpus             *float32          `protobuf:"fixed32,2,req,name=cpus" json:"cpus,omitempty"`
-	Mem              *float32          `protobuf:"fixed32,3,req,name=mem" json:"mem,omitempty"`
-	DistUrl          *string           `protobuf:"bytes,4,req,name=dist_url" json:"dist_url,omitempty"`
-	Command          *string           `protobuf:"bytes,5,req,name=command" json:"command,omitempty"`
-	Env              []*StringKeyValue `protobuf:"bytes,6,rep,name=env" json:"env,omitempty"`
-	Ports            []int32           `protobuf:"varint,7,rep,name=ports" json:"ports,omitempty"`
-	Version          *string           `protobuf:"bytes,8,req,name=version" json:"version,omitempty"`
-	Status           *AppStatus        `protobuf:"varint,9,req,name=status,enum=protocol.AppStatus,def=1" json:"status,omitempty"`
-	LogDir           *string           `protobuf:"bytes,10,opt,name=log_dir" json:"log_dir,omitempty"`
-	WorkDir          *string           `protobuf:"bytes,11,opt,name=work_dir" json:"work_dir,omitempty"`
-	ConfDir          *string           `protobuf:"bytes,12,opt,name=conf_dir" json:"conf_dir,omitempty"`
-	Distribution     *Distribution     `protobuf:"varint,14,req,name=distribution,enum=protocol.Distribution,def=0" json:"distribution,omitempty"`
-	ComponentType    *ComponentType    `protobuf:"varint,15,req,name=component_type,enum=protocol.ComponentType,def=0" json:"component_type,omitempty"`
-	XXX_unrecognized []byte            `json:"-"`
+	Name             *string              `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
+	Cpus             *float32             `protobuf:"fixed32,2,req,name=cpus" json:"cpus,omitempty"`
+	Mem              *float32             `protobuf:"fixed32,3,req,name=mem" json:"mem,omitempty"`
+	DistUrl          *string              `protobuf:"bytes,4,req,name=dist_url" json:"dist_url,omitempty"`
+	Command          *string              `protobuf:"bytes,5,req,name=command" json:"command,omitempty"`
+	Env              []*StringKeyValue    `protobuf:"bytes,6,rep,name=env" json:"env,omitempty"`
+	Ports            []*StringIntKeyValue `protobuf:"bytes,7,rep,name=ports" json:"ports,omitempty"`
+	Version          *string              `protobuf:"bytes,8,req,name=version" json:"version,omitempty"`
+	Status           *AppStatus           `protobuf:"varint,9,req,name=status,enum=protocol.AppStatus,def=1" json:"status,omitempty"`
+	LogDir           *string              `protobuf:"bytes,10,opt,name=log_dir" json:"log_dir,omitempty"`
+	WorkDir          *string              `protobuf:"bytes,11,opt,name=work_dir" json:"work_dir,omitempty"`
+	ConfDir          *string              `protobuf:"bytes,12,opt,name=conf_dir" json:"conf_dir,omitempty"`
+	Distribution     *Distribution        `protobuf:"varint,14,req,name=distribution,enum=protocol.Distribution,def=0" json:"distribution,omitempty"`
+	ComponentType    *ComponentType       `protobuf:"varint,15,req,name=component_type,enum=protocol.ComponentType,def=0" json:"component_type,omitempty"`
+	XXX_unrecognized []byte               `json:"-"`
 }
 
 func (m *ApplicationComponent) Reset()         { *m = ApplicationComponent{} }
@@ -286,7 +311,7 @@ func (m *ApplicationComponent) GetEnv() []*StringKeyValue {
 	return nil
 }
 
-func (m *ApplicationComponent) GetPorts() []int32 {
+func (m *ApplicationComponent) GetPorts() []*StringIntKeyValue {
 	if m != nil {
 		return m.Ports
 	}

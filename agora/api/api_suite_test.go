@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -10,6 +11,7 @@ import (
 	"github.com/onsi/ginkgo/config"
 	"github.com/onsi/ginkgo/reporters"
 	. "github.com/onsi/gomega"
+	"github.com/reverb/exeggutor/agora/middlewares"
 
 	"testing"
 )
@@ -25,10 +27,33 @@ func TestState(t *testing.T) {
 	RunSpecsWithDefaultAndCustomReporters(t, "Exeggutor state Test Suite", []Reporter{junitReporter})
 }
 
-func Get(route string, context interface{}, handler interface{}) {
-	m := web.New(context)
-	m.Get(route, handler)
+type TestInterface struct {
+	Context interface{}
+	Handler interface{}
+}
+
+func Mount(context, handler interface{}) TestInterface {
+	return TestInterface{Context: context, Handler: handler}
+}
+
+func (t TestInterface) Get(route string) {
+	m := web.New(t.Context)
+	m.Get(route, t.Handler)
 	request, _ := http.NewRequest("GET", route, nil)
+	request.Header.Set("Content-Type", middlewares.JSONContentType)
+	response = httptest.NewRecorder()
+	m.ServeHTTP(response, request)
+}
+
+func (t TestInterface) Post(route string, data interface{}) {
+	m := web.New(t.Context)
+	m.Get(route, t.Handler)
+	request, _ := http.NewRequest("POST", route, nil)
+	request.Header.Set("Content-Type", middlewares.JSONContentType)
+	if data != nil {
+		d, _ := json.Marshal(data)
+		request.Write(d)
+	}
 	response = httptest.NewRecorder()
 	m.ServeHTTP(response, request)
 }
