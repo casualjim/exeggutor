@@ -7,11 +7,13 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 
-	"github.com/gocraft/web"
+	"github.com/codegangsta/negroni"
 	"github.com/imdario/mergo"
 	"github.com/jessevdk/go-flags"
+	"github.com/julienschmidt/httprouter"
 	"github.com/op/go-logging"
 	"github.com/reverb/exeggutor"
 	"github.com/reverb/exeggutor/agora/api"
@@ -21,53 +23,61 @@ import (
 
 var log = logging.MustGetLogger("exeggutor.main")
 
-var config exeggutor.Config
+var (
+	config  exeggutor.Config
+	context api.APIContext
+)
 
 func init() {
 	config = readConfig()
+	context = api.APIContext{Config: &config}
 	setupLogging()
 }
 
 func main() {
 	schedulerConfig := scheduler.SchedulerConfig{
-		ZookeeperUrl:  config.ZookeeperUrl,
+		ZookeeperURL:  config.ZookeeperUrl,
 		MesosMaster:   config.MesosMaster,
 		DataDirectory: config.DataDirectory,
 	}
+
 	scheduler.Start(schedulerConfig)
-	rootRouter := web.
-		New(api.APIContext{FrameworkIDState: scheduler.FrameworkIDState}).
-		Middleware(web.StaticMiddleware("./static/build"))
+	context.FrameworkIDState = scheduler.FrameworkIDState
+	applicationsController := api.NewApplicationsController(&context)
+	applicationsController.Start()
+	mesosController := api.NewMesosController()
 
-	apiRouter := rootRouter.
-		Subrouter(api.APIContext{}, "/api").
-		Middleware(middlewares.RequestTiming).
-		Middleware(middlewares.JSONOnlyAPI)
+	router := httprouter.New()
+	router.GET("/api/applications", applicationsController.ListAll)
+	router.GET("/api/applications/:name", applicationsController.ShowOne)
+	router.POST("/api/applications", applicationsController.Save)
+	router.PUT("/api/applications/:name", applicationsController.Save)
+	router.DELETE("/api/applications/:name", applicationsController.Delete)
 
-	apiRouter.
-		Subrouter(api.ApplicationsContext{}, "/applications").
-		Get("/", (*api.ApplicationsContext).ListAll).
-		Get("/:name", (*api.ApplicationsContext).ShowOne).
-		Post("/", (*api.ApplicationsContext).Save).
-		Put("/:name", (*api.ApplicationsContext).Save).
-		Delete("/:name", (*api.ApplicationsContext).Delete)
+	router.GET("/api/mesos/fwid", mesosController.ShowFrameworkID)
 
-	apiRouter.
-		Subrouter(api.APIContext{FrameworkIDState: scheduler.FrameworkIDState}, "/audit").
-		Get("/mesos/id", (*api.APIContext).ShowFrameworkID)
+	n := negroni.New()
+	n.Use(middlewares.NewJSONOnlyAPI())
+	n.Use(negroni.NewRecovery())
+	n.Use(middlewares.NewLogger())
+	n.Use(negroni.NewStatic(http.Dir("static/build")))
+	n.UseHandler(router)
 
-	trapExit()
-	log.Notice("Starting agora at %s:%v", config.Interface, config.Port)
-	http.ListenAndServe(fmt.Sprintf("%s:%v", config.Interface, config.Port), apiRouter) // Start the server!
+	trapExit(func() {
+		scheduler.Stop()
+		applicationsController.Stop()
+	})
+
+	n.Run(fmt.Sprintf("%s:%v", config.Interface, config.Port))
 }
 
-func trapExit() {
+func trapExit(onClose func()) {
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt)
 	go func() {
 		sig := <-c
 		log.Debug("Stopping because %v", sig)
-		scheduler.Stop()
+		onClose()
 		log.Notice("Stopped agora application")
 		os.Exit(0)
 	}()
@@ -79,8 +89,6 @@ func readConfig() exeggutor.Config {
 	if _, err := flags.Parse(&cfg); err != nil {
 		os.Exit(1)
 	}
-	fmt.Printf("the config:\n%+v\n", cfg)
-	fmt.Println("Loading json config now")
 
 	d, err := os.Open(cfg.ConfigDirectory + "/application.json")
 	if err != nil {
@@ -93,6 +101,16 @@ func readConfig() exeggutor.Config {
 	dec.Decode(&jcfg)
 
 	mergo.Merge(&cfg, jcfg)
+
+	envPort := os.Getenv("PORT")
+	if envPort != "" {
+		p, err := strconv.Atoi(envPort)
+		if err != nil {
+			log.Fatalf("The value of the port environment variable is %v which is not convertible to int", envPort)
+		}
+		cfg.Port = p
+	}
+
 	return cfg
 }
 

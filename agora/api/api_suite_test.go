@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -48,12 +49,13 @@ func (t TestInterface) Get(route string) {
 func (t TestInterface) Post(route string, data interface{}) {
 	m := web.New(t.Context)
 	m.Get(route, t.Handler)
-	request, _ := http.NewRequest("POST", route, nil)
-	request.Header.Set("Content-Type", middlewares.JSONContentType)
+	var d []byte
 	if data != nil {
-		d, _ := json.Marshal(data)
-		request.Write(d)
+		d, _ = json.Marshal(data)
 	}
+	request, _ := http.NewRequest("POST", route, bytes.NewBuffer(d))
+	request.Header.Set("Content-Type", middlewares.JSONContentType)
+
 	response = httptest.NewRecorder()
 	m.ServeHTTP(response, request)
 }

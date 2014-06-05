@@ -25,10 +25,12 @@ github.com/armon/gomdb
 github.com/hashicorp/go-version
 github.com/sdming/gosnow
 bitbucket.org/tebeka/base62
-github.com/gocraft/web
+github.com/codegangsta/negroni
+github.com/julienschmidt/httprouter
 gopkg.in/validator.v1
 github.com/imdario/mergo
 github.com/reverb/go-mesos/mesos
 github.com/reverb/go-utils
 github.com/op/go-logging
+go get github.com/codegangsta/gin
 EOF

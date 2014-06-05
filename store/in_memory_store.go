@@ -16,29 +16,29 @@ func NewEmptyInMemoryStore() KVStore {
 }
 
 // Get retrieve the []byte value from the store for the specified key
-func (i *InMemoryStore) Get(key string) ([]byte, error) {
+func (i InMemoryStore) Get(key string) ([]byte, error) {
 	return i.data[key], nil
 }
 
 // Set sets the specified to the specified value in the store
-func (i *InMemoryStore) Set(key string, value []byte) error {
+func (i InMemoryStore) Set(key string, value []byte) error {
 	i.data[key] = value
 	return nil
 }
 
 // Delete deletes the specified key from the storage
-func (i *InMemoryStore) Delete(key string) error {
+func (i InMemoryStore) Delete(key string) error {
 	delete(i.data, key)
 	return nil
 }
 
 // Size gets the size for all the items contained in this store
-func (i *InMemoryStore) Size() (int, error) {
+func (i InMemoryStore) Size() (int, error) {
 	return len(i.data), nil
 }
 
 // Keys retrieves all the keys currently in the store
-func (i *InMemoryStore) Keys() ([]string, error) {
+func (i InMemoryStore) Keys() ([]string, error) {
 	var keys []string
 	for k := range i.data {
 		if k != "" {
@@ -49,7 +49,7 @@ func (i *InMemoryStore) Keys() ([]string, error) {
 }
 
 // ForEachKey invokes the specified function for each key in the store
-func (i *InMemoryStore) ForEachKey(iterator func(string)) error {
+func (i InMemoryStore) ForEachKey(iterator func(string)) error {
 	for k := range i.data {
 		iterator(k)
 	}
@@ -57,7 +57,7 @@ func (i *InMemoryStore) ForEachKey(iterator func(string)) error {
 }
 
 // ForEachValue invokes the specified function for each value in the store
-func (i *InMemoryStore) ForEachValue(iterator func([]byte)) error {
+func (i InMemoryStore) ForEachValue(iterator func([]byte)) error {
 	for _, v := range i.data {
 		iterator(v)
 	}
@@ -65,7 +65,7 @@ func (i *InMemoryStore) ForEachValue(iterator func([]byte)) error {
 }
 
 // ForEach invokes the specified function for each Key/Value pair in the store
-func (i *InMemoryStore) ForEach(iterator func(*KVData)) error {
+func (i InMemoryStore) ForEach(iterator func(*KVData)) error {
 	for k, v := range i.data {
 		iterator(&KVData{Key: k, Value: v})
 	}
@@ -73,16 +73,16 @@ func (i *InMemoryStore) ForEach(iterator func(*KVData)) error {
 }
 
 // Contains returns true if the key exists in the store
-func (i *InMemoryStore) Contains(key string) (bool, error) {
+func (i InMemoryStore) Contains(key string) (bool, error) {
 	return len(i.data[key]) > 0, nil
 }
 
 // Start starts this store
-func (i *InMemoryStore) Start() error {
+func (i InMemoryStore) Start() error {
 	return nil
 }
 
 // Stop stops this store
-func (i *InMemoryStore) Stop() error {
+func (i InMemoryStore) Stop() error {
 	return nil
 }

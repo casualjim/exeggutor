@@ -7,6 +7,8 @@ import (
 	"github.com/reverb/exeggutor/store"
 )
 
+// func
+
 var _ = Describe("ApplicationsApi", func() {
 
 	var (
@@ -24,7 +26,7 @@ var _ = Describe("ApplicationsApi", func() {
 
 	Context("List all applications", func() {
 		It("returns a 200 Status Code", func() {
-			Mount(ApplicationsContext{Store: data}, (*ApplicationsContext).ListAll).Get("/")
+			Mount(ApplicationsContext{AppStore: data}, (*ApplicationsContext).ListAll).Get("/")
 			Expect(response.Code).To(Equal(200))
 			Expect(response.Body.String()).To(Equal("[]"))
 		})

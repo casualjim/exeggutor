@@ -1,0 +1,3 @@
+[submodule "agora/static"]
+	path = agora/static
+	url = git://github.com/joshdmiller/ng-boilerplate

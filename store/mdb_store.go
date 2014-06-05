@@ -49,7 +49,7 @@ func NewMdbStoreWithSize(path string, maxSize uint64) (KVStore, error) {
 }
 
 // Get retrieve the []byte value from the store for the specified key
-func (i *MdbStore) Get(key string) ([]byte, error) {
+func (i MdbStore) Get(key string) ([]byte, error) {
 	tx, dbis, err := i.startTxn(true)
 	if err != nil {
 		return nil, err
@@ -66,7 +66,7 @@ func (i *MdbStore) Get(key string) ([]byte, error) {
 }
 
 // Set sets the specified to the specified value in the store
-func (i *MdbStore) Set(key string, value []byte) error {
+func (i MdbStore) Set(key string, value []byte) error {
 	tx, dbis, err := i.startTxn(false)
 	if err != nil {
 		return err
@@ -79,7 +79,7 @@ func (i *MdbStore) Set(key string, value []byte) error {
 }
 
 // Delete deletes the specified key from the storage
-func (i *MdbStore) Delete(key string) error {
+func (i MdbStore) Delete(key string) error {
 	tx, dbis, err := i.startTxn(false)
 	if err != nil {
 		return err
@@ -92,14 +92,14 @@ func (i *MdbStore) Delete(key string) error {
 }
 
 // Size gets the size for all the items contained in this store
-func (i *MdbStore) Size() (int, error) {
+func (i MdbStore) Size() (int, error) {
 	var count int
 	err := i.ForEach(func(kv *KVData) { count++ })
 	return count, err
 }
 
 // Keys retrieves all the keys currently in the store
-func (i *MdbStore) Keys() ([]string, error) {
+func (i MdbStore) Keys() ([]string, error) {
 	var keys []string
 
 	err := i.ForEachKey(func(key string) {
@@ -113,21 +113,21 @@ func (i *MdbStore) Keys() ([]string, error) {
 }
 
 // ForEachKey invokes the specified function for each key in the store
-func (i *MdbStore) ForEachKey(iterator func(string)) error {
+func (i MdbStore) ForEachKey(iterator func(string)) error {
 	return i.ForEach(func(kv *KVData) {
 		iterator(kv.Key)
 	})
 }
 
 // ForEachValue invokes the specified function for each value in the store
-func (i *MdbStore) ForEachValue(iterator func([]byte)) error {
+func (i MdbStore) ForEachValue(iterator func([]byte)) error {
 	return i.ForEach(func(kv *KVData) {
 		iterator(kv.Value)
 	})
 }
 
 // ForEach invokes the specified function for each Key/Value pair in the store
-func (i *MdbStore) ForEach(iterator func(*KVData)) error {
+func (i MdbStore) ForEach(iterator func(*KVData)) error {
 	tx, dbis, err := i.startTxn(true)
 	if err != nil {
 		return err
@@ -154,7 +154,7 @@ func (i *MdbStore) ForEach(iterator func(*KVData)) error {
 }
 
 // Contains returns true if the key exists in the store
-func (i *MdbStore) Contains(key string) (bool, error) {
+func (i MdbStore) Contains(key string) (bool, error) {
 	tx, dbis, err := i.startTxn(true)
 	if err != nil {
 		return false, err
@@ -171,7 +171,7 @@ func (i *MdbStore) Contains(key string) (bool, error) {
 }
 
 // Start starts this store
-func (i *MdbStore) Start() error {
+func (i MdbStore) Start() error {
 
 	// Increase the maximum map size
 	if err := i.env.SetMapSize(i.maxSize); err != nil {
@@ -194,13 +194,13 @@ func (i *MdbStore) Start() error {
 }
 
 // Stop is used to gracefully shutdown the MDB store
-func (i *MdbStore) Stop() error {
+func (i MdbStore) Stop() error {
 	i.env.Close()
 	return nil
 }
 
 // startTxn is used to start a transaction and open all the associated sub-databases
-func (i *MdbStore) startTxn(readonly bool) (*mdb.Txn, []mdb.DBI, error) {
+func (i MdbStore) startTxn(readonly bool) (*mdb.Txn, []mdb.DBI, error) {
 	var txFlags uint
 	var dbFlags uint
 	if readonly {

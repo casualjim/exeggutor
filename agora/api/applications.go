@@ -3,10 +3,10 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 
-	"github.com/gocraft/web"
-	"github.com/reverb/exeggutor/scheduler"
+	"github.com/reverb/exeggutor"
 	"github.com/reverb/exeggutor/state"
 	"github.com/reverb/exeggutor/store"
 	// "github.com/reverb/exeggutor/protocol"
@@ -16,6 +16,7 @@ import (
 // APIContext the most generic context for this api
 type APIContext struct {
 	FrameworkIDState *state.FrameworkIDState
+	Config           *exeggutor.Config
 }
 
 type fwID struct {
@@ -23,19 +24,15 @@ type fwID struct {
 }
 
 // ShowFrameworkID returns a json structure for the framework id of this application
-func (m *APIContext) ShowFrameworkID(rw web.ResponseWriter, req *web.Request) {
-	state := scheduler.FrameworkIDState.Get()
-	id := state.GetValue()
-	enc := json.NewEncoder(rw)
-	rw.Header().Set("Content-Type", "application/json;charset=utf-8")
-	enc.Encode(&fwID{Value: &id})
+func (m *APIContext) ShowFrameworkID(rw http.ResponseWriter, req *http.Request, _ map[string]string) {
+
 }
 
-// ApplicationsContext has the context for the applications resource
+// ApplicationsController has the context for the applications resource
 // contains the applications store DAO.
-type ApplicationsContext struct {
-	*APIContext
-	AppStore store.KVStore
+type ApplicationsController struct {
+	apiContext *APIContext
+	AppStore   store.KVStore
 }
 
 // App the app controller, which deals with our applications
@@ -76,12 +73,12 @@ type AppComponent struct {
 	ComponentType string `json:"component_type"`
 }
 
-func renderJSON(rw web.ResponseWriter, data interface{}) {
+func renderJSON(rw http.ResponseWriter, data interface{}) {
 	enc := json.NewEncoder(rw)
 	enc.Encode(data)
 }
 
-func readJSON(req *web.Request, data interface{}) error {
+func readJSON(req *http.Request, data interface{}) error {
 	var dec = json.NewDecoder(req.Body)
 	err := dec.Decode(data)
 	if err != nil {
@@ -90,7 +87,7 @@ func readJSON(req *web.Request, data interface{}) error {
 	return nil
 }
 
-func readAppJSON(req *web.Request) (App, error) {
+func readAppJSON(req *http.Request) (App, error) {
 	var app = App{}
 	err := readJSON(req, &app)
 	if err != nil {
@@ -99,17 +96,17 @@ func readAppJSON(req *web.Request) (App, error) {
 	return app, nil
 }
 
-func invalidJSON(rw web.ResponseWriter) {
+func invalidJSON(rw http.ResponseWriter) {
 	rw.WriteHeader(http.StatusBadRequest)
 	rw.Write([]byte(`{"message":"The json provided in the request is unparseable."}`))
 }
 
-func unknownError(rw web.ResponseWriter) {
+func unknownError(rw http.ResponseWriter) {
 	rw.WriteHeader(http.StatusInternalServerError)
 	rw.Write([]byte(`{"message":"Unkown error"}`))
 }
 
-func notFound(rw web.ResponseWriter, name, id string) {
+func notFound(rw http.ResponseWriter, name, id string) {
 	rw.WriteHeader(http.StatusInternalServerError)
 	if id == "" {
 		rw.Write([]byte(fmt.Sprintf(`{"message":"Couldn't find %s."}`, name)))
@@ -118,7 +115,7 @@ func notFound(rw web.ResponseWriter, name, id string) {
 	rw.Write([]byte(fmt.Sprintf(`{"message":"Couldn't find %s for key '%s'."}`, name, id)))
 }
 
-func validateData(rw web.ResponseWriter, data interface{}) []error {
+func validateData(rw http.ResponseWriter, data interface{}) []error {
 	if valid, errs := validator.Validate(data); !valid {
 		rw.WriteHeader(http.StatusPreconditionFailed)
 		rw.Write([]byte("["))
@@ -143,13 +140,43 @@ func validateData(rw web.ResponseWriter, data interface{}) []error {
 	return nil
 }
 
+// NewApplicationsController creates a new instance of an applications controller
+func NewApplicationsController(context *APIContext) *ApplicationsController {
+	return &ApplicationsController{apiContext: context}
+}
+
+// Start starts this module, configuring datastores etc
+func (a *ApplicationsController) Start() {
+	var err error
+	appStore, err := store.NewMdbStore(a.apiContext.Config.DataDirectory + "/applications")
+	appStore.Start()
+	if err != nil {
+		log.Fatalf("Couldn't initialize app database at %s/applications, because %v", a.apiContext.Config.DataDirectory, err)
+	}
+	a.AppStore = appStore
+}
+
+// Stop stops this module and cleans up any temp state it has
+func (a *ApplicationsController) Stop() {
+	if a.AppStore != nil {
+		a.AppStore.Stop()
+		a.AppStore = nil
+	}
+}
+
 // ListAll lists all the apps currently known to this application.
-func (a *ApplicationsContext) ListAll(rw web.ResponseWriter, req *web.Request) {
+func (a *ApplicationsController) ListAll(rw http.ResponseWriter, req *http.Request, _ map[string]string) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recovered in f", r)
+		}
+	}()
 	var arr [][]byte
 	// Can't write in one go, need to get the error first
 	err := a.AppStore.ForEachValue(func(data []byte) {
 		arr = append(arr, data)
 	})
+
 	if err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		rw.Write([]byte(fmt.Sprintf(`{"message":"Unkown error, %v"}`, err)))
@@ -170,8 +197,8 @@ func (a *ApplicationsContext) ListAll(rw web.ResponseWriter, req *web.Request) {
 }
 
 // ShowOne shows a single application with all its properties
-func (a *ApplicationsContext) ShowOne(rw web.ResponseWriter, req *web.Request) {
-	data, err := a.AppStore.Get(req.PathParams["name"])
+func (a *ApplicationsController) ShowOne(rw http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	data, err := a.AppStore.Get(pathParams["name"])
 
 	if err != nil {
 		unknownError(rw)
@@ -179,7 +206,7 @@ func (a *ApplicationsContext) ShowOne(rw web.ResponseWriter, req *web.Request) {
 	}
 
 	if data == nil {
-		notFound(rw, "App", req.PathParams["name"])
+		notFound(rw, "App", pathParams["name"])
 		return
 	}
 
@@ -188,7 +215,7 @@ func (a *ApplicationsContext) ShowOne(rw web.ResponseWriter, req *web.Request) {
 }
 
 // Save saves an app in the data store
-func (a *ApplicationsContext) Save(rw web.ResponseWriter, req *web.Request) {
+func (a *ApplicationsController) Save(rw http.ResponseWriter, req *http.Request, _ map[string]string) {
 	app, err := readAppJSON(req)
 	if err != nil {
 		invalidJSON(rw)
@@ -213,8 +240,8 @@ func (a *ApplicationsContext) Save(rw web.ResponseWriter, req *web.Request) {
 }
 
 // Delete deletes a definition from this service
-func (a *ApplicationsContext) Delete(rw web.ResponseWriter, req *web.Request) {
-	err := a.AppStore.Delete(req.PathParams["name"])
+func (a *ApplicationsController) Delete(rw http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	err := a.AppStore.Delete(pathParams["name"])
 	if err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		rw.Write([]byte(fmt.Sprintf(`{"message":"Unkown error, %v"}`, err)))

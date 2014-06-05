@@ -16,8 +16,9 @@ import (
 
 var log = logging.MustGetLogger("exeggutor.scheduler")
 
+//SchedulerConfig contains the context for this scheduler
 type SchedulerConfig struct {
-	ZookeeperUrl, MesosMaster, DataDirectory string
+	ZookeeperURL, MesosMaster, DataDirectory string
 }
 
 var (
@@ -36,17 +37,15 @@ var launched = false
 func resourceOffer(driver *mesos.SchedulerDriver, offers []mesos.Offer) {
 	log.Notice("Received %d offers.", len(offers))
 
-	// executor :=
-
 	for i := range offers {
 		offer := offers[i]
 		if !launched {
 			launched = true
-			taskId, _ := flake.NewFlake().Next()
+			taskID, _ := flake.NewFlake().Next()
 			task := mesos.TaskInfo{
 				Name: proto.String("exeggutor-go-task"),
 				TaskId: &mesos.TaskID{
-					Value: proto.String("exeggutor-go-task-" + taskId),
+					Value: proto.String("exeggutor-go-task-" + taskID),
 				},
 				SlaveId: offer.SlaveId,
 				Command: &mesos.CommandInfo{
@@ -75,7 +74,7 @@ func resourceOffer(driver *mesos.SchedulerDriver, offers []mesos.Offer) {
 
 // Start initializes the scheduler and everything it depends on
 func Start(config SchedulerConfig) {
-	uri := config.ZookeeperUrl
+	uri := config.ZookeeperURL
 	hosts, node, err := rvb_zk.ParseZookeeperUri(uri)
 	if err != nil {
 		log.Error("%v", err)
@@ -143,22 +142,22 @@ func Start(config SchedulerConfig) {
 			ResourceOffers: resourceOffer,
 		},
 	}
-	err = driver.Init()
-	if err != nil {
-		log.Panicf("Couldn't initialize the mesos scheduler driver, because %v", err)
-	}
-	err = driver.Start()
-	if err != nil {
-		log.Panicf("Couldn't start the mesos scheduler driver, because %v", err)
-	}
+	// err = driver.Init()
+	// if err != nil {
+	// 	log.Panicf("Couldn't initialize the mesos scheduler driver, because %v", err)
+	// }
+	// err = driver.Start()
+	// if err != nil {
+	// 	log.Panicf("Couldn't start the mesos scheduler driver, because %v", err)
+	// }
 	log.Notice("Started the exeggutor scheduler")
 }
 
 // Stop stops the mesos scheduler driver
 func Stop() {
 
-	driver.Stop(false)
-	driver.Destroy()
+	// driver.Stop(false)
+	// driver.Destroy()
 	FrameworkIDState.Stop()
 	// Curator.Close()
 
