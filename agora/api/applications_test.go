@@ -177,6 +177,16 @@ var _ = Describe("ApplicationsApi", func() {
 			server.Get("/application/" + expected.Name)
 			Expect(response.Code).To(Equal(404))
 		})
+
+		It("returns 204 when the doesn't exist", func() {
+			expected := testApp("blah-service", "blah", context)
+
+			server.Delete("/applications/" + expected.Name)
+			Expect(response.Code).To(Equal(204))
+
+			server.Get("/application/" + expected.Name)
+			Expect(response.Code).To(Equal(404))
+		})
 	})
 
 })

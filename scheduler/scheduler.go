@@ -138,22 +138,22 @@ func Start(config exeggutor.Config) {
 			ResourceOffers: resourceOffer,
 		},
 	}
-	// err = driver.Init()
-	// if err != nil {
-	// 	log.Panicf("Couldn't initialize the mesos scheduler driver, because %v", err)
-	// }
-	// err = driver.Start()
-	// if err != nil {
-	// 	log.Panicf("Couldn't start the mesos scheduler driver, because %v", err)
-	// }
+	err = driver.Init()
+	if err != nil {
+		log.Panicf("Couldn't initialize the mesos scheduler driver, because %v", err)
+	}
+	err = driver.Start()
+	if err != nil {
+		log.Panicf("Couldn't start the mesos scheduler driver, because %v", err)
+	}
 	log.Notice("Started the exeggutor scheduler")
 }
 
 // Stop stops the mesos scheduler driver
 func Stop() {
 
-	// driver.Stop(false)
-	// driver.Destroy()
+	driver.Stop(false)
+	driver.Destroy()
 	FrameworkIDState.Stop()
 	// Curator.Close()
 

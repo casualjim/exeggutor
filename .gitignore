@@ -92,3 +92,4 @@ junit_*
 test-reports/
 agora/gin-bin
 tags
+tmp

@@ -36,9 +36,7 @@ type AppComponent struct {
 	// Ports a map of scheme to port
 	Ports map[string]int `json:"ports" valid:"Required"`
 	// Version the version of this component
-	Version string `json:"version" valid:"Match(/^\d+\.\d+\.d+/)"`
-	// WorkDir the working directory of this component
-	WorkDir string `json:"work_dir,omitempty"`
+	Version string `json:"version" valid:"Required,Match(/^\d+\.\d+\.d+/)"`
 	// Distribution the distribution type of this component (PACKAGE, DOCKER, SCRIPT, FAT_JAR)
 	Distribution string `json:"distribution"`
 	// ComponentType the type of component this is (SERVICE, TASK, CRON, SPARK_JOB)

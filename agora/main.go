@@ -42,11 +42,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("Couldn't initialize app database at %s/applications, because %v", config.DataDirectory, err)
 	}
+	appStore.Start()
 	context.FrameworkIDState = scheduler.FrameworkIDState
 	context.AppStore = appStore
 
 	applicationsController := api.NewApplicationsController(&context)
-	applicationsController.Start()
 	mesosController := api.NewMesosController()
 
 	router := httprouter.New()
@@ -59,7 +59,7 @@ func main() {
 	router.GET("/api/mesos/fwid", mesosController.ShowFrameworkID)
 
 	n := negroni.New()
-	n.Use(middlewares.NewJSONOnlyAPI())
+	// n.Use(middlewares.NewJSONOnlyAPI())
 	n.Use(middlewares.NewRecovery())
 	n.Use(middlewares.NewLogger())
 	n.Use(negroni.NewStatic(http.Dir("static/build")))
