@@ -1,6 +1,7 @@
 <div class="row">
   <h1>Applications</h1>
   <div class="col-sm-12">
+    <button ng-click="createTestApp()" class="btn btn-default btn-sm">Create TestApp</button>
     Filter: <input ng-model="appQuery" />
   </div>
   <div class="col-sm-12">
@@ -26,7 +27,7 @@
               <div class="row">
                 <div class="col-sm-10 col-sm-offset-2">
                   <ul ng-repeat="comp in currentApp.components">
-                    <li><a ng-click="selectComponent(comp)">{{comp.Name}}</a>
+                    <li><a ng-click="selectComponent(comp)">{{comp.name}}</a>
                   </ul>
                 </div>
                 <div class="col-sm-10 col-sm-offset-2">
@@ -37,11 +38,11 @@
                         <input id="compName" class="form-control" type="text" ng-model="currentComponent.name" placeholder="Component Name" required />
                         <span class="help-block">The name of the component, if you only have one this is probably the same as the application name</span>
                       </div>
-                    </div>  
+                    </div>
                     <div class="form-group">
                       <label for="compCpus" class="col-sm-2 control-label">CPUS:</label>
                       <div  class="col-sm-4">
-                        <input id="compCpus" class="form-control" type="text" ng-model="currentComponent.cpu" placeholder="Component CPUS" required />
+                        <input id="compCpus" class="form-control" type="text" ng-model="currentComponent.cpus" placeholder="Component CPUS" required />
                       </div>
                       <label for="compMem" class="col-sm-2 control-label">Memory:</label>
                       <div  class="col-sm-4">
@@ -50,23 +51,95 @@
                       <div class="col-sm-4 col-sm-offset-2"><span class="help-block">The number of cpu cores</span></div>
                       <div class="col-sm-4 col-sm-offset-2"><span class="help-block">The amount of memory</span></div>
 
-                    </div>  
+                    </div>
                     <div class="form-group">
                       <label for="distUrl" class="col-sm-2 control-label">Dist:</label>
                       <div  class="col-sm-10">
                         <input id="distUrl" class="form-control" type="text" ng-model="currentComponent.dist_url" placeholder="Component Dist Url (https://docker.helloreverb.com/veggr-service)" required />
                         <span class="help-block">The url of the distribution, this can be the url to an rpm package: rpm://veggr-service, docker://veggr-service etc.</span>
                       </div>
-                    </div>  
-                   
+                    </div>
+
+                     <div class="form-group">
+                      <label for="compCommand" class="col-sm-2 control-label">Dist:</label>
+                      <div  class="col-sm-10">
+                        <input id="compCommand" class="form-control" type="text" ng-model="currentComponent.command" placeholder="The command to run default: (./bin/component-name(.sh)?)" required />
+                        <span class="help-block">The url of the distribution, this can be the url to an rpm package: rpm://veggr-service, docker://veggr-service etc.</span>
+                      </div>
+                    </div>
+
+                    <div class="form-group">
+                      <label for="compEnv" class="col-sm-2 control-label">Env vars:</label>
+                      <div  class="col-sm-10">
+                        <ul ng-repeat="(key, value) in currentComponent.env">
+                          <li>
+                            <div class="row">
+                              <div class="col-sm-6">
+                                <input ng-model="key" />
+                              </div>
+                            </div>
+                              <div class="col-sm-6">
+                                <input ng-model="value" />
+                              </div>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    <div class="form-group">
+                      <label for="compPorts" class="col-sm-2 control-label">Scheme/port:</label>
+                      <div  class="col-sm-10">
+                        <ul ng-repeat="(key, value) in currentComponent.ports">
+                          <li>
+                            <div class="row">
+                              <div class="col-sm-6">
+                                <input ng-model="key" />
+                              </div>
+                            </div>
+                              <div class="col-sm-6">
+                                <input ng-model="value" />
+                              </div>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+
+                     <div class="form-group">
+                      <label for="compVersion" class="col-sm-2 control-label">Version:</label>
+                      <div  class="col-sm-10">
+                        <input id="compVersion" class="form-control" type="text" ng-model="currentComponent.version" placeholder="0.0.1" required />
+                        <span class="help-block">The version of this component</span>
+                      </div>
+                    </div>
+
+                    <div class="form-group">
+                      <label for="compDistribution" class="col-sm-2 control-label">Distribution:</label>
+                      <div  class="col-sm-10">
+                        <input id="compDistribution" class="form-control" type="text" ng-model="currentComponent.distribution" placeholder="package" required />
+                        <span class="help-block">The distribution type of this component (package, docker, script, fat_jar)</span>
+                      </div>
+                    </div>
+
+                    <div class="form-group">
+                      <label for="compType" class="col-sm-2 control-label">Distribution:</label>
+                      <div  class="col-sm-10">
+                        <input id="compType" class="form-control" type="text" ng-model="currentComponent.component_type" placeholder="service" required />
+                        <span class="help-block">The type of this component (service, tast, cron, spark)</span>
+                      </div>
+                    </div>
+
                   </fieldset>
-                  
+
                 </div>
               </div>
             </div>
           </div>
-          <button ng-click="update(currentApp)" type="submit" class="btn btn-primary">Save</button>
-        </fieldset>      
+          <div class="form-group">
+            <div class="col-sm-offset-2 col-sm-10">
+              <button ng-click="update(currentApp)" type="submit" class="btn btn-primary">Save</button>
+            </div>
+          </div>
+        </fieldset>
       </form>
     </div>
   </div>

@@ -161,15 +161,6 @@ func (mj *AppComponent) MarshalJSONBuf(buf *bytes.Buffer) error {
 	}
 	buf.WriteString(`"version":`)
 	ffjson_WriteJsonString(buf, mj.Version)
-	if len(mj.WorkDir) != 0 {
-		if first == true {
-			first = false
-		} else {
-			buf.WriteString(`,`)
-		}
-		buf.WriteString(`"work_dir":`)
-		ffjson_WriteJsonString(buf, mj.WorkDir)
-	}
 	buf.WriteString(`}`)
 	return nil
 }

@@ -27,6 +27,7 @@ func readJSON(req *http.Request, data interface{}) error {
 	var dec = json.NewDecoder(req.Body)
 	err := dec.Decode(data)
 	if err != nil {
+		log.Fatal("failed to decode:", err)
 		return err
 	}
 	return nil

@@ -26,7 +26,7 @@ type AppComponent struct {
 	Cpus int8 `json:"cpus" valid:"Range(1,100)"`
 	// Mem an integer number representing the number of megabytes this component needs
 	// to function properly
-	Mem int8 `json:"mem" valid:"Min(1)"`
+	Mem int16 `json:"mem" valid:"Min(1)"`
 	// DistUrl the url to retrieve the package from
 	DistURL string `json:"dist_url" valid:"Required;MinSize(10);Match(/^\w+:\/\//)"`
 	// Command the command to run for starting this component

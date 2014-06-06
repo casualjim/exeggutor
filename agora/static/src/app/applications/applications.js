@@ -49,6 +49,12 @@ angular.module( 'agora.applications', [
 
   $scope.selectApp = function selectApp(app) {
     $scope.currentApp = app;
+    $scope.currentComponent = app.components[0];
+  };
+
+
+  $scope.selectComponent = function selectComponent(comp) {
+    $scope.currentComponent = comp;
   };
 
 
@@ -56,6 +62,26 @@ angular.module( 'agora.applications', [
     console.log("updating app: " + app.name);
   };
 
+  $scope.createTestApp = function createTestApp() {
+    var app = new Application({
+      name: "test-app",
+      components: [
+        {
+          name: "test-app-service",
+          cpus: 1,
+          mem: 256,
+          dist_url: "hdfs://[namenode]/applications/test-app-service.jar",
+          ports: {
+            "http": 8000
+          },
+          version: "0.0.1",
+          distribution: "fat_jar",
+          component_type: "service"
+        }
+      ]
+    });
+    Application.save(app);
+  };
 
 
 })
