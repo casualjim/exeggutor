@@ -3,6 +3,7 @@ package scheduler
 import (
 	"time"
 
+	"github.com/reverb/exeggutor"
 	"github.com/reverb/exeggutor/state"
 	"github.com/reverb/exeggutor/store"
 	"github.com/reverb/go-utils/flake"
@@ -15,11 +16,6 @@ import (
 )
 
 var log = logging.MustGetLogger("exeggutor.scheduler")
-
-//SchedulerConfig contains the context for this scheduler
-type SchedulerConfig struct {
-	ZookeeperURL, MesosMaster, DataDirectory string
-}
 
 var (
 	// FrameworkIDState the zookeeper backed framework id state for this application
@@ -73,8 +69,8 @@ func resourceOffer(driver *mesos.SchedulerDriver, offers []mesos.Offer) {
 }
 
 // Start initializes the scheduler and everything it depends on
-func Start(config SchedulerConfig) {
-	uri := config.ZookeeperURL
+func Start(config exeggutor.Config) {
+	uri := config.ZookeeperUrl
 	hosts, node, err := rvb_zk.ParseZookeeperUri(uri)
 	if err != nil {
 		log.Error("%v", err)

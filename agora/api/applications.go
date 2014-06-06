@@ -6,71 +6,16 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/reverb/exeggutor"
-	"github.com/reverb/exeggutor/state"
-	"github.com/reverb/exeggutor/store"
 	// "github.com/reverb/exeggutor/protocol"
-	"gopkg.in/validator.v1"
+	"github.com/astaxie/beego/validation"
+	"github.com/reverb/exeggutor/store"
 )
-
-// APIContext the most generic context for this api
-type APIContext struct {
-	FrameworkIDState *state.FrameworkIDState
-	Config           *exeggutor.Config
-}
-
-type fwID struct {
-	Value *string `json:"frameworkId"`
-}
-
-// ShowFrameworkID returns a json structure for the framework id of this application
-func (m *APIContext) ShowFrameworkID(rw http.ResponseWriter, req *http.Request, _ map[string]string) {
-
-}
 
 // ApplicationsController has the context for the applications resource
 // contains the applications store DAO.
 type ApplicationsController struct {
 	apiContext *APIContext
 	AppStore   store.KVStore
-}
-
-// App the app controller, which deals with our applications
-type App struct {
-	// Name represents the name of the application
-	Name string `json:"name" validator:"min=3,max=50,regexp=^[a-z0-9-]{3,50}$"`
-	// Components represent the components this app exists out of
-	Components []AppComponent `json:"components" validator:"min=0"`
-}
-
-// AppComponent a component of an application,
-// in many cases there will be only one of these
-// but some services require nginx etc
-type AppComponent struct {
-	// Name the name of the application, this is the unique identifier for an application
-	Name string `json:"name" validator:"min=3,max=50,regexp=^[a-z0-9-]{3,50}$"`
-	// Cpus an integer number representing a percentage of cpus it should use.
-	// This is a relative scale to other services.
-	Cpus int8 `json:"cpus" validator:"min=1,max=100"`
-	// Mem an integer number representing the number of megabytes this component needs
-	// to function properly
-	Mem int8 `json:"mem" validator:"min=1"`
-	// DistUrl the url to retrieve the package from
-	DistURL string `json:"dist_url" validator:"min=10"`
-	// Command the command to run for starting this component
-	Command string `json:"command,omitempty"`
-	// Env a map with environment variables
-	Env map[string]string `json:"env"`
-	// Ports a map of scheme to port
-	Ports map[string]int `json:"ports"`
-	// Version the version of this component
-	Version string `json:"version" validator:"regexp=^\d+\.\d+\.d+"`
-	// WorkDir the working directory of this component
-	WorkDir string `json:"work_dir,omitempty"`
-	// Distribution the distribution type of this component (PACKAGE, DOCKER, SCRIPT, FAT_JAR)
-	Distribution string `json:"distribution"`
-	// ComponentType the type of component this is (SERVICE, TASK, CRON, SPARK_JOB)
-	ComponentType string `json:"component_type"`
 }
 
 func renderJSON(rw http.ResponseWriter, data interface{}) {
@@ -106,8 +51,14 @@ func unknownError(rw http.ResponseWriter) {
 	rw.Write([]byte(`{"message":"Unkown error"}`))
 }
 
-func notFound(rw http.ResponseWriter, name, id string) {
+func unknownErrorWithMessge(rw http.ResponseWriter, err error) {
+	log.Printf("There was an error: %v\n", err)
 	rw.WriteHeader(http.StatusInternalServerError)
+	rw.Write([]byte(fmt.Sprintf(`{"message":"Unkown error: %v"}`, err)))
+}
+
+func notFound(rw http.ResponseWriter, name, id string) {
+	rw.WriteHeader(http.StatusNotFound)
 	if id == "" {
 		rw.Write([]byte(fmt.Sprintf(`{"message":"Couldn't find %s."}`, name)))
 		return
@@ -115,62 +66,38 @@ func notFound(rw http.ResponseWriter, name, id string) {
 	rw.Write([]byte(fmt.Sprintf(`{"message":"Couldn't find %s for key '%s'."}`, name, id)))
 }
 
-func validateData(rw http.ResponseWriter, data interface{}) []error {
-	if valid, errs := validator.Validate(data); !valid {
-		rw.WriteHeader(http.StatusPreconditionFailed)
-		rw.Write([]byte("["))
-
-		var collected []error
-		// values not valid, deal with errors here
-		for k, v := range errs {
-			isFirst := true
-			collected = append(collected, v...)
-			for _, err := range v {
-				if !isFirst {
-					rw.Write([]byte(","))
-				}
-				isFirst = false
-				fmtStr := `{"message":"%s","field":"%s"}`
-				rw.Write([]byte(fmt.Sprintf(fmtStr, err.Error(), k)))
-			}
-		}
-		rw.Write([]byte("]"))
-		return collected
+func validateData(rw http.ResponseWriter, data interface{}) (bool, error) {
+	valid := validation.Validation{}
+	b, err := valid.Valid(data)
+	if err != nil {
+		unknownErrorWithMessge(rw, err)
+		return b, err
 	}
-	return nil
+	if !b {
+		rw.WriteHeader(422)
+		rw.Write([]byte("["))
+		isFirst := true
+
+		for _, err := range valid.Errors {
+			if !isFirst {
+				rw.Write([]byte(","))
+			}
+			isFirst = false
+			fmtStr := `{"message":"%s","field":"%s"}`
+			rw.Write([]byte(fmt.Sprintf(fmtStr, err.Message, err.Field)))
+		}
+		return b, nil
+	}
+	return true, nil
 }
 
 // NewApplicationsController creates a new instance of an applications controller
 func NewApplicationsController(context *APIContext) *ApplicationsController {
-	return &ApplicationsController{apiContext: context}
-}
-
-// Start starts this module, configuring datastores etc
-func (a *ApplicationsController) Start() {
-	var err error
-	appStore, err := store.NewMdbStore(a.apiContext.Config.DataDirectory + "/applications")
-	appStore.Start()
-	if err != nil {
-		log.Fatalf("Couldn't initialize app database at %s/applications, because %v", a.apiContext.Config.DataDirectory, err)
-	}
-	a.AppStore = appStore
-}
-
-// Stop stops this module and cleans up any temp state it has
-func (a *ApplicationsController) Stop() {
-	if a.AppStore != nil {
-		a.AppStore.Stop()
-		a.AppStore = nil
-	}
+	return &ApplicationsController{apiContext: context, AppStore: context.AppStore}
 }
 
 // ListAll lists all the apps currently known to this application.
 func (a *ApplicationsController) ListAll(rw http.ResponseWriter, req *http.Request, _ map[string]string) {
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Println("Recovered in f", r)
-		}
-	}()
 	var arr [][]byte
 	// Can't write in one go, need to get the error first
 	err := a.AppStore.ForEachValue(func(data []byte) {
@@ -185,8 +112,8 @@ func (a *ApplicationsController) ListAll(rw http.ResponseWriter, req *http.Reque
 
 	rw.WriteHeader(http.StatusOK)
 	rw.Write([]byte("["))
+	isFirst := true
 	for _, v := range arr {
-		isFirst := true
 		if !isFirst {
 			rw.Write([]byte(","))
 		}
@@ -201,7 +128,7 @@ func (a *ApplicationsController) ShowOne(rw http.ResponseWriter, req *http.Reque
 	data, err := a.AppStore.Get(pathParams["name"])
 
 	if err != nil {
-		unknownError(rw)
+		unknownErrorWithMessge(rw, err)
 		return
 	}
 
@@ -211,7 +138,7 @@ func (a *ApplicationsController) ShowOne(rw http.ResponseWriter, req *http.Reque
 	}
 
 	rw.WriteHeader(http.StatusOK)
-	renderJSON(rw, data)
+	rw.Write(data)
 }
 
 // Save saves an app in the data store
@@ -222,14 +149,14 @@ func (a *ApplicationsController) Save(rw http.ResponseWriter, req *http.Request,
 		return
 	}
 
-	errs := validateData(rw, app)
-	if errs != nil {
+	valid, err := validateData(rw, app)
+	if !valid || err != nil {
 		return // rendering happened in the validateData method, we just want to get out
 	}
 
 	data, err := json.Marshal(app)
 	if err != nil {
-		unknownError(rw)
+		unknownErrorWithMessge(rw, err)
 		return
 	}
 

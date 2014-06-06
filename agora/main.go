@@ -19,6 +19,7 @@ import (
 	"github.com/reverb/exeggutor/agora/api"
 	"github.com/reverb/exeggutor/agora/middlewares"
 	"github.com/reverb/exeggutor/scheduler"
+	"github.com/reverb/exeggutor/store"
 )
 
 var log = logging.MustGetLogger("exeggutor.main")
@@ -35,14 +36,15 @@ func init() {
 }
 
 func main() {
-	schedulerConfig := scheduler.SchedulerConfig{
-		ZookeeperURL:  config.ZookeeperUrl,
-		MesosMaster:   config.MesosMaster,
-		DataDirectory: config.DataDirectory,
-	}
 
-	scheduler.Start(schedulerConfig)
+	scheduler.Start(config)
+	appStore, err := store.NewMdbStore(config.DataDirectory + "/applications")
+	if err != nil {
+		log.Fatalf("Couldn't initialize app database at %s/applications, because %v", config.DataDirectory, err)
+	}
 	context.FrameworkIDState = scheduler.FrameworkIDState
+	context.AppStore = appStore
+
 	applicationsController := api.NewApplicationsController(&context)
 	applicationsController.Start()
 	mesosController := api.NewMesosController()
@@ -58,14 +60,14 @@ func main() {
 
 	n := negroni.New()
 	n.Use(middlewares.NewJSONOnlyAPI())
-	n.Use(negroni.NewRecovery())
+	n.Use(middlewares.NewRecovery())
 	n.Use(middlewares.NewLogger())
 	n.Use(negroni.NewStatic(http.Dir("static/build")))
 	n.UseHandler(router)
 
 	trapExit(func() {
 		scheduler.Stop()
-		applicationsController.Stop()
+		appStore.Stop()
 	})
 
 	n.Run(fmt.Sprintf("%s:%v", config.Interface, config.Port))

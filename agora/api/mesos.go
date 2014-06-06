@@ -16,6 +16,10 @@ func NewMesosController() *MesosController {
 	return &MesosController{}
 }
 
+type fwID struct {
+	Value *string `json:"frameworkId"`
+}
+
 //ShowFrameworkID shows the framework id of this application
 func (a MesosController) ShowFrameworkID(rw http.ResponseWriter, req *http.Request, _ map[string]string) {
 	state := scheduler.FrameworkIDState.Get()
