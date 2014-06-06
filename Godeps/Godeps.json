@@ -1,0 +1,83 @@
+{
+	"ImportPath": "github.com/reverb/exeggutor",
+	"GoVersion": "go1.2.2",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "bitbucket.org/tebeka/base62",
+			"Comment": "v0.2.0-2",
+			"Rev": "b3433bc179c6e1d59fb151cf443e73caa0d4c31f"
+		},
+		{
+			"ImportPath": "code.google.com/p/goprotobuf/proto",
+			"Comment": "go.r60-142",
+			"Rev": "556b9de4249f50f311584f75324a45e426324a19"
+		},
+		{
+			"ImportPath": "github.com/armon/gomdb",
+			"Rev": "a8e036c4dabe7437014ecf9dbc03c6f6f0766ef8"
+		},
+		{
+			"ImportPath": "github.com/astaxie/beego/validation",
+			"Comment": "v1.2.0-43-g3e4c015",
+			"Rev": "3e4c01598298f31f62441af9b6a1fb520e4ec285"
+		},
+		{
+			"ImportPath": "github.com/codegangsta/negroni",
+			"Rev": "46a638d98be2af4fa6de146b5d28a9d9904a3949"
+		},
+		{
+			"ImportPath": "github.com/imdario/mergo",
+			"Comment": "0.1.2",
+			"Rev": "c5d7f4f7b6313ef62a4a9c913b8085e1982c8dfb"
+		},
+		{
+			"ImportPath": "github.com/jessevdk/go-flags",
+			"Comment": "v1-172-g8ec9564",
+			"Rev": "8ec9564882e7923e632f012761c81c46dcf5bec1"
+		},
+		{
+			"ImportPath": "github.com/julienschmidt/httprouter",
+			"Rev": "9b1fa09c72280f35b53536e843664c0c205987c8"
+		},
+		{
+			"ImportPath": "github.com/onsi/ginkgo",
+			"Comment": "v1.0.0-9-g99ce275",
+			"Rev": "99ce27541cce15de9dd2e287f327507f8e2a1e94"
+		},
+		{
+			"ImportPath": "github.com/onsi/gomega",
+			"Rev": "bdbf788226cb7e227917ca92805c204112f30e19"
+		},
+		{
+			"ImportPath": "github.com/op/go-logging",
+			"Rev": "a501b20b448435cb5117a49fbfda7ff64adeb2cd"
+		},
+		{
+			"ImportPath": "github.com/rcrowley/go-metrics",
+			"Rev": "6ffbdf30ba7072d9f9e2afe57ad651a75a544a83"
+		},
+		{
+			"ImportPath": "github.com/reverb/go-mesos/mesos",
+			"Rev": "e6204440dd9761ad57fafbc53fc438902d323bb5"
+		},
+		{
+			"ImportPath": "github.com/reverb/go-utils/flake",
+			"Rev": "709b039ced24c23499b87aae6057221eefbd5753"
+		},
+		{
+			"ImportPath": "github.com/reverb/go-utils/rvb_zk",
+			"Rev": "709b039ced24c23499b87aae6057221eefbd5753"
+		},
+		{
+			"ImportPath": "github.com/samuel/go-zookeeper/zk",
+			"Rev": "041700315ab94d5f506317d8798adc9a6674c547"
+		},
+		{
+			"ImportPath": "gopkg.in/check.v1",
+			"Rev": "871360013c92e1c715c2de6d06b54899468a8a2d"
+		}
+	]
+}
