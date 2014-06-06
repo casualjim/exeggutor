@@ -7,12 +7,22 @@ Exeggutor is a project that contains several different smaller services, to hand
 
 ## For development you'll need several tools
 
+
+
 Create a folder on your file system. This will be root of your go workspace but not the project.
 
 ```bash
 mkdir -p ~/projects/wordnik/go
 export GOPATH=$HOME/projects/wordnik/go
 export PATH=$GOPATH/bin:$PATH
+```
+
+There is a Makefile included that has a setup task and that will download all the necessary dependencies. Once you've completed the above steps
+
+```bash
+git clone --recursive https://github.com/reverb/exeggutor $GOPATH/src/github.com/reverb/exeggutor
+cd $GOPATH/src/github.com/reverb/exeggutor
+make setup
 ```
 
 We'll return to this a little bit later
@@ -136,8 +146,7 @@ Received task status: Go task is done!
 Launching task: 1
 Received task status: Go task is running!
 Received task status: Go task is done!
-
-
+```
 
 
 
