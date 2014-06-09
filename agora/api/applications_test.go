@@ -16,7 +16,7 @@ import (
 func testApp(name, component string, context *APIContext) App {
 	app := App{
 		Name: name,
-		Components: []AppComponent{AppComponent{
+		Components: map[string]*AppComponent{component: &AppComponent{
 			Name:          component,
 			Cpus:          1,
 			Mem:           1,
@@ -24,8 +24,6 @@ func testApp(name, component string, context *APIContext) App {
 			Command:       "./" + component,
 			Ports:         map[string]int{"HTTP": 8000},
 			Version:       "0.0.1",
-			WorkDir:       context.Config.WorkDirectory,
-			Distribution:  "package",
 			ComponentType: "service",
 		}},
 	}

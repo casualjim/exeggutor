@@ -28,7 +28,7 @@ var (
 	driver mesos.SchedulerDriver
 )
 
-var launched = false
+var launched = true
 
 func resourceOffer(driver *mesos.SchedulerDriver, offers []mesos.Offer) {
 	log.Notice("Received %d offers.", len(offers))
