@@ -26,6 +26,7 @@
 		},
 		{
 			"ImportPath": "github.com/codegangsta/negroni",
+			"Comment": "v0.1",
 			"Rev": "46a638d98be2af4fa6de146b5d28a9d9904a3949"
 		},
 		{
@@ -40,7 +41,7 @@
 		},
 		{
 			"ImportPath": "github.com/julienschmidt/httprouter",
-			"Rev": "9b1fa09c72280f35b53536e843664c0c205987c8"
+			"Rev": "1e225c396e985fe866299c593f0bfa9e988040f2"
 		},
 		{
 			"ImportPath": "github.com/onsi/ginkgo",
@@ -61,7 +62,7 @@
 		},
 		{
 			"ImportPath": "github.com/reverb/go-mesos/mesos",
-			"Rev": "e6204440dd9761ad57fafbc53fc438902d323bb5"
+			"Rev": "f52d1cfe428a403beb9de27c8c7aac003285b8d0"
 		},
 		{
 			"ImportPath": "github.com/reverb/go-utils/flake",
