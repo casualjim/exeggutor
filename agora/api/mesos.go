@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/julienschmidt/httprouter"
 	"github.com/reverb/exeggutor/scheduler"
 )
 
@@ -21,7 +22,7 @@ type fwID struct {
 }
 
 //ShowFrameworkID shows the framework id of this application
-func (a MesosController) ShowFrameworkID(rw http.ResponseWriter, req *http.Request, _ map[string]string) {
+func (a MesosController) ShowFrameworkID(rw http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	state := scheduler.FrameworkIDState.Get()
 	id := state.GetValue()
 	enc := json.NewEncoder(rw)

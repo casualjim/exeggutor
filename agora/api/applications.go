@@ -8,6 +8,7 @@ import (
 
 	// "github.com/reverb/exeggutor/protocol"
 	"github.com/astaxie/beego/validation"
+	"github.com/julienschmidt/httprouter"
 	"github.com/reverb/exeggutor/store"
 )
 
@@ -101,7 +102,7 @@ func NewApplicationsController(context *APIContext) *ApplicationsController {
 }
 
 // ListAll lists all the apps currently known to this application.
-func (a *ApplicationsController) ListAll(rw http.ResponseWriter, req *http.Request, _ map[string]string) {
+func (a *ApplicationsController) ListAll(rw http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	var arr [][]byte
 	// Can't write in one go, need to get the error first
 	err := a.AppStore.ForEachValue(func(data []byte) {
@@ -128,8 +129,9 @@ func (a *ApplicationsController) ListAll(rw http.ResponseWriter, req *http.Reque
 }
 
 // ShowOne shows a single application with all its properties
-func (a *ApplicationsController) ShowOne(rw http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-	data, err := a.AppStore.Get(pathParams["name"])
+func (a *ApplicationsController) ShowOne(rw http.ResponseWriter, req *http.Request, pathParams httprouter.Params) {
+	pparam := pathParams.ByName("name")
+	data, err := a.AppStore.Get(pparam)
 
 	if err != nil {
 		unknownErrorWithMessge(rw, err)
@@ -137,7 +139,7 @@ func (a *ApplicationsController) ShowOne(rw http.ResponseWriter, req *http.Reque
 	}
 
 	if data == nil {
-		notFound(rw, "App", pathParams["name"])
+		notFound(rw, "App", pparam)
 		return
 	}
 
@@ -146,7 +148,7 @@ func (a *ApplicationsController) ShowOne(rw http.ResponseWriter, req *http.Reque
 }
 
 // Save saves an app in the data store
-func (a *ApplicationsController) Save(rw http.ResponseWriter, req *http.Request, _ map[string]string) {
+func (a *ApplicationsController) Save(rw http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 	app, err := readAppJSON(req)
 	if err != nil {
 		invalidJSON(rw)
@@ -171,8 +173,9 @@ func (a *ApplicationsController) Save(rw http.ResponseWriter, req *http.Request,
 }
 
 // Delete deletes a definition from this service
-func (a *ApplicationsController) Delete(rw http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-	err := a.AppStore.Delete(pathParams["name"])
+func (a *ApplicationsController) Delete(rw http.ResponseWriter, req *http.Request, pathParams httprouter.Params) {
+	pparam := pathParams.ByName("name")
+	err := a.AppStore.Delete(pparam)
 	if err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		rw.Write([]byte(fmt.Sprintf(`{"message":"Unkown error, %v"}`, err)))
