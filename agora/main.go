@@ -59,7 +59,7 @@ func main() {
 	router.GET("/api/mesos/fwid", mesosController.ShowFrameworkID)
 
 	n := negroni.New()
-	// n.Use(middlewares.NewJSONOnlyAPI())
+	n.Use(middlewares.NewJSONOnlyAPI())
 	n.Use(middlewares.NewRecovery())
 	n.Use(middlewares.NewLogger())
 	n.Use(negroni.NewStatic(http.Dir("static/build")))

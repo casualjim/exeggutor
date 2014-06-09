@@ -39,6 +39,9 @@ func readAppJSON(req *http.Request) (App, error) {
 	if err != nil {
 		return app, err
 	}
+	for k, v := range app.Components {
+		v.Name = k
+	}
 	return app, nil
 }
 

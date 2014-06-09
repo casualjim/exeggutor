@@ -7,12 +7,14 @@ type App struct {
 	// Name represents the name of the application
 	Name string `json:"name" valid:"Required;MinSize(3);MaxSize(50);AlphaDash"`
 	// Components represent the components this app exists out of
-	Components []AppComponent `json:"components" valid:"MinSize(1)"`
+	Components map[string]*AppComponent `json:"components"`
 }
 
 // Valid validates this struct
 func (a *App) Valid(v *validation.Validation) {
-	// Add complexer validation logic here
+	if len(a.Components) == 0 {
+		v.SetError("components", "requires at least 1 entry")
+	}
 }
 
 // AppComponent a component of an application,
@@ -37,8 +39,6 @@ type AppComponent struct {
 	Ports map[string]int `json:"ports" valid:"Required"`
 	// Version the version of this component
 	Version string `json:"version" valid:"Required,Match(/^\d+\.\d+\.d+/)"`
-	// Distribution the distribution type of this component (PACKAGE, DOCKER, SCRIPT, FAT_JAR)
-	Distribution string `json:"distribution"`
 	// ComponentType the type of component this is (SERVICE, TASK, CRON, SPARK_JOB)
 	ComponentType string `json:"component_type"`
 }

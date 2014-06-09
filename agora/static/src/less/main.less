@@ -21,6 +21,7 @@
 
 @import 'variables.less';
 
+.nav, .pagination, .carousel, .panel-title, li a { cursor: pointer; }
 
 /**
  * Typography
@@ -142,6 +143,30 @@ body {
   border-radius: 50%;
 }
 
+input.form-control-borderless { //,input.form-control-borderless:focus {
+    border:none;
+    box-shadow: none;
+   -webkit-box-shadow: none;
+   -moz-box-shadow: none;
+   -moz-transition: none;
+   -webkit-transition: none;
+}
+
+.create {
+  display: block;
+  width: 100%;
+  padding: 0;
+  margin-bottom: @line-height-computed;
+  font-size: (@font-size-base * 1.2);
+  line-height: inherit;
+  color: @legend-color;
+  border: 0;
+  border-bottom: 1px solid @legend-border-color;
+}
+
+.pointable {
+  cursor: pointer;
+}
 
 /**
  * Now that all app-wide styles have been applied, we can load the styles for
@@ -151,4 +176,25 @@ body {
  */
 
 @import '../app/home/home.less';
+
+.application-item {
+  &.ng-enter {
+    -webkit-animation: fadeInLeft 0.2s;
+    -moz-animation: fadeInLeft 0.2s;
+    -ms-animation: fadeInLeft 0.2s;
+    animation: fadeInLeft 0.2s;
+    background-color: lightyellow;
+  }
+  
+  &.ng-leave {
+    -webkit-animation: fadeOutRight 0.2s;
+    -moz-animation: fadeOutRight 0.2s;
+    -ms-animation: fadeOutRight 0.2s;
+    animation: fadeOutRight 0.2s;
+    background-color: lightyellow; 
+  }
+  &:hover {
+    background-color: @table-bg-hover;
+  }
+}
 
