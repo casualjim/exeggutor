@@ -36,7 +36,7 @@ type AppComponent struct {
 	// Env a map with environment variables
 	Env map[string]string `json:"env"`
 	// Ports a map of scheme to port
-	Ports map[string]int `json:"ports" valid:"Required"`
+	Ports map[string]int `json:"ports"`
 	// Version the version of this component
 	Version string `json:"version" valid:"Required,Match(/^\d+\.\d+\.d+/)"`
 	// ComponentType the type of component this is (SERVICE, TASK, CRON, SPARK_JOB)
@@ -45,8 +45,5 @@ type AppComponent struct {
 
 // Valid validates this struct
 func (a *AppComponent) Valid(v *validation.Validation) {
-	// Add complexer validation logic here
-	if len(a.Ports) == 0 {
-		v.SetError("ports", "requires at least 1 element")
-	}
+
 }
