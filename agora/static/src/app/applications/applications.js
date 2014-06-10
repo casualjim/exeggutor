@@ -57,7 +57,9 @@ angular.module( 'agora.applications', [
 
   $scope.selectApp = function selectApp(app) {
     app.key = app.name;
-    $scope.currentApp = app;
+    if (app != $scope.currentApp) {
+      $scope.currentApp = app;
+    }
     var nonEmptyObject = app && Object.getOwnPropertyNames(app).length > 0 && app.components;    
     $scope.selectComponent(nonEmptyObject ? app.components[Object.keys(app.components)[0]] : {});
   };
@@ -93,10 +95,31 @@ angular.module( 'agora.applications', [
     $scope.newEnvVar = {};
   };
 
+  $scope.removeComponent = function removeComponent(comp) {
+    var app = $scope.currentApp;
+    var appKey = app.key;
+    app.key = app.key || app.name;
+    console.log("removing component with key", comp.key || "undefined", "and name", comp.name);
+    delete app.components[comp.name];
+    app.components = app.components || {};
+    console.log("the app to submit", app);
+    Application.save(app, function() {
+      if ($scope.currentComponent.name == comp.name) {
+        $scope.currentComponent = {};
+        $scope.newPortMapping = {};
+        $scope.newEnvVar = {};
+      }
+    });
+  };
+
   $scope.update = function update(app) {
     if (app.key && app.key != app.name) {
       Application.remove({name: app.key}, function() {
-        Application.save(app);
+        Application.save(app, function(){
+          app.key = app.name;
+          $scope.applications = _.filter($scope.applications, function(item) { return item.name != app.name;});
+          $scope.applications.push(app);
+        });
       });
     } else {
       Application.save(app, function(newApp) {
@@ -108,7 +131,9 @@ angular.module( 'agora.applications', [
 
   $scope.saveCurrentComponent = function saveCurrentComponent() {
     var app = $scope.currentApp;
+    var appKey = app.key;
     var selected = $scope.currentComponent;
+    app.key = app.key || app.name;
     console.log("updating the current application, for key", selected.key, "and name", selected.name);
     if (selected.key && selected.name != selected.key) {
       delete $scope.currentApp.components[selected.key];
@@ -117,7 +142,11 @@ angular.module( 'agora.applications', [
     app.components[selected.name] = selected;
     console.log("the app to submit", $scope.currentApp);
     Application.save(app, function(newApp) {
-      $scope.selectApp(newApp);
+      $scope.currentComponent.key = selected.name;
+      if (!appKey) {
+        $scope.applications = _.filter($scope.applications, function(item) { return item.name != newApp.name;});
+        $scope.applications.push(newApp);
+      }
     });
   };
 
@@ -168,6 +197,7 @@ angular.module( 'agora.applications', [
     app.components[selected.name].ports[scheme] = port;    
 
     Application.save(app, function() {
+
       selected.ports[scheme] = port;
       if (clearNew) {
         $scope.newPortMapping = {};

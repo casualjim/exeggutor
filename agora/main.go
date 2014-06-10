@@ -77,7 +77,10 @@ func main() {
 		appStore.Stop()
 	})
 
-	n.Run(fmt.Sprintf("%s:%v", config.Interface, config.Port))
+	addr := fmt.Sprintf("%s:%v", config.Interface, config.Port)
+	log.Notice("Starting server at %s.", addr)
+	// http.ListenAndServeTLS(addr, "star_helloreverb_com.cer", "helloreverb.key", n)
+	http.ListenAndServe(addr, n)
 }
 
 func trapExit(onClose func()) {
