@@ -106,15 +106,15 @@
                       <div class="form-group" ng-class="{'has-error':componentForm.compCpus.$invalid, 'has-success':componentForm.compCpus.$valid}">
                         <label for="compCpus" class="col-sm-2 control-label">CPUS:</label>
                         <div  class="col-sm-10">
-                          <input id="compCpus" name="compCpus" class="form-control" type="text" ng-model="currentComponent.cpus" placeholder="Component CPUS" required agora-autosave="saveCurrentComponent()" agora-form="componentForm"/>
+                          <input id="compCpus" name="compCpus" class="form-control" type="number" ng-model="currentComponent.cpus" placeholder="Component CPUS" required agora-autosave="saveCurrentComponent()" agora-form="componentForm"/>
                           <div class="text-danger bg-danger" ng-show="componentForm.compCpus.$error.required">Component name is required</div>
                           <span class="help-block">The number of cpu cores</span>
                         </div>
                       </div>
-                      <div class="form-group" ng-class="{'has-error':componentForm.compName.$invalid, 'has-success':componentForm.compName.$valid}">
+                      <div class="form-group" ng-class="{'has-error':componentForm.compMem.$invalid, 'has-success':componentForm.compMem.$valid}">
                         <label for="compMem" class="col-sm-2 control-label">Memory:</label>
                         <div  class="col-sm-10">
-                          <input id="compMem" class="form-control" type="text" ng-model="currentComponent.mem" placeholder="Component Mem" required agora-autosave="saveCurrentComponent()" agora-form="componentForm"/>
+                          <input id="compMem" name="compMem" class="form-control" type="number" ng-model="currentComponent.mem" placeholder="Component Mem" required agora-autosave="saveCurrentComponent()" agora-form="componentForm"/>
                           <div class="text-danger bg-danger" ng-show="componentForm.compMem.$error.required">Component name is required</div>
                           <span class="help-block">The amount of memory this app requires at minimum</span>
                         </div>

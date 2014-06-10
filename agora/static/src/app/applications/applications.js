@@ -33,15 +33,6 @@ angular.module( 'agora.applications', [
   return $resource("/api/applications/:name");
 }])
 
-.factory('SelectedApplication', [function(){
-  return {
-    currentApp: {},
-    currentComponent: {},
-    newPortMapping: {},
-    newEnvVar: {}
-  };
-}])
-
 /**
  * And of course we define a controller for our route.
  */
@@ -67,7 +58,7 @@ angular.module( 'agora.applications', [
   $scope.selectApp = function selectApp(app) {
     app.key = app.name;
     $scope.currentApp = app;
-    var nonEmptyObject = app && Object.getOwnPropertyNames(app).length > 0;    
+    var nonEmptyObject = app && Object.getOwnPropertyNames(app).length > 0 && app.components;    
     $scope.selectComponent(nonEmptyObject ? app.components[Object.keys(app.components)[0]] : {});
   };
 
@@ -85,8 +76,12 @@ angular.module( 'agora.applications', [
   });
 
   $scope.removeApp = function removeApp(app) {
+    console.log("removing app", app);
     Application.remove(app, function() {
       $scope.applications = _.filter($scope.applications, function(i) { return i.name != app.name; });
+      if (app.key && app.key == $scope.currentApp.key || app.name == $scope.currentApp.name) {
+        $scope.createNewApp();
+      }
     });
   };
 
@@ -112,16 +107,17 @@ angular.module( 'agora.applications', [
   };
 
   $scope.saveCurrentComponent = function saveCurrentComponent() {
-
+    var app = $scope.currentApp;
     var selected = $scope.currentComponent;
     console.log("updating the current application, for key", selected.key, "and name", selected.name);
     if (selected.key && selected.name != selected.key) {
       delete $scope.currentApp.components[selected.key];
     }
-    $scope.currentApp.components[selected.name] = selected;
+    app.components = app.components || {};
+    app.components[selected.name] = selected;
     console.log("the app to submit", $scope.currentApp);
-    $scope.currentApp.$save(function(app) {
-      $scope.selectApp(app);
+    Application.save(app, function(newApp) {
+      $scope.selectApp(newApp);
     });
   };
 
@@ -166,6 +162,9 @@ angular.module( 'agora.applications', [
     console.log("saving port mapping " + scheme);
     var selected = $scope.currentComponent;
     var app = _.cloneDeep($scope.currentApp);    
+    app.components = app.components || {};
+    selected.ports = selected.ports || {};
+    app.components[selected.name].ports = app.components[selected.name].ports || {};
     app.components[selected.name].ports[scheme] = port;    
 
     Application.save(app, function() {
@@ -205,6 +204,8 @@ angular.module( 'agora.applications', [
     var selected = $scope.currentComponent;
     var app = _.cloneDeep($scope.currentApp);
     console.log("saving environment variable", key, "value", value);
+    app.components = app.components || {};
+    selected.env = selected.env || {};
     app.components[selected.name].env = app.components[selected.name].env || {};
     app.components[selected.name].env[key] = value;
     Application.save(app, function() {
