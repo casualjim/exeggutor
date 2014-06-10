@@ -1,8 +1,8 @@
 <div class="row">
   <h1>Applications</h1>
   <div class="col-sm-6">
-    <div class="row">
-      <div class="col-sm-12 create pointable" ng-click="createNewApp()">Create new</div>
+    <div class="row application-item">
+      <div class="col-sm-12 pointable" ng-click="createNewApp()">Create new</div>
     </div>
     <div class="row application-item" ng-repeat="app in applications | filter:appQuery">
       <div class="col-sm-11 pointable" ng-click="selectApp(app)">
@@ -24,183 +24,197 @@
     </form>
     <!-- <div><button class="btn btn-warning" type="button" ng-click="createTestApp()">Create test app</button></div> -->
   </div>
-</div>
-<div class="row">
-  <div class="col-sm-12">
-    <form role="form" class="form" novalidate>
-      <fieldset >
-        <legend>
-          {{currentApp.name || "Application name"}}          
-        </legend>
-        <div id="appItem" class="form-group" ng-form="currentAppForm" ng-class="{'has-error':currentAppForm.appName.$invalid, 'has-success':currentAppForm.appName.$valid}">
-          <label for="appName" class="col-sm-12 control-label">Name:</label>
-          <div  class="col-sm-12">
-            <input id="appName" name="appName" class="form-control" type="text" ng-model="currentApp.name"  ng-minlength="3" ng-maxlength="50" ng-pattern="/^[\w\d-_]+$/" placeholder="Application Name" required ng-model-options="{ debounce: 250 }" agora-autosave="saveCurrentComponent()" agora-form="currentAppForm"/>
-            <div class="text-danger bg-danger" ng-show="currentAppForm.appName.$error.required">Application name is required</div>
-            <div class="text-danger bg-danger" ng-show="currentAppForm.appName.$error.minlength">Application name needs to be 3 chars or longer</div>
-            <div class="text-danger bg-danger" ng-show="currentAppForm.appName.$error.maxlength">Application name needs to 50 chars or less</div>
-            <div class="text-danger bg-danger" ng-show="currentAppForm.appName.$error.pattern">Application name can only contain letters, digits - and _</div>
-            <span class="help-block">The name of the application</span>
+  <div class="row">
+    <div class="col-sm-12">
+      <form role="form" class="form" novalidate>
+        <fieldset >
+          <legend>
+            {{currentApp.name || "Application name"}}
+          </legend>
+          <div id="appItem" class="form-group" ng-form="currentAppForm" ng-class="{'has-error':currentAppForm.appName.$invalid, 'has-success':currentAppForm.appName.$valid}">
+            <label for="appName" class="col-sm-12 control-label">Name:</label>
+            <div  class="col-sm-12">
+              <input id="appName" name="appName" class="form-control" type="text" ng-model="currentApp.name"  ng-minlength="3" ng-maxlength="50" ng-pattern="/^[\w\d-_]+$/" placeholder="Application Name" required ng-model-options="{ debounce: 250 }" agora-autosave="update(currentApp)" agora-form="currentAppForm"/>
+              <div class="text-danger bg-danger" ng-show="currentAppForm.appName.$error.required">Application name is required</div>
+              <div class="text-danger bg-danger" ng-show="currentAppForm.appName.$error.minlength">Application name needs to be 3 chars or longer</div>
+              <div class="text-danger bg-danger" ng-show="currentAppForm.appName.$error.maxlength">Application name needs to 50 chars or less</div>
+              <div class="text-danger bg-danger" ng-show="currentAppForm.appName.$error.pattern">Application name can only contain letters, digits - and _</div>
+              <span class="help-block">The name of the application</span>
+            </div>
           </div>
-        </div>
-        <div class="form-group">
-          <label class="col-sm-12 control-label">Components:</label>
-          <div class="col-sm-12 ">
-            <table  class="table table-condensed table-hover">
-              <tr><td  ng-click="addNewComponent()" class="pointable">Create new</td></tr>
-              <tr ng-repeat="(name, comp) in currentApp.components" ng-animate="'application-item'"><td class="pointable" ng-click="selectComponent(comp)">{{name}}</td></tr>
-            </table>
-          </div>
-          <div class="col-sm-12 form-group">
-            <fieldset>
-              <legend>{{currentComponent.name || "Component" }}</legend>
-              <div class="row">
-                <div class="col-sm-6" ng-form="componentForm">
-                  <fieldset>
-                    <legend>Properties</legend>
-                    <div class="form-group" ng-class="{'has-error':componentForm.compName.$invalid, 'has-success':componentForm.compName.$valid}">
-                      <label for="compName" class="col-sm-2 control-label">Name:</label>
-                      <div  class="col-sm-10">
-                        <input id="compName" name="compName" class="form-control" type="text" ng-model="currentComponent.name" placeholder="Component Name" required  ng-minlength="3" ng-maxlength="50" ng-pattern="/^[\w\d-_]+$/" agora-autosave="saveCurrentComponent()" agora-form="componentForm"/>
-                        <div class="text-danger bg-danger" ng-show="componentForm.compName.$error.required">Component name is required</div>
-                        <div class="text-danger bg-danger" ng-show="componentForm.compName.$error.minlength">Component name needs to be 3 chars or longer</div>
-                        <div class="text-danger bg-danger" ng-show="componentForm.compName.$error.maxlength">Component name needs to 50 chars or less</div>
-                        <div class="text-danger bg-danger" ng-show="componentForm.compName.$error.pattern">Component name can only contain letters, digits - and _</div>
-                        <span class="help-block">The name of the component, if you only have one this is probably the same as the application name</span>
-                      </div>
+          <div class="form-group">
+            <label class="col-sm-12 control-label">Components:</label>
+            <div class="col-sm-12 ">
+              <table  class="table table-condensed table-hover">
+                <tr>
+                  <td>
+                    <div class="row">
+                      <div class="col-sm-11 pointable" ng-click="addNewComponent()">Create new</div>
+                      <div class="col-sm-1">&nbsp;</div>
                     </div>
-                    <div class="form-group" ng-class="{'has-error':componentForm.compVersion.$invalid, 'has-success':componentForm.compVersion.$valid}">
-                      <label for="compVersion" class="col-sm-2 control-label">Version:</label>
-                      <div  class="col-sm-10">
-                        <input id="compVersion" name="compVersion" class="form-control" type="text" ng-model="currentComponent.version" placeholder="0.0.1" required ng-pattern="/^\d+\.\d+\.\d+$/" agora-autosave="saveCurrentComponent()" agora-form="componentForm"/>
-                        <div class="text-danger bg-danger" ng-show="componentForm.compVersion.$error.required">Version is required</div>
-                        <div class="text-danger bg-danger" ng-show="componentForm.compVersion.$error.pattern">Version must be of the form 0.0.0</div>
-                        <span class="help-block">The version of this component</span>
-                      </div>
+                  </td>
+                </tr>
+                <tr ng-repeat="(name, comp) in currentApp.components" ng-animate="'application-item'">
+                  <td>
+                    <div class="row">
+                      <div class="col-sm-11 pointable" ng-click="selectComponent(comp)">{{name}}</div>
+                      <div class="col-sm-1 text-right"><a ng-click="removeComponent(comp)" class="pointable"><i class="fa fa-trash-o"></i></a></div>
                     </div>
-                    <div class="form-group" ng-class="{'has-error':componentForm.compType.$invalid, 'has-success':componentForm.compType.$valid}">
-                      <label for="compType" class="col-sm-2 control-label">Type:</label>
-                      <div  class="col-sm-10">
-                        <select id="compType" name="compType" class="from-control" ng-model="currentComponent.component_type" ng-options="key as value for (key, value) in componentTypes" required agora-autosave="saveCurrentComponent()" agora-form="componentForm"><option value="">- Choose one -</option></select>
-                        <div class="text-danger bg-danger" ng-show="componentForm.compType.$error.required">Component type is required</div>
-                        <span class="help-block">The type of this component (service, task, cron, spark)</span>
+                  </td>
+                </tr>
+              </table>
+                            
+            </div>
+            <div class="col-sm-12 form-group">
+              <fieldset>
+                <legend>{{currentComponent.name || "Component" }}</legend>
+                <div class="row">
+                  <div class="col-sm-6" ng-form="componentForm">
+                    <fieldset>
+                      <legend>Properties</legend>
+                      <div class="form-group" ng-class="{'has-error':componentForm.compName.$invalid, 'has-success':componentForm.compName.$valid}">
+                        <label for="compName" class="col-sm-2 control-label">Name:</label>
+                        <div  class="col-sm-10">
+                          <input id="compName" name="compName" class="form-control" type="text" ng-model="currentComponent.name" placeholder="Component Name" required  ng-minlength="3" ng-maxlength="50" ng-pattern="/^[\w\d-_]+$/" agora-autosave="saveCurrentComponent()" agora-form="componentForm"/>
+                          <div class="text-danger bg-danger" ng-show="componentForm.compName.$error.required">Component name is required</div>
+                          <div class="text-danger bg-danger" ng-show="componentForm.compName.$error.minlength">Component name needs to be 3 chars or longer</div>
+                          <div class="text-danger bg-danger" ng-show="componentForm.compName.$error.maxlength">Component name needs to 50 chars or less</div>
+                          <div class="text-danger bg-danger" ng-show="componentForm.compName.$error.pattern">Component name can only contain letters, digits - and _</div>
+                          <span class="help-block">The name of the component, if you only have one this is probably the same as the application name</span>
+                        </div>
                       </div>
-                    </div>
-                  </fieldset>
-                  <fieldset >
-                    <legend>Requirements</legend>
-                    <div class="form-group" ng-class="{'has-error':componentForm.compCpus.$invalid, 'has-success':componentForm.compCpus.$valid}">
-                      <label for="compCpus" class="col-sm-2 control-label">CPUS:</label>
-                      <div  class="col-sm-10">
-                        <input id="compCpus" name="compCpus" class="form-control" type="text" ng-model="currentComponent.cpus" placeholder="Component CPUS" required agora-autosave="saveCurrentComponent()" agora-form="componentForm"/>
-                        <div class="text-danger bg-danger" ng-show="componentForm.compCpus.$error.required">Component name is required</div>
-                        <span class="help-block">The number of cpu cores</span>
+                      <div class="form-group" ng-class="{'has-error':componentForm.compVersion.$invalid, 'has-success':componentForm.compVersion.$valid}">
+                        <label for="compVersion" class="col-sm-2 control-label">Version:</label>
+                        <div  class="col-sm-10">
+                          <input id="compVersion" name="compVersion" class="form-control" type="text" ng-model="currentComponent.version" placeholder="0.0.1" required ng-pattern="/^\d+\.\d+\.\d+$/" agora-autosave="saveCurrentComponent()" agora-form="componentForm"/>
+                          <div class="text-danger bg-danger" ng-show="componentForm.compVersion.$error.required">Version is required</div>
+                          <div class="text-danger bg-danger" ng-show="componentForm.compVersion.$error.pattern">Version must be of the form 0.0.0</div>
+                          <span class="help-block">The version of this component</span>
+                        </div>
                       </div>
-                    </div>
-                    <div class="form-group" ng-class="{'has-error':componentForm.compName.$invalid, 'has-success':componentForm.compName.$valid}">
-                      <label for="compMem" class="col-sm-2 control-label">Memory:</label>
-                      <div  class="col-sm-10">
-                        <input id="compMem" class="form-control" type="text" ng-model="currentComponent.mem" placeholder="Component Mem" required agora-autosave="saveCurrentComponent()" agora-form="componentForm"/>
-                        <div class="text-danger bg-danger" ng-show="componentForm.compMem.$error.required">Component name is required</div>
-                        <span class="help-block">The amount of memory this app requires at minimum</span>
+                      <div class="form-group" ng-class="{'has-error':componentForm.compType.$invalid, 'has-success':componentForm.compType.$valid}">
+                        <label for="compType" class="col-sm-2 control-label">Type:</label>
+                        <div  class="col-sm-10">
+                          <select id="compType" name="compType" class="from-control" ng-model="currentComponent.component_type" ng-options="key as value for (key, value) in componentTypes" required agora-autosave="saveCurrentComponent()" agora-form="componentForm"><option value="">- Choose one -</option></select>
+                          <div class="text-danger bg-danger" ng-show="componentForm.compType.$error.required">Component type is required</div>
+                          <span class="help-block">The type of this component (service, task, cron, spark)</span>
+                        </div>
                       </div>
-                    </div>
-                  </fieldset>
+                    </fieldset>
+                    <fieldset >
+                      <legend>Requirements</legend>
+                      <div class="form-group" ng-class="{'has-error':componentForm.compCpus.$invalid, 'has-success':componentForm.compCpus.$valid}">
+                        <label for="compCpus" class="col-sm-2 control-label">CPUS:</label>
+                        <div  class="col-sm-10">
+                          <input id="compCpus" name="compCpus" class="form-control" type="text" ng-model="currentComponent.cpus" placeholder="Component CPUS" required agora-autosave="saveCurrentComponent()" agora-form="componentForm"/>
+                          <div class="text-danger bg-danger" ng-show="componentForm.compCpus.$error.required">Component name is required</div>
+                          <span class="help-block">The number of cpu cores</span>
+                        </div>
+                      </div>
+                      <div class="form-group" ng-class="{'has-error':componentForm.compName.$invalid, 'has-success':componentForm.compName.$valid}">
+                        <label for="compMem" class="col-sm-2 control-label">Memory:</label>
+                        <div  class="col-sm-10">
+                          <input id="compMem" class="form-control" type="text" ng-model="currentComponent.mem" placeholder="Component Mem" required agora-autosave="saveCurrentComponent()" agora-form="componentForm"/>
+                          <div class="text-danger bg-danger" ng-show="componentForm.compMem.$error.required">Component name is required</div>
+                          <span class="help-block">The amount of memory this app requires at minimum</span>
+                        </div>
+                      </div>
+                    </fieldset>
+                  </div>
+                  <div class="col-sm-6">
+                    <fieldset>
+                      <legend>Configuration</legend>
+                      <div class="form-group" ng-form="configurationForm">
+                        <label for="compCommand" class="col-sm-2 control-label">Command:</label>
+                        <div  class="col-sm-10">
+                          <input id="compCommand" name="compCommand" class="form-control" type="text" ng-model="currentComponent.command" placeholder="./bin/{{currentComponent.name || 'component-name'}}" agora-autosave="saveCurrentComponent()" agora-form="configurationForm" />
+                          <span class="help-block">The command to run this service, defaults to ./bin/{{currentComponent.name || "component-name"}}(.sh)?</span>
+                        </div>
+                      </div>
+                      <tabset>
+                      <tab heading="Environment">
+                      <div class="form-group">
+                        <div  class="col-sm-12">
+                          <table class="table table-condensed">
+                            <tr>
+                              <th>Variable Key</th>
+                              <th>Value</th>
+                              <th>&nbsp;</th>
+                            </tr>
+                            <tr  ng-form="envVar{{$index}}Form" ng-repeat="(key, value) in currentComponent.env">
+                              <td><span ng-bind="key"></span></td>
+                              <td><input class="form-control form-control-borderless input-sm" type="text" ng-model="value" required agora-autosave="saveEnvVar(key, value)" agora-form="envVar{{$index}}Form"/></td>
+                              <td>
+                                <a ng-click="deleteEnvVar(key)"><i class="fa fa-trash-o"></i></a>
+                              </td>
+                            </tr>
+                            <tr ng-form="currentEnvVarForm">
+                              <td ng-class="{'has-error':currentEnvVarForm.key.$invalid, 'has-success':currentEnvVarForm.key.$valid}">
+                                <input name="key" class="form-control" type="text"  ng-model="newEnvVar.key" required />
+                                <div class="text-danger bg-danger" ng-show="currentEnvVarForm.key.$error.required">Key is required</div>
+                              </td>
+                              <td ng-class="{'has-error':currentEnvVarForm.value.$invalid, 'has-success':currentEnvVarForm.value.$valid}">
+                                <input name="value" class="form-control" type="text"  ng-model="newEnvVar.value" required />
+                                <div class="text-danger bg-danger" ng-show="currentEnvVarForm.value.$error.required">Value is required</div>
+                              </td>
+                              <td>
+                                <a class="pointable" ng-show="currentEnvVarForm.$valid" ng-click="addEnvVar()"><i class="fa fa-floppy-o"></i></a>
+                                <a class="pointable" ng-click="clearEnvVar()"><i class="fa fa-eraser"></i></a>
+                              </td>
+                            </tr>
+                          </table>
+                        </div>
+                      </div>
+                      </tab>
+                      <tab heading="Port Mapping">
+                      <div class="form-group">
+                        <div  class="col-sm-12">
+                          <table class="table table-condensed">
+                            <tr>
+                              <th>Scheme</th>
+                              <th>Port</th>
+                              <th>&nbsp;</th>
+                            </tr>
+                            <tr ng-form="portMapping{{$index}}" ng-repeat="(key, value) in currentComponent.ports">
+                              <td>
+                                <span ng-bind="key"></span>
+                              </td>
+                              <td>
+                                <input name="port" class="form-control form-control-borderless input-sm" type="number" min="1" max="65364" ng-model="value" required agora-autosave="savePortMapping(key, value)" agora-form="portMapping{{$index}}" />
+                              </td>
+                              <td>
+                                <a class="pointable" ng-click="deletePortMapping(key)"><i class="fa fa-trash-o"></i></a>
+                              </td>
+                            </tr>
+                            <tr ng-form="currentPortMappingForm">
+                              <td ng-class="{'has-error':currentPortMappingForm.scheme.$invalid, 'has-success':currentPortMappingForm.scheme.$valid}">
+                                <input name="scheme" class="form-control input-sm" type="text" ng-model="newPortMapping.scheme" required />
+                                <div class="text-danger bg-danger" ng-show="currentPortMappingForm.scheme.$error.required">Scheme is required</div>
+                              </td>
+                              <td ng-class="{'has-error':currentPortMappingForm.port.$invalid, 'has-success':currentPortMappingForm.port.$valid}">
+                                <input class="form-control input-sm" name="port" type="number" min="1" max="65364" ng-model="newPortMapping.port" required />
+                                <div class="text-danger bg-danger" ng-show="currentPortMappingForm.port.$error.required">A numeric port is required</div>
+                                <div class="text-danger bg-danger" ng-show="currentPortMappingForm.port.$error.min">Port must be larger than 1</div>
+                                <div class="text-danger bg-danger" ng-show="currentPortMappingForm.port.$error.max">Port must be smaller than 65365</div>
+                              </td>
+                              <td>
+                                <a class="pointable" ng-show="currentPortMappingForm.$valid" ng-click="addPortMapping()"><i class="fa fa-floppy-o"></i></a>
+                                <a class="pointable" ng-click="clearPortMapping()"><i class="fa fa-eraser"></i></a>
+                              </td>
+                            </tr>
+                          </table>
+                        </div>
+                      </div>
+                      </tab>
+                      </tabset>
+                    </fieldset>
+                  </div>
                 </div>
-                <div class="col-sm-6">
-                  <fieldset>
-                    <legend>Configuration</legend>
-                    <div class="form-group" ng-form="configurationForm">
-                      <label for="compCommand" class="col-sm-2 control-label">Command:</label>
-                      <div  class="col-sm-10">
-                        <input id="compCommand" name="compCommand" class="form-control" type="text" ng-model="currentComponent.command" placeholder="./bin/{{currentComponent.name || 'component-name'}}" agora-autosave="saveCurrentComponent()" agora-form="configurationForm" />
-                        <span class="help-block">The command to run this service, defaults to ./bin/{{currentComponent.name || "component-name"}}(.sh)?</span>
-                      </div>
-                    </div>
-                    <tabset>
-                    <tab heading="Environment">
-                    <div class="form-group">
-                      <div  class="col-sm-12">
-                        <table class="table table-condensed">
-                          <tr>
-                            <th>Variable Key</th>
-                            <th>Value</th>
-                            <th>&nbsp;</th>
-                          </tr>
-                          <tr  ng-form="envVar{{$index}}Form" ng-repeat="(key, value) in currentComponent.env">
-                            <td><span ng-bind="key"></span></td>
-                            <td><input class="form-control form-control-borderless input-sm" type="text" ng-model="value" required agora-autosave="saveEnvVar(key, value)" agora-form="envVar{{$index}}Form"/></td>
-                            <td>
-                              <a ng-click="deleteEnvVar(key)"><i class="fa fa-trash-o"></i></a>
-                            </td>
-                          </tr>
-                          <tr ng-form="currentEnvVarForm">
-                            <td ng-class="{'has-error':currentEnvVarForm.key.$invalid, 'has-success':currentEnvVarForm.key.$valid}">
-                              <input name="key" class="form-control" type="text"  ng-model="newEnvVar.key" required />
-                              <div class="text-danger bg-danger" ng-show="currentEnvVarForm.key.$error.required">Key is required</div>
-                            </td>
-                            <td ng-class="{'has-error':currentEnvVarForm.value.$invalid, 'has-success':currentEnvVarForm.value.$valid}">
-                              <input name="value" class="form-control" type="text"  ng-model="newEnvVar.value" required />
-                              <div class="text-danger bg-danger" ng-show="currentEnvVarForm.value.$error.required">Value is required</div>
-                            </td>
-                            <td>
-                              <a class="pointable" ng-show="currentEnvVarForm.$valid" ng-click="addEnvVar()"><i class="fa fa-floppy-o"></i></a>
-                              <a class="pointable" ng-click="clearEnvVar()"><i class="fa fa-eraser"></i></a>
-                            </td>
-                          </tr>
-                        </table>
-                      </div>
-                    </div>
-                    </tab>
-                    <tab heading="Port Mapping">
-                    <div class="form-group">
-                      <div  class="col-sm-12">
-                        <table class="table table-condensed">
-                          <tr>
-                            <th>Scheme</th>
-                            <th>Port</th>
-                            <th>&nbsp;</th>
-                          </th>
-                          <tr ng-form="portMapping{{$index}}" ng-repeat="(key, value) in currentComponent.ports">
-                            <td>
-                              <span ng-bind="key"></span>
-                            </td>
-                            <td>
-                              <input name="port" class="form-control form-control-borderless input-sm" type="number" min="1" max="65364" ng-model="value" required agora-autosave="savePortMapping(key, value)" agora-form="portMapping{{$index}}" />
-                            </td>
-                            <td>
-                              <a class="pointable" ng-click="deletePortMapping(key)"><i class="fa fa-trash-o"></i></a>
-                            </td>
-                          </tr>
-                          <tr ng-form="currentPortMappingForm">
-                            <td ng-class="{'has-error':currentPortMappingForm.scheme.$invalid, 'has-success':currentPortMappingForm.scheme.$valid}">
-                              <input name="scheme" class="form-control input-sm" type="text" ng-model="newPortMapping.scheme" required />
-                              <div class="text-danger bg-danger" ng-show="currentPortMappingForm.scheme.$error.required">Scheme is required</div>
-                            </td>
-                            <td ng-class="{'has-error':currentPortMappingForm.port.$invalid, 'has-success':currentPortMappingForm.port.$valid}">
-                              <input class="form-control input-sm" name="port" type="number" min="1" max="65364" ng-model="newPortMapping.port" required />
-                              <div class="text-danger bg-danger" ng-show="currentPortMappingForm.port.$error.required">A numeric port is required</div>
-                              <div class="text-danger bg-danger" ng-show="currentPortMappingForm.port.$error.min">Port must be larger than 1</div>
-                              <div class="text-danger bg-danger" ng-show="currentPortMappingForm.port.$error.max">Port must be smaller than 65365</div>
-                            </td>
-                            <td>
-                              <a class="pointable" ng-show="currentPortMappingForm.$valid" ng-click="addPortMapping()"><i class="fa fa-floppy-o"></i></a>
-                              <a class="pointable" ng-click="clearPortMapping()"><i class="fa fa-eraser"></i></a>
-                            </td>
-                          </tr>
-                        </table>
-                      </div>
-                    </div>
-                    </tab>
-                    </tabset>
-                  </fieldset>
-                </div>
-              </div>
-            </fieldset>
+              </fieldset>
+            </div>
           </div>
-        </div>
-      </fieldset>
-    </form>
+        </fieldset>
+      </form>
+    </div>
   </div>
-</div>
 </div>

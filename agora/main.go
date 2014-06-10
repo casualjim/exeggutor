@@ -50,6 +50,9 @@ func main() {
 	mesosController := api.NewMesosController()
 
 	router := httprouter.New()
+	router.GET("/favicon.ico", func(rw http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+		rw.WriteHeader(http.StatusNotFound)
+	})
 	router.GET("/api/applications", applicationsController.ListAll)
 	router.GET("/api/applications/:name", applicationsController.ShowOne)
 	router.POST("/api/applications", applicationsController.Save)
@@ -58,11 +61,15 @@ func main() {
 
 	router.GET("/api/mesos/fwid", mesosController.ShowFrameworkID)
 
+	staticFS := http.Dir(config.StaticFiles)
+
+	router.NotFound = http.FileServer(staticFS).ServeHTTP
+
 	n := negroni.New()
 	n.Use(middlewares.NewJSONOnlyAPI())
 	n.Use(middlewares.NewRecovery())
 	n.Use(middlewares.NewLogger())
-	n.Use(negroni.NewStatic(http.Dir("static/build")))
+	n.Use(negroni.NewStatic(staticFS))
 	n.UseHandler(router)
 
 	trapExit(func() {

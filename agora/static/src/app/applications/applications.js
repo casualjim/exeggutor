@@ -1,5 +1,3 @@
-var secondsToWaitBeforeSave = 2;
-
 angular.module( 'agora.applications', [
   'ui.router',
   'ngResource'
@@ -12,6 +10,18 @@ angular.module( 'agora.applications', [
       "main": {
         controller: 'ApplicationsCtrl',
         templateUrl: 'applications/applications.tpl.html'
+      },
+      "portmapping": {
+        controller: "PortMappingCtrl",
+        templateUrl: 'applications/portmapping.tpl.html'
+      },
+      "envvars": {
+        controller: "EnvVarCtrl",
+        templateUrl: 'applications/envvars.tpl.html'
+      },
+      "component": {
+        controller: "AppComponentCtrl",
+        templateUrl: 'applications/component.tpl.html'
       }
     },
     data:{ pageTitle: 'Manage Applications' }
@@ -23,6 +33,14 @@ angular.module( 'agora.applications', [
   return $resource("/api/applications/:name");
 }])
 
+.factory('SelectedApplication', [function(){
+  return {
+    currentApp: {},
+    currentComponent: {},
+    newPortMapping: {},
+    newEnvVar: {}
+  };
+}])
 
 /**
  * And of course we define a controller for our route.
@@ -43,9 +61,11 @@ angular.module( 'agora.applications', [
     "spark": "Spark Job"
   };
 
-
+  $scope.currentApp = {};
+  $scope.currentComponent = {};
 
   $scope.selectApp = function selectApp(app) {
+    app.key = app.name;
     $scope.currentApp = app;
     var nonEmptyObject = app && Object.getOwnPropertyNames(app).length > 0;    
     $scope.selectComponent(nonEmptyObject ? app.components[Object.keys(app.components)[0]] : {});
@@ -64,20 +84,6 @@ angular.module( 'agora.applications', [
     $scope.selectApp($scope.applications[0]);
   });
 
-  // $scope.$watch('applications', function(oldVa, newVal) {
-  //   console.log("the applications have changed.");
-  // });
-
-  // $scope.$watch('currentApp', function(newVal, oldVal) {
-  //   var nonEmpty =  newVal && Object.getOwnPropertyNames(newVal).length > 0; 
-  //   if (nonEmpty) {
-  //     console.log("the current app has changed and is not a new app.");  
-  //   } else {
-  //     console.log("The current app is a new app.");
-  //   }
-    
-  // });
-
   $scope.removeApp = function removeApp(app) {
     Application.remove(app, function() {
       $scope.applications = _.filter($scope.applications, function(i) { return i.name != app.name; });
@@ -87,60 +93,74 @@ angular.module( 'agora.applications', [
 
   $scope.selectComponent = function selectComponent(comp) {
     $scope.currentComponent = comp;
-    $scope.currentPortMapping = {};
+    $scope.currentComponent.key = comp.name;
+    $scope.newPortMapping = {};
+    $scope.newEnvVar = {};
   };
 
-
   $scope.update = function update(app) {
-    console.log("saving", angular.toJson(app, true));
-    Application.save(app);
+    if (app.key && app.key != app.name) {
+      Application.remove({name: app.key}, function() {
+        Application.save(app);
+      });
+    } else {
+      Application.save(app, function(newApp) {
+        app.key = newApp.name;
+      });  
+    }
+    
   };
 
   $scope.saveCurrentComponent = function saveCurrentComponent() {
+
     var selected = $scope.currentComponent;
+    console.log("updating the current application, for key", selected.key, "and name", selected.name);
+    if (selected.key && selected.name != selected.key) {
+      delete $scope.currentApp.components[selected.key];
+    }
     $scope.currentApp.components[selected.name] = selected;
-    console.log("updating the current application");
-    $scope.currentApp.$save(function() {
-      // console.log("The update succeeded");
+    console.log("the app to submit", $scope.currentApp);
+    $scope.currentApp.$save(function(app) {
+      $scope.selectApp(app);
     });
   };
 
-  $scope.createTestApp = function createTestApp() {
-    var id = $scope.applications.length;
-    var app = new Application({
-      name: "test-app-" + id,
-      components: {
-        "nginx" : {
-          name: "nginx",
-          cpus: 1,
-          mem: 256,
-          dist_url: "yum://nginx",
-          ports: {
-            "http": 443
-          },
-          version: "0.0.1",
-          distribution: "package",
-          component_type: "service"
-        }
-      }
-    });
-    app.components["test-app-"+id+"-service"] = {
-      cpus: 1,
-      mem: 256,
-      dist_url: "hdfs://[namenode]/applications/test-app-service.jar",
-      ports: {
-        "http": 8000
-      },
-      version: "0.0.1",
-      distribution: "fat_jar",
-      component_type: "service"
-    };
-    Application.save(app, function (app){
-      $scope.applications.push(app);
-    });
-  };
+  // $scope.createTestApp = function createTestApp() {
+  //   var id = $scope.applications.length;
+  //   var app = new Application({
+  //     name: "test-app-" + id,
+  //     components: {
+  //       "nginx" : {
+  //         name: "nginx",
+  //         cpus: 1,
+  //         mem: 256,
+  //         dist_url: "yum://nginx",
+  //         ports: {
+  //           "http": 443
+  //         },
+  //         version: "0.0.1",
+  //         distribution: "package",
+  //         component_type: "service"
+  //       }
+  //     }
+  //   });
+  //   app.components["test-app-"+id+"-service"] = {
+  //     cpus: 1,
+  //     mem: 256,
+  //     dist_url: "hdfs://[namenode]/applications/test-app-service.jar",
+  //     ports: {
+  //       "http": 8000
+  //     },
+  //     version: "0.0.1",
+  //     distribution: "fat_jar",
+  //     component_type: "service"
+  //   };
+  //   Application.save(app, function (app){
+  //     $scope.applications.push(app);
+  //   });
+  // };
 
-  $scope.newPortMapping = {};
+  $scope.newPortMapping = $scope.newPortMapping || {};
 
   $scope.savePortMapping = function savePortMapping(scheme, port, clearNew)  {
     console.log("saving port mapping " + scheme);
@@ -218,8 +238,6 @@ angular.module( 'agora.applications', [
       delete selected.env[key];
     });
   };
-
-
 })
 
 ;

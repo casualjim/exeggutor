@@ -25,7 +25,9 @@ DEPS = github.com/onsi/ginkgo/ginkgo \
 	github.com/pquerna/ffjson \
 	github.com/astaxie/beego/validation \
 	github.com/reverb/go-utils \
-	github.com/reverb/go-mesos
+	github.com/reverb/go-mesos \
+	github.com/golang/lint \ 
+	code.google.com/p/go.tools/cmd/gotype
 
 setup: 
 	@$(foreach dir,$(DEPS),echo "installing $(dir)" && go get $(dir);)

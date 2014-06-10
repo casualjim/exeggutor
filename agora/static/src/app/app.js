@@ -3,8 +3,8 @@ angular.module( 'agora', [
   'templates-common',
   'agora.home',
   'agora.applications',
-  'agora.about',
   'ui.router',
+  'ui.bootstrap',
   'ngResource',
   'ngAnimate-animate.css'
 ])

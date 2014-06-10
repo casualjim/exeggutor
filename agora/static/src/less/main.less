@@ -177,24 +177,4 @@ input.form-control-borderless { //,input.form-control-borderless:focus {
 
 @import '../app/home/home.less';
 
-.application-item {
-  &.ng-enter {
-    -webkit-animation: fadeInLeft 0.2s;
-    -moz-animation: fadeInLeft 0.2s;
-    -ms-animation: fadeInLeft 0.2s;
-    animation: fadeInLeft 0.2s;
-    background-color: lightyellow;
-  }
-  
-  &.ng-leave {
-    -webkit-animation: fadeOutRight 0.2s;
-    -moz-animation: fadeOutRight 0.2s;
-    -ms-animation: fadeOutRight 0.2s;
-    animation: fadeOutRight 0.2s;
-    background-color: lightyellow; 
-  }
-  &:hover {
-    background-color: @table-bg-hover;
-  }
-}
-
+@import '../app/applications/applications.less';
