@@ -100,39 +100,48 @@
                           <span class="help-block">The type of this component (service, task, cron, spark)</span>
                         </div>
                       </div>
-                    </fieldset>
-                    <fieldset >
-                      <legend>Requirements</legend>
-                      <div class="form-group" ng-class="{'has-error':componentForm.compCpus.$invalid, 'has-success':componentForm.compCpus.$valid}">
-                        <label for="compCpus" class="col-sm-2 control-label">CPUS:</label>
+                      <div class="form-group" ng-class="{'has-error':componentForm.compType.$invalid, 'has-success':componentForm.compType.$valid}">
+                        <label for="compDist" class="col-sm-2 control-label">Distribution:</label>
                         <div  class="col-sm-10">
-                          <input id="compCpus" name="compCpus" class="form-control" type="number" ng-model="currentComponent.cpus" placeholder="Component CPUS" required agora-autosave="saveCurrentComponent()" agora-form="componentForm"/>
-                          <div class="text-danger bg-danger" ng-show="componentForm.compCpus.$error.required">Component name is required</div>
-                          <span class="help-block">The number of cpu cores</span>
-                        </div>
-                      </div>
-                      <div class="form-group" ng-class="{'has-error':componentForm.compMem.$invalid, 'has-success':componentForm.compMem.$valid}">
-                        <label for="compMem" class="col-sm-2 control-label">Memory:</label>
-                        <div  class="col-sm-10">
-                          <input id="compMem" name="compMem" class="form-control" type="number" ng-model="currentComponent.mem" placeholder="Component Mem" required agora-autosave="saveCurrentComponent()" agora-form="componentForm"/>
-                          <div class="text-danger bg-danger" ng-show="componentForm.compMem.$error.required">Component name is required</div>
-                          <span class="help-block">The amount of memory this app requires at minimum</span>
+                          <select id="compDist" name="compDist" class="from-control" ng-model="currentComponent.distribution" ng-options="key as value for (key, value) in distributions" required agora-autosave="saveCurrentComponent()" agora-form="componentForm"><option value="">- Choose one -</option></select>
+                          <div class="text-danger bg-danger" ng-show="componentForm.compDist.$error.required">Component type is required</div>
+                          <span class="help-block">the type of distribution this component uses (package, docker, script, fat_jar)</span>
                         </div>
                       </div>
                     </fieldset>
                   </div>
                   <div class="col-sm-6">
-                    <fieldset>
-                      <legend>Configuration</legend>
-                      <div class="form-group" ng-form="configurationForm">
-                        <label for="compCommand" class="col-sm-2 control-label">Command:</label>
+                    <tabset>
+                    <tab heading="Requirements" ng-form="requirementsForm">
+                      <div class="form-group" ng-class="{'has-error':requirementsForm.compCpus.$invalid, 'has-success':requirementsForm.compCpus.$valid}">
+                        <label for="compCpus" class="col-sm-2 control-label">CPUS:</label>
                         <div  class="col-sm-10">
-                          <input id="compCommand" name="compCommand" class="form-control" type="text" ng-model="currentComponent.command" placeholder="./bin/{{currentComponent.name || 'component-name'}}" agora-autosave="saveCurrentComponent()" agora-form="configurationForm" />
-                          <span class="help-block">The command to run this service, defaults to ./bin/{{currentComponent.name || "component-name"}}(.sh)?</span>
+                          <input id="compCpus" name="compCpus" class="form-control" type="number" ng-model="currentComponent.cpus" placeholder="Component CPUS" required agora-autosave="saveCurrentComponent()" agora-form="requirementsForm"/>
+                          <div class="text-danger bg-danger" ng-show="requirementsForm.compCpus.$error.required">Component name is required</div>
+                          <span class="help-block">The number of cpu cores</span>
                         </div>
                       </div>
-                      <tabset>
-                      <tab heading="Environment">
+                      <div class="form-group" ng-class="{'has-error':requirementsForm.compMem.$invalid, 'has-success':requirementsForm.compMem.$valid}">
+                        <label for="compMem" class="col-sm-2 control-label">Memory:</label>
+                        <div  class="col-sm-10">
+                          <input id="compMem" name="compMem" class="form-control" type="number" ng-model="currentComponent.mem" placeholder="Component Mem" required agora-autosave="saveCurrentComponent()" agora-form="requirementsForm"/>
+                          <div class="text-danger bg-danger" ng-show="requirementsForm.compMem.$error.required">Component name is required</div>
+                          <span class="help-block">The amount of memory this app requires at minimum</span>
+                        </div>
+                      </div>
+                    </tab>
+                    <tab heading="Configuration">
+                      <div ng-form="configurationForm">
+                        <div class="form-group">
+                          <label for="compCommand" class="col-sm-2 control-label">Command:</label>
+                          <div  class="col-sm-10">
+                            <input id="compCommand" name="compCommand" class="form-control" type="text" ng-model="currentComponent.command" placeholder="./bin/{{currentComponent.name || 'component-name'}}" agora-autosave="saveCurrentComponent()" agora-form="configurationForm" />
+                            <span class="help-block">The command to run this service, defaults to ./bin/{{currentComponent.name || "component-name"}}(.sh)?</span>
+                          </div>
+                        </div>
+                      </div>
+                    </tab>
+                    <tab heading="Environment">
                       <div class="form-group">
                         <div  class="col-sm-12">
                           <table class="table table-condensed">
@@ -165,8 +174,8 @@
                           </table>
                         </div>
                       </div>
-                      </tab>
-                      <tab heading="Port Mapping">
+                    </tab>
+                    <tab heading="Port Mapping">
                       <div class="form-group">
                         <div  class="col-sm-12">
                           <table class="table table-condensed">
@@ -205,9 +214,8 @@
                           </table>
                         </div>
                       </div>
-                      </tab>
-                      </tabset>
-                    </fieldset>
+                    </tab>
+                    </tabset>
                   </div>
                 </div>
               </fieldset>

@@ -41,6 +41,8 @@ type AppComponent struct {
 	Version string `json:"version" valid:"Required,Match(/^\d+\.\d+\.d+/)"`
 	// ComponentType the type of component this is (SERVICE, TASK, CRON, SPARK_JOB)
 	ComponentType string `json:"component_type"`
+	// Distribution the type of distribution this component uses (PACKAGE, DOCKER, SCRIPT, FAT_JAR)
+	Distribution string `json:"distribution"`
 }
 
 // Valid validates this struct

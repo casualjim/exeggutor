@@ -36,7 +36,7 @@ func (mj *App) MarshalJSONBuf(buf *bytes.Buffer) error {
 		buf.WriteString(`,`)
 	}
 	buf.WriteString(`"components":`)
-	/* Falling back. type=map[string]api.AppComponent kind=map */
+	/* Falling back. type=map[string]*api.AppComponent kind=map */
 	obj, err = json.Marshal(mj.Components)
 	if err != nil {
 		return err
@@ -100,6 +100,13 @@ func (mj *AppComponent) MarshalJSONBuf(buf *bytes.Buffer) error {
 	}
 	buf.WriteString(`"dist_url":`)
 	ffjson_WriteJsonString(buf, mj.DistURL)
+	if first == true {
+		first = false
+	} else {
+		buf.WriteString(`,`)
+	}
+	buf.WriteString(`"distribution":`)
+	ffjson_WriteJsonString(buf, mj.Distribution)
 	if first == true {
 		first = false
 	} else {
