@@ -142,7 +142,8 @@ func (i MdbStore) ForEach(iterator func(*KVData)) error {
 		key, value, err := cursor.Get(nil, mdb.NEXT)
 		if err == mdb.NotFound {
 			break
-		} else if err != nil {
+		}
+		if err != nil {
 			return err
 		}
 		iterator(&KVData{Key: string(key), Value: value})

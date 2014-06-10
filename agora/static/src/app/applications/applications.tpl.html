@@ -63,55 +63,53 @@
                   </td>
                 </tr>
               </table>
-                            
             </div>
             <div class="col-sm-12 form-group">
               <fieldset>
                 <legend>{{currentComponent.name || "Component" }}</legend>
                 <div class="row">
-                  <div class="col-sm-6" ng-form="componentForm">
-                    <fieldset>
-                      <legend>Properties</legend>
-                      <div class="form-group" ng-class="{'has-error':componentForm.compName.$invalid, 'has-success':componentForm.compName.$valid}">
-                        <label for="compName" class="col-sm-2 control-label">Name:</label>
-                        <div  class="col-sm-10">
-                          <input id="compName" name="compName" class="form-control" type="text" ng-model="currentComponent.name" placeholder="Component Name" required  ng-minlength="3" ng-maxlength="50" ng-pattern="/^[\w\d-_]+$/" agora-autosave="saveCurrentComponent()" agora-form="componentForm"/>
-                          <div class="text-danger bg-danger" ng-show="componentForm.compName.$error.required">Component name is required</div>
-                          <div class="text-danger bg-danger" ng-show="componentForm.compName.$error.minlength">Component name needs to be 3 chars or longer</div>
-                          <div class="text-danger bg-danger" ng-show="componentForm.compName.$error.maxlength">Component name needs to 50 chars or less</div>
-                          <div class="text-danger bg-danger" ng-show="componentForm.compName.$error.pattern">Component name can only contain letters, digits - and _</div>
-                          <span class="help-block">The name of the component, if you only have one this is probably the same as the application name</span>
-                        </div>
-                      </div>
-                      <div class="form-group" ng-class="{'has-error':componentForm.compVersion.$invalid, 'has-success':componentForm.compVersion.$valid}">
-                        <label for="compVersion" class="col-sm-2 control-label">Version:</label>
-                        <div  class="col-sm-10">
-                          <input id="compVersion" name="compVersion" class="form-control" type="text" ng-model="currentComponent.version" placeholder="0.0.1" required ng-pattern="/^\d+\.\d+\.\d+$/" agora-autosave="saveCurrentComponent()" agora-form="componentForm"/>
-                          <div class="text-danger bg-danger" ng-show="componentForm.compVersion.$error.required">Version is required</div>
-                          <div class="text-danger bg-danger" ng-show="componentForm.compVersion.$error.pattern">Version must be of the form 0.0.0</div>
-                          <span class="help-block">The version of this component</span>
-                        </div>
-                      </div>
-                      <div class="form-group" ng-class="{'has-error':componentForm.compType.$invalid, 'has-success':componentForm.compType.$valid}">
-                        <label for="compType" class="col-sm-2 control-label">Type:</label>
-                        <div  class="col-sm-10">
-                          <select id="compType" name="compType" class="from-control" ng-model="currentComponent.component_type" ng-options="key as value for (key, value) in componentTypes" required agora-autosave="saveCurrentComponent()" agora-form="componentForm"><option value="">- Choose one -</option></select>
-                          <div class="text-danger bg-danger" ng-show="componentForm.compType.$error.required">Component type is required</div>
-                          <span class="help-block">The type of this component (service, task, cron, spark)</span>
-                        </div>
-                      </div>
-                      <div class="form-group" ng-class="{'has-error':componentForm.compType.$invalid, 'has-success':componentForm.compType.$valid}">
-                        <label for="compDist" class="col-sm-2 control-label">Distribution:</label>
-                        <div  class="col-sm-10">
-                          <select id="compDist" name="compDist" class="from-control" ng-model="currentComponent.distribution" ng-options="key as value for (key, value) in distributions" required agora-autosave="saveCurrentComponent()" agora-form="componentForm"><option value="">- Choose one -</option></select>
-                          <div class="text-danger bg-danger" ng-show="componentForm.compDist.$error.required">Component type is required</div>
-                          <span class="help-block">the type of distribution this component uses (package, docker, script, fat_jar)</span>
-                        </div>
-                      </div>
-                    </fieldset>
-                  </div>
-                  <div class="col-sm-6">
+                  <div class="col-sm-12">
                     <tabset>
+                    <tab heading="Properties">
+                      <div  ng-form="componentForm">
+                        <div class="form-group" ng-class="{'has-error':componentForm.compName.$invalid, 'has-success':componentForm.compName.$valid}">
+                          <label for="compName" class="col-sm-2 control-label">Name:</label>
+                          <div  class="col-sm-10">
+                            <input id="compName" name="compName" class="form-control" type="text" ng-model="currentComponent.name" placeholder="Component Name" required  ng-minlength="3" ng-maxlength="50" ng-pattern="/^[\w\d-_]+$/" agora-autosave="saveCurrentComponent()" agora-form="componentForm"/>
+                            <div class="text-danger bg-danger" ng-show="componentForm.compName.$error.required">Component name is required</div>
+                            <div class="text-danger bg-danger" ng-show="componentForm.compName.$error.minlength">Component name needs to be 3 chars or longer</div>
+                            <div class="text-danger bg-danger" ng-show="componentForm.compName.$error.maxlength">Component name needs to 50 chars or less</div>
+                            <div class="text-danger bg-danger" ng-show="componentForm.compName.$error.pattern">Component name can only contain letters, digits - and _</div>
+                            <span class="help-block">The name of the component, if you only have one this is probably the same as the application name</span>
+                          </div>
+                        </div>
+                        <div class="form-group" ng-class="{'has-error':componentForm.compVersion.$invalid, 'has-success':componentForm.compVersion.$valid}">
+                          <label for="compVersion" class="col-sm-2 control-label">Version:</label>
+                          <div  class="col-sm-10">
+                            <input id="compVersion" name="compVersion" class="form-control" type="text" ng-model="currentComponent.version" placeholder="0.0.1" required ng-pattern="/^\d+\.\d+\.\d+$/" agora-autosave="saveCurrentComponent()" agora-form="componentForm"/>
+                            <div class="text-danger bg-danger" ng-show="componentForm.compVersion.$error.required">Version is required</div>
+                            <div class="text-danger bg-danger" ng-show="componentForm.compVersion.$error.pattern">Version must be of the form 0.0.0</div>
+                            <span class="help-block">The version of this component</span>
+                          </div>
+                        </div>
+                        <div class="form-group" ng-class="{'has-error':componentForm.compType.$invalid, 'has-success':componentForm.compType.$valid}">
+                          <label for="compType" class="col-sm-2 control-label">Type:</label>
+                          <div  class="col-sm-10">
+                            <select id="compType" name="compType" class="from-control" ng-model="currentComponent.component_type" ng-options="key as value for (key, value) in componentTypes" required agora-autosave="saveCurrentComponent()" agora-form="componentForm"><option value="">- Choose one -</option></select>
+                            <div class="text-danger bg-danger" ng-show="componentForm.compType.$error.required">Component type is required</div>
+                            <span class="help-block">The type of this component (service, task, cron, spark)</span>
+                          </div>
+                        </div>
+                        <div class="form-group" ng-class="{'has-error':componentForm.compType.$invalid, 'has-success':componentForm.compType.$valid}">
+                          <label for="compDist" class="col-sm-2 control-label">Distribution:</label>
+                          <div  class="col-sm-10">
+                            <select id="compDist" name="compDist" class="from-control" ng-model="currentComponent.distribution" ng-options="key as value for (key, value) in distributions" required agora-autosave="saveCurrentComponent()" agora-form="componentForm"><option value="">- Choose one -</option></select>
+                            <div class="text-danger bg-danger" ng-show="componentForm.compDist.$error.required">Component type is required</div>
+                            <span class="help-block">the type of distribution this component uses (package, docker, script, fat_jar)</span>
+                          </div>
+                        </div>
+                      </div>
+                    </tab>
                     <tab heading="Requirements" ng-form="requirementsForm">
                       <div class="form-group" ng-class="{'has-error':requirementsForm.compCpus.$invalid, 'has-success':requirementsForm.compCpus.$valid}">
                         <label for="compCpus" class="col-sm-2 control-label">CPUS:</label>
@@ -130,7 +128,7 @@
                         </div>
                       </div>
                     </tab>
-                    <tab heading="Configuration">
+                    <tab heading="Packaging">
                       <div ng-form="configurationForm">
                         <div class="form-group">
                           <label for="compCommand" class="col-sm-2 control-label">Command:</label>

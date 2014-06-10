@@ -146,6 +146,7 @@ func (q MdbQueue) Len() (int, error) {
 		return 0, err
 	}
 	defer tx.Abort()
+
 	cursor, err := tx.CursorOpen(dbis[0])
 	if err != nil {
 		return 0, err
