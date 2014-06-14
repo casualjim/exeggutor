@@ -1,6 +1,9 @@
 package queue
 
-import "sync"
+import (
+	"errors"
+	"sync"
+)
 
 type inMemoryQueuNode struct {
 	data interface{}
@@ -30,8 +33,12 @@ func (q *InMemoryQueue) Len() (int, error) {
 	return q.count, nil
 }
 
-// Push enqueues the provided item
-func (q *InMemoryQueue) Push(item interface{}) error {
+// Enqueue enqueues the provided item
+func (q *InMemoryQueue) Enqueue(item interface{}) error {
+	if item == nil {
+		return errors.New("Can't enqueue nil")
+	}
+
 	q.lock.Lock()
 	defer q.lock.Unlock()
 
@@ -48,9 +55,9 @@ func (q *InMemoryQueue) Push(item interface{}) error {
 	return nil
 }
 
-// Poll dequeues an item from the queue if there is one
+// Dequeue dequeues an item from the queue if there is one
 // returns (nil, nil) if there is no item on the queue!
-func (q *InMemoryQueue) Poll() (interface{}, error) {
+func (q *InMemoryQueue) Dequeue() (interface{}, error) {
 	q.lock.Lock()
 	defer q.lock.Unlock()
 
@@ -80,6 +87,15 @@ func (q *InMemoryQueue) Peek() (interface{}, error) {
 	}
 
 	return n.data, nil
+}
+
+// IsEmpty returns whether this queue is empty or not.
+func (q *InMemoryQueue) IsEmpty() (bool, error) {
+	q.lock.Lock()
+	defer q.lock.Unlock()
+
+	n := q.head
+	return n == nil || n.data == nil, nil
 }
 
 // Start start this queue

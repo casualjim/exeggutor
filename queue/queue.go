@@ -1,10 +1,6 @@
 package queue
 
-import (
-	"io"
-
-	"github.com/op/go-logging"
-)
+import "github.com/op/go-logging"
 
 var log = logging.MustGetLogger("exeggutor.queue")
 
@@ -13,9 +9,10 @@ var log = logging.MustGetLogger("exeggutor.queue")
 // replaced by consumers of this library with a mongo based store, redis, ...
 type Queue interface {
 	Len() (int, error)
-	Push(item interface{}) error
-	Poll() (interface{}, error)
+	Enqueue(item interface{}) error
+	Dequeue() (interface{}, error)
 	Peek() (interface{}, error)
+	IsEmpty() (bool, error)
 	Start() error
 	Stop() error
 }
@@ -23,8 +20,6 @@ type Queue interface {
 // Serializer allows for pluggable serialization
 // for transports or stores that support it.
 type Serializer interface {
-	Read(reader io.ReadCloser) (interface{}, error)
-	Write(writer *io.Writer, subject interface{}) error
 	ReadBytes(data []byte) (interface{}, error)
 	WriteBytes(target interface{}) ([]byte, error)
 }

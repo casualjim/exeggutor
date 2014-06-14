@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/op/go-logging"
 	"github.com/reverb/exeggutor"
 	"github.com/reverb/exeggutor/state"
 	"github.com/reverb/exeggutor/store"
@@ -17,3 +18,5 @@ type APIContext struct {
 	Config           *exeggutor.Config
 	AppStore         store.KVStore
 }
+
+var log = logging.MustGetLogger("agora.api")

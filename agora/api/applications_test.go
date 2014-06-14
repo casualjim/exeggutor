@@ -16,7 +16,7 @@ import (
 func testApp(name, component string, context *APIContext) App {
 	app := App{
 		Name: name,
-		Components: map[string]*AppComponent{component: &AppComponent{
+		Components: map[string]AppComponent{component: AppComponent{
 			Name:          component,
 			Cpus:          1,
 			Mem:           1,
@@ -42,6 +42,7 @@ var _ = Describe("ApplicationsApi", func() {
 		logBackend := logging.NewLogBackend(os.Stderr, "", stdlog.LstdFlags|stdlog.Lshortfile)
 		logBackend.Color = true
 		logging.SetBackend(logBackend)
+		logging.SetLevel(logging.ERROR, "")
 		context = &APIContext{
 			Config:   testAppConfig(),
 			AppStore: store.NewEmptyInMemoryStore(),
@@ -95,8 +96,8 @@ var _ = Describe("ApplicationsApi", func() {
 
 		It("returns 200 and the application", func() {
 			expected := testApp("foo393", "foo939", context)
-			expectedJson, _ := json.Marshal(expected)
-			controller.AppStore = store.NewInMemoryStore(map[string][]byte{expected.Name: expectedJson})
+			expectedJSON, _ := json.Marshal(expected)
+			controller.AppStore = store.NewInMemoryStore(map[string][]byte{expected.Name: expectedJSON})
 
 			server.Get("/applications/" + expected.Name)
 
@@ -121,6 +122,7 @@ var _ = Describe("ApplicationsApi", func() {
 	Context("Create an application", func() {
 		It("returns 200 when the item is created", func() {
 			expected := testApp("blah-service", "blah", context)
+
 			server.Post("/applications", expected)
 			Expect(response.Code).To(Equal(200))
 			bodyBytes := response.Body.Bytes()
@@ -140,8 +142,8 @@ var _ = Describe("ApplicationsApi", func() {
 	Context("Update an application", func() {
 		It("returns 200 when the item is updated", func() {
 			expected := testApp("blah-service", "blah", context)
-			expectedJson, _ := json.Marshal(expected)
-			controller.AppStore = store.NewInMemoryStore(map[string][]byte{expected.Name: expectedJson})
+			expectedJSON, _ := json.Marshal(expected)
+			controller.AppStore = store.NewInMemoryStore(map[string][]byte{expected.Name: expectedJSON})
 
 			server.Put("/applications/"+expected.Name, expected)
 			Expect(response.Code).To(Equal(200))
@@ -155,8 +157,8 @@ var _ = Describe("ApplicationsApi", func() {
 
 		It("returns 422 when the app is invalid ", func() {
 			expected := App{Name: "blah-service"}
-			expectedJson, _ := json.Marshal(expected)
-			controller.AppStore = store.NewInMemoryStore(map[string][]byte{expected.Name: expectedJson})
+			expectedJSON, _ := json.Marshal(expected)
+			controller.AppStore = store.NewInMemoryStore(map[string][]byte{expected.Name: expectedJSON})
 			server.Put("/applications/"+expected.Name, expected)
 			Expect(response.Code).To(Equal(422))
 		})
@@ -166,8 +168,8 @@ var _ = Describe("ApplicationsApi", func() {
 	Context("Delete an application", func() {
 		It("returns 204 when the delete succeeds", func() {
 			expected := testApp("blah-service", "blah", context)
-			expectedJson, _ := json.Marshal(expected)
-			controller.AppStore = store.NewInMemoryStore(map[string][]byte{expected.Name: expectedJson})
+			expectedJSON, _ := json.Marshal(expected)
+			controller.AppStore = store.NewInMemoryStore(map[string][]byte{expected.Name: expectedJSON})
 
 			server.Delete("/applications/" + expected.Name)
 			Expect(response.Code).To(Equal(204))

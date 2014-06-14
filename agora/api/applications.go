@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 
 	// "github.com/reverb/exeggutor/protocol"
@@ -28,7 +27,7 @@ func readJSON(req *http.Request, data interface{}) error {
 	var dec = json.NewDecoder(req.Body)
 	err := dec.Decode(data)
 	if err != nil {
-		log.Fatal("failed to decode:", err)
+		log.Critical("failed to decode:", err)
 		return err
 	}
 	return nil
@@ -57,7 +56,7 @@ func unknownError(rw http.ResponseWriter) {
 }
 
 func unknownErrorWithMessge(rw http.ResponseWriter, err error) {
-	log.Printf("There was an error: %v\n", err)
+	log.Debug("There was an error: %v\n", err)
 	rw.WriteHeader(http.StatusInternalServerError)
 	rw.Write([]byte(fmt.Sprintf(`{"message":"Unkown error: %v"}`, err)))
 }
@@ -71,14 +70,16 @@ func notFound(rw http.ResponseWriter, name, id string) {
 	rw.Write([]byte(fmt.Sprintf(`{"message":"Couldn't find %s for key '%s'."}`, name, id)))
 }
 
-func validateData(rw http.ResponseWriter, data interface{}) (bool, error) {
+func validateData(rw http.ResponseWriter, data App) (bool, error) {
 	valid := validation.Validation{}
 	b, err := valid.Valid(data)
+	// data.Valid(&valid)
+	log.Debug("The app %+v is valid? %t, %+v", data, valid.HasErrors(), valid)
 	if err != nil {
 		unknownErrorWithMessge(rw, err)
 		return b, err
 	}
-	if !b {
+	if valid.HasErrors() {
 		rw.WriteHeader(422)
 		rw.Write([]byte("["))
 		isFirst := true

@@ -45,7 +45,7 @@ func TestState(t *testing.T) {
 	RegisterFailHandler(Fail)
 	pth := fmt.Sprintf("../../test-reports/junit_executor_agora_api_%d.xml", config.GinkgoConfig.ParallelNode)
 	junitReporter := reporters.NewJUnitReporter(pth)
-	RunSpecsWithDefaultAndCustomReporters(t, "Exeggutor state Test Suite", []Reporter{junitReporter})
+	RunSpecsWithDefaultAndCustomReporters(t, "Agora API Test Suite", []Reporter{junitReporter})
 }
 
 type testHTTP struct {

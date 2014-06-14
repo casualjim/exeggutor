@@ -21,7 +21,7 @@ var _ = Describe("MdbStore", func() {
 
 	BeforeEach(func() {
 		// Create a test dir
-		dir, err := ioutil.TempDir("", "raft")
+		dir, err := ioutil.TempDir("", "agora-store")
 		if err != nil {
 			Fail(fmt.Sprintf("err: %v ", err))
 		}

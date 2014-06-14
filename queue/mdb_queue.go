@@ -1,9 +1,11 @@
 package queue
 
 import (
+	"errors"
 	"os"
 
 	"github.com/armon/gomdb"
+	"github.com/reverb/go-utils/flake"
 )
 
 const (
@@ -26,14 +28,14 @@ type MdbQueue struct {
 // NewMdbQueue returns a new MDBStore and potential
 // error. Requres a base directory from which to operate.
 // Uses the default maximum size.
-func NewMdbQueue(base string) (*MdbQueue, error) {
-	return NewMdbQueueWithSize(base, defaultSize)
+func NewMdbQueue(base string, serializer Serializer) (*MdbQueue, error) {
+	return NewMdbQueueWithSize(base, defaultSize, serializer)
 }
 
 // NewMdbQueueWithSize returns a new MDBStore and potential
 // error. Requres a base directory from which to operate,
 // and a maximum size. If maxSize is not 0, a default value is used.
-func NewMdbQueueWithSize(path string, maxSize uint64) (*MdbQueue, error) {
+func NewMdbQueueWithSize(path string, maxSize uint64, serializer Serializer) (*MdbQueue, error) {
 	if err := os.MkdirAll(path, 0755); err != nil {
 		return nil, err
 	}
@@ -44,9 +46,11 @@ func NewMdbQueueWithSize(path string, maxSize uint64) (*MdbQueue, error) {
 	}
 
 	store := &MdbQueue{
-		env:     env,
-		path:    path,
-		maxSize: maxSize,
+		env:         env,
+		path:        path,
+		maxSize:     maxSize,
+		serializer:  serializer,
+		idGenerator: flake.NewFlake(),
 	}
 	return store, nil
 }
@@ -77,9 +81,9 @@ func (q MdbQueue) Peek() (interface{}, error) {
 	return res, nil
 }
 
-// Poll dequeues an item from this queue
-func (q MdbQueue) Poll() (interface{}, error) {
-	tx, dbis, err := q.startTxn(true)
+// Dequeue dequeues an item from this queue
+func (q MdbQueue) Dequeue() (interface{}, error) {
+	tx, dbis, err := q.startTxn(false)
 	if err != nil {
 		if tx != nil {
 			tx.Abort()
@@ -113,8 +117,11 @@ func (q MdbQueue) Poll() (interface{}, error) {
 	return res, tx.Commit()
 }
 
-// Push enqueues an item on this persistent queue
-func (q MdbQueue) Push(item interface{}) error {
+// Enqueue enqueues an item on this persistent queue
+func (q MdbQueue) Enqueue(item interface{}) error {
+	if item == nil {
+		return errors.New("Can't enqueue nil")
+	}
 	tx, dbis, err := q.startTxn(false)
 	if err != nil {
 		return err
@@ -189,6 +196,12 @@ func (q MdbQueue) Start() error {
 	}
 	return tx.Commit()
 
+}
+
+// IsEmpty returns whether this queue has items inside
+func (q MdbQueue) IsEmpty() (bool, error) {
+	i, err := q.Peek()
+	return i == nil, err
 }
 
 // Stop is used to gracefully shutdown the MDB queue

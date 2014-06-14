@@ -7,11 +7,11 @@ type App struct {
 	// Name represents the name of the application
 	Name string `json:"name" valid:"Required;MinSize(3);MaxSize(50);AlphaDash"`
 	// Components represent the components this app exists out of
-	Components map[string]*AppComponent `json:"components"`
+	Components map[string]AppComponent `json:"components"`
 }
 
 // Valid validates this struct
-func (a *App) Valid(v *validation.Validation) {
+func (a App) Valid(v *validation.Validation) {
 	if len(a.Components) == 0 {
 		v.SetError("components", "requires at least 1 entry")
 	}
@@ -25,7 +25,7 @@ type AppComponent struct {
 	Name string `json:"name" valid:"Required;MinSize(3);MaxSize(50);AlphaDash"`
 	// Cpus an integer number representing a percentage of cpus it should use.
 	// This is a relative scale to other services.
-	Cpus int8 `json:"cpus" valid:"Range(1,100)"`
+	Cpus int8 `json:"cpus" valid:"Min(1),Max(100)"`
 	// Mem an integer number representing the number of megabytes this component needs
 	// to function properly
 	Mem int16 `json:"mem" valid:"Min(1)"`
@@ -46,6 +46,6 @@ type AppComponent struct {
 }
 
 // Valid validates this struct
-func (a *AppComponent) Valid(v *validation.Validation) {
-
+func (a AppComponent) Valid(v *validation.Validation) {
+	// log.Info("The app component looks: %+v", a)
 }
