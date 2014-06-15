@@ -1,15 +1,10 @@
-CC=gcc-4.8
-CXX=g++-4.8
-
-all: dist
+all: run-forever
 
 build-binary: 
-	CC=gcc-4.8 CXX=g++-4.8 go build
+	go build
 
 build-frontend:
-	cd static \
-	grunt build  \
-	cd .. \
+	cd static; grunt build 
 
 dist: build-binary build-frontend
 	mkdir -p dist
@@ -20,11 +15,22 @@ dist: build-binary build-frontend
 	rm -rf agora
 
 upload: 
-	scp agora.tar.gz dev-mesos.helloreverb.com:~
+	scp agora.tar.gz mesos.helloreverb.com:~
 
 clean:
-	rm agora
-	rm static/build
+	-rm -rf agora
+	-rm -rf static/build
 
 distclean: clean
-	rm -rf dist	
+	-rm -rf dist	
+	-rm -rf agora.tar.gz	
+
+run-forever: 
+	gin
+
+run:
+	go run main.go
+
+test:
+	ginkgo -r 
+

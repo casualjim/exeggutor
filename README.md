@@ -27,7 +27,7 @@ make setup
 
 We'll return to this a little bit later
 
-If you're using an editor like Sublime, Vim or Emacs you will probably need all or most of the tools below:
+If you're using an editor like Sublime, Vim or Emacs you will probably need all or most of the tools below (make setup took care of this):
 
 ```bash
 go get code.google.com/p/go.tools/cmd/vet
@@ -88,7 +88,7 @@ go get github.com/reverb/go-utils
 When you need to compile things you might need to use gcc and g++ (for example for the mesos bindings)
 
 ```
-CC=gcc CXX=g++ go get github.com/reverb/go-mesos
+go get github.com/reverb/go-mesos
 ```
 
 Editors: 
@@ -109,14 +109,14 @@ go get code.google.com/p/goprotobuf/{proto,protoc-gen-go}
 ### Fetch and compile example framework and executor
 
 ```bash
-CC=gcc CXX=g++ go get github.com/reverb/go-mesos/example_framework
-CC=gcc CXX=g++ go get github.com/reverb/go-mesos/example_executor
+go get github.com/reverb/go-mesos/example_framework
+go get github.com/reverb/go-mesos/example_executor
 ```
 
 ### Use library itself
 
 ```bash
-CC=gcc CXX=g++ go get github.com/reverb/go-mesos/mesos
+go get github.com/reverb/go-mesos/mesos
 ```
 
 ### Install example executor in HDFS
