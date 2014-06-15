@@ -5,7 +5,6 @@ import (
 
 	"github.com/reverb/exeggutor"
 	"github.com/reverb/exeggutor/state"
-	"github.com/reverb/exeggutor/store"
 	"github.com/reverb/go-utils/flake"
 	"github.com/reverb/go-utils/rvb_zk"
 	"github.com/samuel/go-zookeeper/zk"
@@ -17,18 +16,19 @@ import (
 
 var log = logging.MustGetLogger("exeggutor.scheduler")
 
-var (
+var launched = true
+
+// MesosScheduler is the object that listens to mesos resource offers and
+// and tries to fullfil offers if it has applications queued for submission
+type MesosScheduler struct {
+	config *exeggutor.Config
 	// FrameworkIDState the zookeeper backed framework id state for this application
 	FrameworkIDState *state.FrameworkIDState
 	// Curator the zookeeper client library
-	Curator rvb_zk.Curator
-	// Store a generic store for data (to be renamed and specialized)
-	Store store.KVStore
+	Curator *rvb_zk.Curator
 	// Driver the driver for the mesos framework
 	driver mesos.SchedulerDriver
-)
-
-var launched = true
+}
 
 func resourceOffer(driver *mesos.SchedulerDriver, offers []mesos.Offer) {
 	log.Notice("Received %d offers.", len(offers))
@@ -68,19 +68,25 @@ func resourceOffer(driver *mesos.SchedulerDriver, offers []mesos.Offer) {
 	}
 }
 
+// NewMesosScheduler creates a new instance of MesosScheduler with the specified config
+func NewMesosScheduler(config *exeggutor.Config) *MesosScheduler {
+	log.Debug("Creating a new instance of a mesos scheduler")
+	return &MesosScheduler{config: config}
+}
+
 // Start initializes the scheduler and everything it depends on
-func Start(config exeggutor.Config) {
-	uri := config.ZookeeperUrl
+func (m *MesosScheduler) Start() error {
+	uri := m.config.ZookeeperUrl
 	hosts, node, err := rvb_zk.ParseZookeeperUri(uri)
 	if err != nil {
-		log.Error("%v", err)
-		return
+		log.Critical("%v", err)
+		return err
 	}
 	conn, evt, err := zk.Connect(hosts, 5*time.Second)
 
 	if err != nil {
-		log.Error("%v", err)
-		return
+		log.Critical("%v", err)
+		return err
 	}
 
 	for {
@@ -90,26 +96,27 @@ func Start(config exeggutor.Config) {
 			break
 		}
 	}
-	Curator := rvb_zk.NewCurator(conn, node)
+	m.Curator = rvb_zk.NewCurator(conn, node)
 	if err != nil {
-		log.Panicf("Couldn't connect to zookeeper because %v", err)
+		log.Critical("Couldn't connect to zookeeper because %v", err)
+		return err
 	}
-	FrameworkIDState = state.NewFrameworkIDState(node+"/framework/id", Curator)
-	FrameworkIDState.Start(true)
+	m.FrameworkIDState = state.NewFrameworkIDState(node+"/framework/id", m.Curator)
+	m.FrameworkIDState.Start(true)
 
-	master := config.MesosMaster
+	master := m.config.MesosMaster
 	log.Debug("Creating mesos scheduler driver")
-	driver = mesos.SchedulerDriver{
+	m.driver = mesos.SchedulerDriver{
 		Master: master,
 		Framework: mesos.FrameworkInfo{
 			User: proto.String("ivan"),
 			Name: proto.String("ExeggutorFramework"),
-			Id:   FrameworkIDState.Get(),
+			Id:   m.FrameworkIDState.Get(),
 		},
 		Scheduler: &mesos.Scheduler{
 			Registered: func(driver *mesos.SchedulerDriver, fwID mesos.FrameworkID, masterInfo mesos.MasterInfo) {
 				log.Info("registered framework %v with master %v", fwID.GetValue(), masterInfo.GetId())
-				FrameworkIDState.Set(&fwID)
+				m.FrameworkIDState.Set(&fwID)
 			},
 			OfferRescinded: func(driver *mesos.SchedulerDriver, offer mesos.OfferID) {
 				log.Info("the offer %s was rescinded", offer.GetValue())
@@ -138,25 +145,44 @@ func Start(config exeggutor.Config) {
 			ResourceOffers: resourceOffer,
 		},
 	}
-	err = driver.Init()
+	err = m.driver.Init()
 	if err != nil {
-		log.Panicf("Couldn't initialize the mesos scheduler driver, because %v", err)
+		log.Critical("Couldn't initialize the mesos scheduler driver, because %v", err)
+		return err
 	}
-	err = driver.Start()
+	err = m.driver.Start()
 	if err != nil {
-		log.Panicf("Couldn't start the mesos scheduler driver, because %v", err)
+		log.Critical("Couldn't start the mesos scheduler driver, because %v", err)
+		return err
 	}
 	log.Notice("Started the exeggutor scheduler")
+	return nil
 }
 
 // Stop stops the mesos scheduler driver
-func Stop() {
+func (m *MesosScheduler) Stop() error {
 
-	driver.Stop(false)
-	driver.Destroy()
-	FrameworkIDState.Stop()
-	// Curator.Close()
+	err1 := m.driver.Stop(false)
+	m.driver.Destroy()
+	err2 := m.FrameworkIDState.Stop()
+	m.Curator.Close()
+
+	if err1 != nil || err2 != nil {
+		log.Warning("Failed to stop the mesos scheduler, because:")
+		if err1 != nil {
+			log.Warning("%v", err1)
+		}
+		if err2 != nil {
+			log.Warning("%v", err2)
+		}
+	}
+	if err1 != nil {
+		return err1
+	}
+	if err2 != nil {
+		return err2
+	}
 
 	log.Notice("Stopped the mesos scheduler and relevant stores")
-
+	return nil
 }

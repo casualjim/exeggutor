@@ -26,8 +26,8 @@
 		},
 		{
 			"ImportPath": "github.com/codegangsta/negroni",
-			"Comment": "v0.1",
-			"Rev": "46a638d98be2af4fa6de146b5d28a9d9904a3949"
+			"Comment": "v0.1-4-ga13766a",
+			"Rev": "a13766a8c2572caeb14341b7de158aff2fd00fa9"
 		},
 		{
 			"ImportPath": "github.com/imdario/mergo",
@@ -36,21 +36,21 @@
 		},
 		{
 			"ImportPath": "github.com/jessevdk/go-flags",
-			"Comment": "v1-172-g8ec9564",
-			"Rev": "8ec9564882e7923e632f012761c81c46dcf5bec1"
+			"Comment": "v1-174-g0aa6f1f",
+			"Rev": "0aa6f1f72ff95a9274dd29a776f1d40be6f027bc"
 		},
 		{
 			"ImportPath": "github.com/julienschmidt/httprouter",
-			"Rev": "1e225c396e985fe866299c593f0bfa9e988040f2"
+			"Rev": "ca3fec50c3d5ffe644ecd926c484baeb8af09f2e"
 		},
 		{
 			"ImportPath": "github.com/onsi/ginkgo",
-			"Comment": "v1.0.0-9-g99ce275",
-			"Rev": "99ce27541cce15de9dd2e287f327507f8e2a1e94"
+			"Comment": "v1.0.0-16-g12446bb",
+			"Rev": "12446bbcc74950944c897e32ea99cc8d058f9c92"
 		},
 		{
 			"ImportPath": "github.com/onsi/gomega",
-			"Rev": "bdbf788226cb7e227917ca92805c204112f30e19"
+			"Rev": "036273e6f643552b16fe7a6464afd2ae0324992e"
 		},
 		{
 			"ImportPath": "github.com/op/go-logging",
@@ -62,15 +62,15 @@
 		},
 		{
 			"ImportPath": "github.com/reverb/go-mesos/mesos",
-			"Rev": "f52d1cfe428a403beb9de27c8c7aac003285b8d0"
+			"Rev": "eb277847cb70bb20178e406b76af009ebc0a0375"
 		},
 		{
 			"ImportPath": "github.com/reverb/go-utils/flake",
-			"Rev": "709b039ced24c23499b87aae6057221eefbd5753"
+			"Rev": "c55773406944d4fd36a24bc09dd376841027557a"
 		},
 		{
 			"ImportPath": "github.com/reverb/go-utils/rvb_zk",
-			"Rev": "709b039ced24c23499b87aae6057221eefbd5753"
+			"Rev": "c55773406944d4fd36a24bc09dd376841027557a"
 		},
 		{
 			"ImportPath": "github.com/samuel/go-zookeeper/zk",

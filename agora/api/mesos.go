@@ -5,16 +5,16 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/reverb/exeggutor/scheduler"
 )
 
 //MesosController contains the context for mesos related api calls
 type MesosController struct {
+	context *APIContext
 }
 
 //NewMesosController creates a new instance of mesos controller
-func NewMesosController() *MesosController {
-	return &MesosController{}
+func NewMesosController(context *APIContext) *MesosController {
+	return &MesosController{context: context}
 }
 
 type fwID struct {
@@ -23,8 +23,7 @@ type fwID struct {
 
 //ShowFrameworkID shows the framework id of this application
 func (a MesosController) ShowFrameworkID(rw http.ResponseWriter, req *http.Request, _ httprouter.Params) {
-	state := scheduler.FrameworkIDState.Get()
-	id := state.GetValue()
+	id := a.context.TaskManager.FrameworkID()
 	enc := json.NewEncoder(rw)
 	enc.Encode(&fwID{Value: &id})
 }

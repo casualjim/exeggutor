@@ -3,7 +3,7 @@ package api
 import (
 	"github.com/op/go-logging"
 	"github.com/reverb/exeggutor"
-	"github.com/reverb/exeggutor/state"
+	"github.com/reverb/exeggutor/scheduler"
 	"github.com/reverb/exeggutor/store"
 )
 
@@ -14,9 +14,9 @@ const (
 
 // APIContext the most generic context for this api
 type APIContext struct {
-	FrameworkIDState *state.FrameworkIDState
-	Config           *exeggutor.Config
-	AppStore         store.KVStore
+	TaskManager *scheduler.TaskManager
+	Config      *exeggutor.Config
+	AppStore    store.KVStore
 }
 
 var log = logging.MustGetLogger("agora.api")

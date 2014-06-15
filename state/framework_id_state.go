@@ -79,9 +79,9 @@ func (f *FrameworkIDState) Start(buildInitial bool) error {
 }
 
 // Stop stops the cache and clears the state
-func (f *FrameworkIDState) Stop() {
+func (f *FrameworkIDState) Stop() error {
 	f.currentLock.Lock()
 	defer f.currentLock.Unlock()
 	f.current = nil
-	f.cache.Stop()
+	return f.cache.Stop()
 }

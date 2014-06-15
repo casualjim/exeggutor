@@ -37,17 +37,23 @@ func init() {
 
 func main() {
 
-	scheduler.Start(config)
+	mgr, err := scheduler.NewTaskManager(&config)
+	if err != nil {
+		log.Fatalf("Couldn't initialize the task manager because:%v", err)
+	}
+	mgr.Start()
+
 	appStore, err := store.NewMdbStore(config.DataDirectory + "/applications")
 	if err != nil {
 		log.Fatalf("Couldn't initialize app database at %s/applications, because %v", config.DataDirectory, err)
 	}
 	appStore.Start()
-	context.FrameworkIDState = scheduler.FrameworkIDState
+
+	context.TaskManager = mgr
 	context.AppStore = appStore
 
 	applicationsController := api.NewApplicationsController(&context)
-	mesosController := api.NewMesosController()
+	mesosController := api.NewMesosController(&context)
 
 	router := httprouter.New()
 	router.GET("/favicon.ico", func(rw http.ResponseWriter, req *http.Request, _ httprouter.Params) {
@@ -73,7 +79,7 @@ func main() {
 	n.UseHandler(router)
 
 	trapExit(func() {
-		scheduler.Stop()
+		mgr.Stop()
 		appStore.Stop()
 	})
 
