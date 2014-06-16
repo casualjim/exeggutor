@@ -45,7 +45,7 @@ var _ = Describe("FrameworkIDState", func() {
 		pb, _ := proto.Marshal(&mesos.FrameworkID{Value: &data})
 		curator.CreatePathRecursively(path, pb, 0, zk.WorldACL(zk.PermAll))
 
-		cache := NewFrameworkIDState(path, curator)
+		cache := NewZookeeperFrameworkIDState(path, curator)
 		cache.Start(false)
 		defer cache.Stop()
 
@@ -55,7 +55,7 @@ var _ = Describe("FrameworkIDState", func() {
 	It("should set the value", func() {
 		path := "/golangstate/test-2"
 		data := "thefwid"
-		cache := NewFrameworkIDState(path, curator)
+		cache := NewZookeeperFrameworkIDState(path, curator)
 		cache.Start(false)
 		defer cache.Stop()
 

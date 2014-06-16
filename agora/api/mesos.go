@@ -18,12 +18,12 @@ func NewMesosController(context *APIContext) *MesosController {
 }
 
 type fwID struct {
-	Value *string `json:"frameworkId"`
+	Value string `json:"frameworkId,omitempty"`
 }
 
 //ShowFrameworkID shows the framework id of this application
 func (a MesosController) ShowFrameworkID(rw http.ResponseWriter, req *http.Request, _ httprouter.Params) {
-	id := a.context.TaskManager.FrameworkID()
+	id := a.context.Framework.ID()
 	enc := json.NewEncoder(rw)
-	enc.Encode(&fwID{Value: &id})
+	enc.Encode(&fwID{Value: id})
 }

@@ -115,7 +115,7 @@
                         <label for="compCpus" class="col-sm-2 control-label">CPUS:</label>
                         <div  class="col-sm-10">
                           <input id="compCpus" name="compCpus" class="form-control" type="number" ng-model="currentComponent.cpus" placeholder="Component CPUS" required agora-autosave="saveCurrentComponent()" agora-form="requirementsForm"/>
-                          <div class="text-danger bg-danger" ng-show="requirementsForm.compCpus.$error.required">Component name is required</div>
+                          <div class="text-danger bg-danger" ng-show="requirementsForm.compCpus.$error.required">Component cpus is required</div>
                           <span class="help-block">The number of cpu cores</span>
                         </div>
                       </div>
@@ -123,8 +123,16 @@
                         <label for="compMem" class="col-sm-2 control-label">Memory:</label>
                         <div  class="col-sm-10">
                           <input id="compMem" name="compMem" class="form-control" type="number" ng-model="currentComponent.mem" placeholder="Component Mem" required agora-autosave="saveCurrentComponent()" agora-form="requirementsForm"/>
-                          <div class="text-danger bg-danger" ng-show="requirementsForm.compMem.$error.required">Component name is required</div>
+                          <div class="text-danger bg-danger" ng-show="requirementsForm.compMem.$error.required">Component memory is required</div>
                           <span class="help-block">The amount of memory this app requires at minimum</span>
+                        </div>
+                      </div>
+                      <div class="form-group" ng-class="{'has-error':requirementsForm.compDisk.$invalid, 'has-success':requirementsForm.compDisk.$valid}">
+                        <label for="compDisk" class="col-sm-2 control-label">Disk Space:</label>
+                        <div  class="col-sm-10">
+                          <input id="compDisk" name="compDisk" class="form-control" type="number" ng-model="currentComponent.disk_space" placeholder="Component Disk Space" required agora-autosave="saveCurrentComponent()" agora-form="requirementsForm" value="0"/>
+                          <div class="text-danger bg-danger" ng-show="requirementsForm.compDisk.$error.required">Component name is required</div>
+                          <span class="help-block">The amount of disk space this app requires at minimum in its working directories (the diskspace to install does not matter)</span>
                         </div>
                       </div>
                     </tab>

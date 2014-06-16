@@ -1,12 +1,12 @@
-package scheduler_test
+package tasks_test
 
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/reverb/exeggutor/protocol"
 	"github.com/reverb/exeggutor/queue"
-	. "github.com/reverb/exeggutor/scheduler"
 	"github.com/reverb/exeggutor/store"
+	. "github.com/reverb/exeggutor/tasks"
 )
 
 func testApp(appName string) protocol.ApplicationManifest {

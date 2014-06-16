@@ -29,6 +29,10 @@ type AppComponent struct {
 	// Mem an integer number representing the number of megabytes this component needs
 	// to function properly
 	Mem int16 `json:"mem" valid:"Min(1)"`
+	// DiskSpace an integer number representing the amount of megabytes this component
+	// needs for its local working storage. This storage is transient and there
+	// are no guarantees that this will be there again when an application restarts
+	DiskSpace int32 `json:"disk_space,omitempty"`
 	// DistUrl the url to retrieve the package from
 	DistURL string `json:"dist_url" valid:"Required;MinSize(10);Match(/^\w+:\/\//)"`
 	// Command the command to run for starting this component

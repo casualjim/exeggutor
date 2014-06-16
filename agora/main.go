@@ -20,6 +20,7 @@ import (
 	"github.com/reverb/exeggutor/agora/middlewares"
 	"github.com/reverb/exeggutor/scheduler"
 	"github.com/reverb/exeggutor/store"
+	"github.com/reverb/exeggutor/tasks"
 )
 
 var log = logging.MustGetLogger("exeggutor.main")
@@ -37,11 +38,17 @@ func init() {
 
 func main() {
 
-	mgr, err := scheduler.NewTaskManager(&config)
+	mgr, err := tasks.NewDefaultTaskManager(&config)
 	if err != nil {
 		log.Fatalf("Couldn't initialize the task manager because:%v", err)
 	}
 	mgr.Start()
+
+	framework := scheduler.NewFramework(&config, mgr)
+	err = framework.Start()
+	if err != nil {
+		log.Fatalf("Couldn't initialize the exeggutor scheduler framework because:%v", err)
+	}
 
 	appStore, err := store.NewMdbStore(config.DataDirectory + "/applications")
 	if err != nil {
@@ -49,7 +56,7 @@ func main() {
 	}
 	appStore.Start()
 
-	context.TaskManager = mgr
+	context.Framework = framework
 	context.AppStore = appStore
 
 	applicationsController := api.NewApplicationsController(&context)
@@ -80,6 +87,7 @@ func main() {
 
 	trapExit(func() {
 		mgr.Stop()
+		framework.Stop()
 		appStore.Stop()
 	})
 

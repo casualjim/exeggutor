@@ -14,9 +14,9 @@ const (
 
 // APIContext the most generic context for this api
 type APIContext struct {
-	TaskManager *scheduler.TaskManager
-	Config      *exeggutor.Config
-	AppStore    store.KVStore
+	Framework *scheduler.Framework
+	Config    *exeggutor.Config
+	AppStore  store.KVStore
 }
 
 var log = logging.MustGetLogger("agora.api")
