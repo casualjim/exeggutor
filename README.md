@@ -5,6 +5,15 @@ Exeggutor is a project that contains several different smaller services, to hand
 
 * [Getting Started](#getting-started)
 
+## TODO
+
+Before this can be put to real work the mdb usage should be revised.  
+The revision should try to group all the stores into a single file
+It should also make the queues all use a single file.
+Furthermore it should look into zookeeper or raft for providing leader election and log replication.
+
+
+
 ## For development you'll need several tools
 
 
