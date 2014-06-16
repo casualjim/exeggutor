@@ -4,6 +4,7 @@ import (
 	"github.com/reverb/exeggutor"
 	"github.com/reverb/exeggutor/state"
 	"github.com/reverb/exeggutor/tasks"
+	"github.com/reverb/go-utils/flake"
 	"github.com/reverb/go-utils/rvb_zk"
 
 	"code.google.com/p/goprotobuf/proto"
@@ -13,7 +14,7 @@ import (
 
 var log = logging.MustGetLogger("exeggutor.scheduler")
 
-// var launched = true
+var launched = false
 
 // Framework is the object that listens to mesos resource offers and
 // and tries to fullfil offers if it has applications queued for submission
@@ -32,7 +33,7 @@ type Framework struct {
 
 // func resourceOffer(driver *mesos.SchedulerDriver, offers []mesos.Offer) {
 // 	log.Notice("Received %d offers:", len(offers))
-// 	for i, offer := range offers {
+// 	for _, offer := range offers {
 // 		log.Debug("  * %+v", offer)
 // 		if !launched {
 // 			launched = true
@@ -70,7 +71,7 @@ type Framework struct {
 // NewFramework creates a new instance of Framework with the specified config
 func NewFramework(config *exeggutor.Config, taskManager tasks.TaskManager) *Framework {
 	log.Debug("Creating a new instance of a mesos scheduler")
-	return &Framework{config: config, ownsCurator: true, ownsFwIDState: true}
+	return &Framework{config: config, ownsCurator: true, ownsFwIDState: true, taskManager: taskManager}
 }
 
 // NewCustomFramework creates a new instance of a framework with all the dependencies injected
@@ -159,22 +160,52 @@ func (fw *Framework) defaultMesosScheduler() *mesos.Scheduler {
 		ResourceOffers: func(driver *mesos.SchedulerDriver, offers []mesos.Offer) {
 			logged := false
 			for _, offer := range offers {
-				if fw.taskManager != nil {
-					if !logged {
-						log.Debug("Received %d offers:", len(offers))
-						logged = true
+				// if fw.taskManager != nil {
+				if !logged {
+					log.Debug("Received %d offers:", len(offers))
+					logged = true
+				}
+				log.Debug("  * %+v", offer)
+				// fulfilment := fw.taskManager.FulfillOffer(offer)
+				// if len(fulfilment) == 0 {
+				// 	driver.DeclineOffer(offer.GetId())
+				// } else {
+				// 	driver.LaunchTasks(offer.GetId(), fulfilment)
+				// }
+				if !launched {
+					launched = true
+					taskID, _ := flake.NewFlake().Next()
+					task := mesos.TaskInfo{
+						Name: proto.String("exeggutor-go-task"),
+						TaskId: &mesos.TaskID{
+							Value: proto.String("exeggutor-go-task-" + taskID),
+						},
+						SlaveId: offer.SlaveId,
+						Command: &mesos.CommandInfo{
+							Value: proto.String("java -jar /Users/ivan/projects/wordnik/exeggutor/sample/target/exeggutor-sample-assembly.jar"),
+							Environment: &mesos.Environment{
+								Variables: []*mesos.Environment_Variable{
+									&mesos.Environment_Variable{
+										Name:  proto.String("PORT"),
+										Value: proto.String("8001"),
+									},
+								},
+							},
+						},
+						Resources: []*mesos.Resource{
+							mesos.ScalarResource("cpus", 1),
+							mesos.ScalarResource("mem", 512),
+						},
 					}
-					log.Debug("  * %+v", offer)
-					fulfilment := fw.taskManager.FulfillOffer(offer)
-					if len(fulfilment) == 0 {
-						driver.DeclineOffer(offer.GetId())
-					} else {
-						driver.LaunchTasks(offer.GetId(), fulfilment)
-					}
+
+					driver.LaunchTasks(offer.GetId(), []mesos.TaskInfo{task})
 				} else {
-					log.Notice("Received an offer but no task manager is available to handle the offer, declining %s", offer.GetId().GetValue())
 					driver.DeclineOffer(offer.GetId())
 				}
+				// } else {
+				// 	log.Notice("Received an offer but no task manager is available to handle the offer, declining %s", offer.GetId().GetValue())
+				// 	driver.DeclineOffer(offer.GetId())
+				// }
 			}
 		},
 	}

@@ -62,15 +62,16 @@
 		},
 		{
 			"ImportPath": "github.com/reverb/go-mesos/mesos",
-			"Rev": "eb277847cb70bb20178e406b76af009ebc0a0375"
+			"Comment": "v0.19.0-rvb1-1-gfd75774",
+			"Rev": "fd757741a962fb11221b899cffa6648ffa388729"
 		},
 		{
 			"ImportPath": "github.com/reverb/go-utils/flake",
-			"Rev": "c55773406944d4fd36a24bc09dd376841027557a"
+			"Rev": "7b67d1db3474977e4b9158afb7b997bec57ae210"
 		},
 		{
 			"ImportPath": "github.com/reverb/go-utils/rvb_zk",
-			"Rev": "c55773406944d4fd36a24bc09dd376841027557a"
+			"Rev": "7b67d1db3474977e4b9158afb7b997bec57ae210"
 		},
 		{
 			"ImportPath": "github.com/samuel/go-zookeeper/zk",
