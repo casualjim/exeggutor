@@ -1,6 +1,10 @@
 package tasks
 
 import (
+	"time"
+
+	"container/heap"
+
 	"code.google.com/p/goprotobuf/proto"
 	"github.com/reverb/exeggutor"
 	"github.com/reverb/exeggutor/protocol"
@@ -10,9 +14,59 @@ import (
 	"github.com/reverb/go-utils/flake"
 )
 
+type TaskQueue []*protocol.ScheduledAppComponent
+
+func (tq TaskQueue) Len() int {
+	return len(tq)
+}
+
+func (tq TaskQueue) byCpu(left, right *protocol.ApplicationComponent) bool {
+	return left.GetCpus() > right.GetCpus()
+}
+
+func (tq TaskQueue) byMemorySecondary(left, right *protocol.ApplicationComponent) bool {
+	return left.GetCpus() == right.GetCpus() && left.GetMem() > right.GetMem()
+}
+
+func (tq TaskQueue) mostRecent(left, right *protocol.ScheduledAppComponent) bool {
+	lcomp, rcomp := left.Component, right.Component
+	return lcomp.GetCpus() == rcomp.GetCpus() && lcomp.GetMem() == rcomp.GetMem() && left.GetSince() > right.GetSince()
+}
+
+func (tq TaskQueue) Less(i, j int) bool {
+	left, right := tq[i], tq[j]
+	return tq.byCpu(left.Component, right.Component) ||
+		tq.byMemorySecondary(left.Component, right.Component) ||
+		tq.mostRecent(left, right)
+}
+
+func (tq TaskQueue) Swap(i, j int) {
+	tq[i], tq[j] = tq[j], tq[i]
+	tq[i].Position = proto.Int(i)
+	tq[j].Position = proto.Int(j)
+}
+
+func (tq *TaskQueue) Push(x interface{}) {
+	n := len(*tq)
+	item := x.(*protocol.ScheduledAppComponent)
+	item.Position = proto.Int(n)
+	item.Since = proto.Int64(time.Now().UTC().UnixNano())
+	*tq = append(*tq, item)
+}
+
+func (tq *TaskQueue) Pop() interface{} {
+	old := *tq
+	n := len(old)
+	item := old[n-1]
+	item.Position = proto.Int(-1)
+	item.Since = proto.Int64(-1)
+	*tq = old[0 : n-1]
+	return item
+}
+
 // DefaultTaskManager the task manager accept
 type DefaultTaskManager struct {
-	queue     queue.Queue
+	queue     *TaskQueue
 	taskStore store.KVStore
 	config    *exeggutor.Config
 	flake     queue.IDGenerator
@@ -25,12 +79,14 @@ func NewDefaultTaskManager(config *exeggutor.Config) (*DefaultTaskManager, error
 	// TODO: replace this untyped queue with one that only accepts the
 	//       right types. this is a bit dangerous and requires contextual knowledge
 	//       or results in surprises at runtime.
-	q, err := queue.NewMdbQueue(config.DataDirectory+"/queues/tasks", &ScheduledAppComponentSerializer{})
+	//q, err := queue.NewMdbQueue(config.DataDirectory+"/queues/tasks", &ScheduledAppComponentSerializer{})
 	// q := queue.NewInMemoryQueue()
 	if err != nil {
 		return nil, err
 	}
 
+	q := &TaskQueue{}
+	heap.Init(q)
 	return &DefaultTaskManager{
 		queue:     q,
 		taskStore: store,
@@ -41,7 +97,8 @@ func NewDefaultTaskManager(config *exeggutor.Config) (*DefaultTaskManager, error
 }
 
 // NewCustomDefaultTaskManager creates a new instance of a task manager with all the internal components injected
-func NewCustomDefaultTaskManager(q queue.Queue, ts store.KVStore, config *exeggutor.Config) (*DefaultTaskManager, error) {
+func NewCustomDefaultTaskManager(q *TaskQueue, ts store.KVStore, config *exeggutor.Config) (*DefaultTaskManager, error) {
+	heap.Init(q)
 	return &DefaultTaskManager{
 		queue:     q,
 		taskStore: ts,
@@ -62,10 +119,10 @@ func (t *DefaultTaskManager) Start() error {
 	//return err
 	//}
 
-	err = t.queue.Start()
-	if err != nil {
-		return err
-	}
+	//err = t.queue.Start()
+	//if err != nil {
+	//return err
+	//}
 
 	return nil
 }
@@ -73,27 +130,17 @@ func (t *DefaultTaskManager) Start() error {
 // Stop stops this task manager, cleaning up any resources
 // it might have required and owns.
 func (t *DefaultTaskManager) Stop() error {
-	err1 := t.queue.Stop()
-	err2 := t.taskStore.Stop()
+	//err1 := t.queue.Stop()
+	err1 := t.taskStore.Stop()
 
 	// This is a bit of a weird break down but this way
 	// we preserve all error messages logged as warnings
 	// even though we return the first one that failed
 	// from this function
-	if err1 != nil || err2 != nil {
-		log.Warning("There were problems shutting down the task manager:")
-		if err1 != nil {
-			log.Warning("%v", err1)
-		}
-		if err2 != nil {
-			log.Warning("%v", err2)
-		}
-	}
 	if err1 != nil {
+		log.Warning("There were problems shutting down the task manager:")
+		log.Warning("%v", err1)
 		return err1
-	}
-	if err2 != nil {
-		return err2
 	}
 	return nil
 }
@@ -107,14 +154,12 @@ func (t *DefaultTaskManager) SubmitApp(app protocol.ApplicationManifest) error {
 			AppName:   app.Name,
 			Component: comp,
 		}
-		if err := t.queue.Enqueue(component); err != nil {
-			return err
-		}
+		heap.Push(t.queue, &component)
 	}
 	return nil
 }
 
-func (t *DefaultTaskManager) buildTaskInfo(offer mesos.Offer, scheduled protocol.ScheduledAppComponent) mesos.TaskInfo {
+func (t *DefaultTaskManager) buildTaskInfo(offer mesos.Offer, scheduled *protocol.ScheduledAppComponent) mesos.TaskInfo {
 	taskID, _ := t.flake.Next()
 	component := scheduled.Component
 	info := mesos.TaskInfo{
@@ -136,7 +181,7 @@ func (t *DefaultTaskManager) hasEnoughCpu(availableCpus float64, component *prot
 	return availableCpus >= float64(component.GetCpus())
 }
 
-func (t *DefaultTaskManager) fitsInOffer(offer mesos.Offer, component protocol.ScheduledAppComponent) bool {
+func (t *DefaultTaskManager) fitsInOffer(offer mesos.Offer, component *protocol.ScheduledAppComponent) bool {
 	var availCpus float64
 	var availMem float64
 
@@ -158,12 +203,13 @@ func (t *DefaultTaskManager) fitsInOffer(offer mesos.Offer, component protocol.S
 // So when this starts taking too long we should provide more instances to this cluster
 func (t *DefaultTaskManager) FulfillOffer(offer mesos.Offer) []mesos.TaskInfo {
 	var allQueued []mesos.TaskInfo
-	t.queue.ForEach(func(v interface{}) {
-		scheduled := v.(protocol.ScheduledAppComponent)
+	queue := *t.queue
+	for _, scheduled := range queue {
 		if t.fitsInOffer(offer, scheduled) {
 			allQueued = append(allQueued, t.buildTaskInfo(offer, scheduled))
+			heap.Remove(t.queue, int(scheduled.GetPosition()))
 		}
-	})
+	}
 	return allQueued
 }
 

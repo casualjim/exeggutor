@@ -124,12 +124,18 @@ message ApplicationManifest {
  * component that has been scheduled for deployment.
  */ 
 message ScheduledAppComponent {
+  /* Id the id of the scheduled component (for retrieval from persistence medium for example) */
+  required string id = 1;
   /* Name the name of the component */
-  required string name = 1;
+  required string name = 2;
   /* AppName the name of the app this component belongs to */
-  required string app_name = 2;
+  required string app_name = 3;
   /* Component the full component that has been scheduled */
-  required ApplicationComponent component = 3;
+  required ApplicationComponent component = 4;
+  /* Position the full position of this item in the queue */
+  required int32 position = 5;
+  /* Since the timestamp in nanoseconds when this item was added to the queue */
+  required int64 since = 6;
 }
 
 /* 

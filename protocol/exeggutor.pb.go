@@ -446,15 +446,31 @@ func (m *ApplicationManifest) GetStatus() AppStatus {
 // ScheduledAppComponent a structure to describe an application
 // component that has been scheduled for deployment.
 type ScheduledAppComponent struct {
-	Name             *string               `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
-	AppName          *string               `protobuf:"bytes,2,req,name=app_name" json:"app_name,omitempty"`
-	Component        *ApplicationComponent `protobuf:"bytes,3,req,name=component" json:"component,omitempty"`
-	XXX_unrecognized []byte                `json:"-"`
+	// Id the id of the scheduled component (for retrieval from persistence medium for example)
+	Id *string `protobuf:"bytes,1,req,name=id" json:"id,omitempty"`
+	// Name the name of the component
+	Name *string `protobuf:"bytes,2,req,name=name" json:"name,omitempty"`
+	// AppName the name of the app this component belongs to
+	AppName *string `protobuf:"bytes,3,req,name=app_name" json:"app_name,omitempty"`
+	// Component the full component that has been scheduled
+	Component *ApplicationComponent `protobuf:"bytes,4,req,name=component" json:"component,omitempty"`
+	// Position the full position of this item in the queue
+	Position *int32 `protobuf:"varint,5,req,name=position" json:"position,omitempty"`
+	// Since the timestamp in nanoseconds when this item was added to the queue
+	Since            *int64 `protobuf:"varint,6,req,name=since" json:"since,omitempty"`
+	XXX_unrecognized []byte `json:"-"`
 }
 
 func (m *ScheduledAppComponent) Reset()         { *m = ScheduledAppComponent{} }
 func (m *ScheduledAppComponent) String() string { return proto.CompactTextString(m) }
 func (*ScheduledAppComponent) ProtoMessage()    {}
+
+func (m *ScheduledAppComponent) GetId() string {
+	if m != nil && m.Id != nil {
+		return *m.Id
+	}
+	return ""
+}
 
 func (m *ScheduledAppComponent) GetName() string {
 	if m != nil && m.Name != nil {
@@ -475,6 +491,20 @@ func (m *ScheduledAppComponent) GetComponent() *ApplicationComponent {
 		return m.Component
 	}
 	return nil
+}
+
+func (m *ScheduledAppComponent) GetPosition() int32 {
+	if m != nil && m.Position != nil {
+		return *m.Position
+	}
+	return 0
+}
+
+func (m *ScheduledAppComponent) GetSince() int64 {
+	if m != nil && m.Since != nil {
+		return *m.Since
+	}
+	return 0
 }
 
 //

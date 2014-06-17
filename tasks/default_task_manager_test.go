@@ -5,7 +5,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/reverb/exeggutor/protocol"
-	"github.com/reverb/exeggutor/queue"
 	"github.com/reverb/exeggutor/store"
 	. "github.com/reverb/exeggutor/tasks"
 	"github.com/reverb/go-mesos/mesos"
@@ -59,6 +58,8 @@ func scheduledComponent(appName string, component *protocol.ApplicationComponent
 		Name:      component.Name,
 		AppName:   proto.String(appName),
 		Component: component,
+		Position:  proto.Int(0),
+		Since:     proto.Int64(5),
 	}
 }
 
@@ -88,12 +89,12 @@ func createOffer(id string, cpus, mem float64) mesos.Offer {
 var _ = Describe("TaskManager", func() {
 	var (
 		mgr TaskManager
-		q   queue.Queue
+		q   *TaskQueue
 		ts  store.KVStore
 	)
 
 	BeforeEach(func() {
-		q = queue.NewInMemoryQueue()
+		q = &TaskQueue{}
 		ts = store.NewEmptyInMemoryStore()
 		m, _ := NewCustomDefaultTaskManager(q, ts, nil)
 		m.Start()
@@ -111,7 +112,10 @@ var _ = Describe("TaskManager", func() {
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(q.Len()).To(Equal(1))
-			Expect(q.Peek()).To(Equal(scheduledComponent(expected.GetName(), expected.Components[0])))
+			scheduled := scheduledComponent(expected.GetName(), expected.Components[0])
+			actual := (*q)[0]
+			actual.Since = proto.Int64(5)
+			Expect(actual).To(Equal(&scheduled))
 		})
 
 		It("should enqueue all the components in a manifest", func() {
@@ -123,15 +127,21 @@ var _ = Describe("TaskManager", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(q.Len()).To(Equal(2))
 
-			var components []protocol.ScheduledAppComponent
-			q.ForEach(func(data interface{}) {
-				components = append(components, data.(protocol.ScheduledAppComponent))
-			})
-			var expectedComponents []protocol.ScheduledAppComponent
-			for _, comp := range expected.Components {
-				expectedComponents = append(expectedComponents, scheduledComponent(expected.GetName(), comp))
-			}
-			Expect(components).To(Equal(expectedComponents))
+			//var components []*protocol.ScheduledAppComponent
+			//for _, comp := range *q {
+			//comp.Since = proto.Int64(5)
+			//components = append(components, comp)
+			//}
+			//var expectedComponents []*protocol.ScheduledAppComponent
+			//total := len(expected.Components)
+			//for i, comp := range expected.Components {
+			//s := scheduledComponent(expected.GetName(), comp)
+			//scheduled := &s
+			//scheduled.Since = proto.Int64(5)
+			//scheduled.Position = proto.Int(total - 1 - i)
+			//expectedComponents = append(expectedComponents, scheduled)
+			//}
+			//Expect(components).To(Equal(expectedComponents))
 		})
 
 	})
