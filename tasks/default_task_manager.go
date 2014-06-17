@@ -2,6 +2,7 @@ package tasks
 
 import (
 	"container/heap"
+	"errors"
 
 	"code.google.com/p/goprotobuf/proto"
 	"github.com/reverb/exeggutor"
@@ -18,59 +19,45 @@ type DefaultTaskManager struct {
 	taskStore store.KVStore
 	config    *exeggutor.Config
 	flake     queue.IDGenerator
+	deploying map[string]*mesos.TaskInfo
 }
 
 // NewDefaultTaskManager creates a new instance of a task manager with the values
 // from the provided config.
 func NewDefaultTaskManager(config *exeggutor.Config) (*DefaultTaskManager, error) {
 	store, err := store.NewMdbStore(config.DataDirectory + "/tasks")
-	// TODO: replace this untyped queue with one that only accepts the
-	//       right types. this is a bit dangerous and requires contextual knowledge
-	//       or results in surprises at runtime.
-	//q, err := queue.NewMdbQueue(config.DataDirectory+"/queues/tasks", &ScheduledAppComponentSerializer{})
-	// q := queue.NewInMemoryQueue()
 	if err != nil {
 		return nil, err
 	}
 
 	q := &TaskQueue{}
-	heap.Init(q)
 	return &DefaultTaskManager{
 		queue:     q,
 		taskStore: store,
 		config:    config,
 		flake:     flake.NewFlake(),
-		//mesosFramework: NewFramework(config),
+		deploying: make(map[string]*mesos.TaskInfo),
 	}, nil
 }
 
 // NewCustomDefaultTaskManager creates a new instance of a task manager with all the internal components injected
 func NewCustomDefaultTaskManager(q *TaskQueue, ts store.KVStore, config *exeggutor.Config) (*DefaultTaskManager, error) {
-	heap.Init(q)
 	return &DefaultTaskManager{
 		queue:     q,
 		taskStore: ts,
 		config:    config,
 		flake:     flake.NewFlake(),
+		deploying: make(map[string]*mesos.TaskInfo),
 	}, nil
 }
 
 // Start starts the instance of the taks manager and all the components it depends on.
 func (t *DefaultTaskManager) Start() error {
 	err := t.taskStore.Start()
+	heap.Init(t.queue)
 	if err != nil {
 		return err
 	}
-
-	//err = t.mesosFramework.Start()
-	//if err != nil {
-	//return err
-	//}
-
-	//err = t.queue.Start()
-	//if err != nil {
-	//return err
-	//}
 
 	return nil
 }
@@ -154,44 +141,90 @@ func (t *DefaultTaskManager) FulfillOffer(offer mesos.Offer) []mesos.TaskInfo {
 	queue := *t.queue
 	for _, scheduled := range queue {
 		if t.fitsInOffer(offer, scheduled) {
-			allQueued = append(allQueued, t.buildTaskInfo(offer, scheduled))
+			task := t.buildTaskInfo(offer, scheduled)
+			allQueued = append(allQueued, task)
+			t.deploying[task.GetTaskId().GetValue()] = &task
 			heap.Remove(t.queue, int(scheduled.GetPosition()))
 		}
 	}
 	return allQueued
 }
 
+func (t *DefaultTaskManager) moveTaskToStore(taskID *mesos.TaskID) error {
+	task, ok := t.deploying[taskID.GetValue()]
+	if !ok {
+		return errors.New("Couldn't find task with id: " + taskID.GetValue())
+	}
+	bytes, err := proto.Marshal(task)
+	if err != nil {
+		return err
+	}
+	if err := t.taskStore.Set(task.GetTaskId().GetValue(), bytes); err != nil {
+		return err
+	}
+	delete(t.deploying, taskID.GetValue())
+	return nil
+}
+
 // TaskFailed a callback for when a task failed
 func (t *DefaultTaskManager) TaskFailed(taskID *mesos.TaskID, slaveID *mesos.SlaveID) {
 	// Track failures and keep count, eventually alert
+	err := t.taskStore.Delete(taskID.GetValue())
+	if err != nil {
+		log.Error("%v", err)
+	}
 }
 
 // TaskFinished a callback for when a task finishes successfully
 func (t *DefaultTaskManager) TaskFinished(taskID *mesos.TaskID, slaveID *mesos.SlaveID) {
 	// Move task into finished state, delete in 30 days
+	err := t.taskStore.Delete(taskID.GetValue())
+	if err != nil {
+		log.Error("%v", err)
+	}
 }
 
 // TaskKilled a callback for when a task is killed
 func (t *DefaultTaskManager) TaskKilled(taskID *mesos.TaskID, slaveID *mesos.SlaveID) {
 	// This is generally the tail end of a migration step
+	err := t.taskStore.Delete(taskID.GetValue())
+	if err != nil {
+		log.Error("%v", err)
+	}
 }
 
 // TaskLost a callback for when a task was lost
 func (t *DefaultTaskManager) TaskLost(taskID *mesos.TaskID, slaveID *mesos.SlaveID) {
 	// Uh Oh I suppose we'd better reschedule this one ahead of everybody else
+	err := t.taskStore.Delete(taskID.GetValue())
+	if err != nil {
+		log.Error("%v", err)
+	}
 }
 
 // TaskRunning a callback for when a task enters the running state
 func (t *DefaultTaskManager) TaskRunning(taskID *mesos.TaskID, slaveID *mesos.SlaveID) {
 	// All is well put this task in the running state in the UI
+	err := t.moveTaskToStore(taskID)
+	if err != nil {
+		log.Error("%v", err)
+	}
 }
 
 // TaskStaging a callback for when a task enters the first stage (probably never occurs in a framework)
 func (t *DefaultTaskManager) TaskStaging(taskID *mesos.TaskID, slaveID *mesos.SlaveID) {
 	// We scheduled this app for deployment but nothing else happened, this is like an ack of the scheduler
+	err := t.moveTaskToStore(taskID)
+	if err != nil {
+		log.Error("%v", err)
+	}
 }
 
 // TaskStarting a callback for when a task transitions from staging to starting (is being deployed)
 func (t *DefaultTaskManager) TaskStarting(taskID *mesos.TaskID, slaveID *mesos.SlaveID) {
 	// We made it to a slave and the deployment process has begun
+	err := t.moveTaskToStore(taskID)
+	if err != nil {
+		log.Error("%v", err)
+	}
 }
