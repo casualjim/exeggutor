@@ -1,6 +1,9 @@
 package queue
 
-import "github.com/op/go-logging"
+import (
+	"github.com/op/go-logging"
+	"github.com/reverb/exeggutor"
+)
 
 var log = logging.MustGetLogger("exeggutor.queue")
 
@@ -8,13 +11,13 @@ var log = logging.MustGetLogger("exeggutor.queue")
 // Throughout the application we can use the KVStore abstraction and get it to be
 // replaced by consumers of this library with a mongo based store, redis, ...
 type Queue interface {
+	exeggutor.Module
 	Len() (int, error)
 	Enqueue(item interface{}) error
 	Dequeue() (interface{}, error)
 	Peek() (interface{}, error)
 	IsEmpty() (bool, error)
-	Start() error
-	Stop() error
+	ForEach(func(interface{})) error
 }
 
 // Serializer allows for pluggable serialization

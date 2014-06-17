@@ -148,31 +148,36 @@ func (q MdbQueue) Enqueue(item interface{}) error {
 // Len gets the length of the queue, this operation is O(n) with the size of the queue
 func (q MdbQueue) Len() (int, error) {
 	var count int
+	err := q.ForEach(func(v interface{}) { count++ })
+	return count, err
+}
+
+// ForEach iterates over all the items without dequeueing any
+func (q MdbQueue) ForEach(iter func(interface{})) error {
 	tx, dbis, err := q.startTxn(true)
 	if err != nil {
-		return 0, err
+		return err
 	}
 	defer tx.Abort()
-
 	cursor, err := tx.CursorOpen(dbis[0])
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	for {
-		_, _, err := cursor.Get(nil, mdb.NEXT)
+		_, value, err := cursor.Get(nil, mdb.NEXT)
 		if err == mdb.NotFound {
 			break
 		}
 		if err != nil {
-			return count, err
+			return err
 		}
-		count++
+		iter(value)
 	}
 	if err := cursor.Close(); err != nil {
-		log.Warning("Couldn't close cursor because:", err)
+		log.Critical("Couldn't close cursor because:", err)
 	}
-	return count, nil
+	return nil
 }
 
 // Start starts this queue

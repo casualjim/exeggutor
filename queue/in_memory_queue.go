@@ -98,6 +98,16 @@ func (q *InMemoryQueue) IsEmpty() (bool, error) {
 	return n == nil || n.data == nil, nil
 }
 
+// ForEach iterates over all the items without dequeueing any
+func (q *InMemoryQueue) ForEach(iter func(interface{})) error {
+	cur := q.head
+	for cur != nil {
+		iter(cur.data)
+		cur = cur.next
+	}
+	return nil
+}
+
 // Start start this queue
 func (q *InMemoryQueue) Start() error {
 	return nil

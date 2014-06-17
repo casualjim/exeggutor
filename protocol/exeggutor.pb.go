@@ -13,6 +13,7 @@ It has these top-level messages:
 	StringIntKeyValue
 	ApplicationComponent
 	ApplicationManifest
+	ScheduledAppComponent
 	HealthCheck
 	ApplicationSLA
 */
@@ -25,16 +26,26 @@ import math "math"
 var _ = proto.Marshal
 var _ = math.Inf
 
+//
+// AppStatus is used to indicate where an app is in a lifecycle on the cluster
 type AppStatus int32
 
 const (
-	AppStatus_ABSENT    AppStatus = 1
+	// AppStatus_ABSENT the application has no running instances
+	AppStatus_ABSENT AppStatus = 1
+	// AppStatus_DEPLOYING the application is currently being deployed
 	AppStatus_DEPLOYING AppStatus = 2
-	AppStatus_STOPPED   AppStatus = 3
-	AppStatus_STOPPING  AppStatus = 4
-	AppStatus_STARTING  AppStatus = 5
-	AppStatus_STARTED   AppStatus = 6
+	// AppStatus_STOPPED the application has been stopped
+	AppStatus_STOPPED AppStatus = 3
+	// AppStatus_STOPPING the application has is stopping, a command was issued to stop the app
+	AppStatus_STOPPING AppStatus = 4
+	// AppStatus_STARTING the application has been deployed and is currently starting up
+	AppStatus_STARTING AppStatus = 5
+	// AppStatus_STARTED the application is fully available for taking requests
+	AppStatus_STARTED AppStatus = 6
+	// AppStatus_VERY_BUSY the application is still up but timing out very often, best to avoid it for a while
 	AppStatus_VERY_BUSY AppStatus = 7
+	// AppStatus_UNHEALTHY the application has a running process but is otherwise broken, don't send requests here
 	AppStatus_UNHEALTHY AppStatus = 8
 )
 
@@ -76,16 +87,20 @@ func (x *AppStatus) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+//
+// ComponentType is used to describe what type of service this is.
+// This is used for determining montitoring strategy and so on.
+// It might also influence the way an application is deployed
 type ComponentType int32
 
 const (
-	// A long-running service
+	// ComponentType_SERVICE A long-running service
 	ComponentType_SERVICE ComponentType = 0
-	// A short one-off task
+	// ComponentType_TASK A short one-off task
 	ComponentType_TASK ComponentType = 1
-	// A task scheduled to repeat on a schedule or to be executed at a later, scheduled time
+	// ComponentType_CRON A task scheduled to repeat on a schedule or to be executed at a later, scheduled time
 	ComponentType_CRON ComponentType = 2
-	// A spark job
+	// ComponentType_SPARK_JOB A spark job
 	ComponentType_SPARK_JOB ComponentType = 3
 )
 
@@ -119,10 +134,15 @@ func (x *ComponentType) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+//
+// Distribution is used to decide how an application should be deployed
+// This determines whether it needs extraction etc.
 type Distribution int32
 
 const (
 	// Distributed as a package for the OS package manager (RPM, DEB, ...)
+	// This implies that a docker container will be created ad-hoc to install this package.
+	// It's probably better to get jenkins to build a proper docker container for your application.
 	Distribution_PACKAGE Distribution = 0
 	// Distributed as a Docker Container
 	Distribution_DOCKER Distribution = 1
@@ -195,6 +215,7 @@ func (x *HealthCheck_HealthCheckMode) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// StringKeyValue represents a pair of 2 strings used as a replacement for maps
 type StringKeyValue struct {
 	Key              *string `protobuf:"bytes,1,req,name=key" json:"key,omitempty"`
 	Value            *string `protobuf:"bytes,2,req,name=value" json:"value,omitempty"`
@@ -219,10 +240,13 @@ func (m *StringKeyValue) GetValue() string {
 	return ""
 }
 
+// StringIntKeyValue represents a pair of string to int, used as a replacement for maps
 type StringIntKeyValue struct {
-	Key              *string `protobuf:"bytes,1,req,name=key" json:"key,omitempty"`
-	Value            *int32  `protobuf:"varint,2,req,name=value" json:"value,omitempty"`
-	XXX_unrecognized []byte  `json:"-"`
+	// Key the key of this pair
+	Key *string `protobuf:"bytes,1,req,name=key" json:"key,omitempty"`
+	// Value the value of this pair
+	Value            *int32 `protobuf:"varint,2,req,name=value" json:"value,omitempty"`
+	XXX_unrecognized []byte `json:"-"`
 }
 
 func (m *StringIntKeyValue) Reset()         { *m = StringIntKeyValue{} }
@@ -243,19 +267,26 @@ func (m *StringIntKeyValue) GetValue() int32 {
 	return 0
 }
 
+//
+// ApplicationComponent is a part of what makes up a single application.
+// It describes the packaging and distribution model of the component
+// It also describes the requirements for the component in terms of disk space, cpu and memory
+// Furthermore it contains the configuration for the environment and scheme to port mapping
+// It also has a status field to track the deployment status of this component
 type ApplicationComponent struct {
 	Name             *string              `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
 	Cpus             *float32             `protobuf:"fixed32,2,req,name=cpus" json:"cpus,omitempty"`
 	Mem              *float32             `protobuf:"fixed32,3,req,name=mem" json:"mem,omitempty"`
-	DistUrl          *string              `protobuf:"bytes,4,req,name=dist_url" json:"dist_url,omitempty"`
-	Command          *string              `protobuf:"bytes,5,req,name=command" json:"command,omitempty"`
-	Env              []*StringKeyValue    `protobuf:"bytes,6,rep,name=env" json:"env,omitempty"`
-	Ports            []*StringIntKeyValue `protobuf:"bytes,7,rep,name=ports" json:"ports,omitempty"`
-	Version          *string              `protobuf:"bytes,8,req,name=version" json:"version,omitempty"`
-	Status           *AppStatus           `protobuf:"varint,9,req,name=status,enum=protocol.AppStatus,def=1" json:"status,omitempty"`
-	LogDir           *string              `protobuf:"bytes,10,opt,name=log_dir" json:"log_dir,omitempty"`
-	WorkDir          *string              `protobuf:"bytes,11,opt,name=work_dir" json:"work_dir,omitempty"`
-	ConfDir          *string              `protobuf:"bytes,12,opt,name=conf_dir" json:"conf_dir,omitempty"`
+	DiskSpace        *int64               `protobuf:"varint,4,req,name=disk_space" json:"disk_space,omitempty"`
+	DistUrl          *string              `protobuf:"bytes,5,req,name=dist_url" json:"dist_url,omitempty"`
+	Command          *string              `protobuf:"bytes,6,req,name=command" json:"command,omitempty"`
+	Env              []*StringKeyValue    `protobuf:"bytes,7,rep,name=env" json:"env,omitempty"`
+	Ports            []*StringIntKeyValue `protobuf:"bytes,8,rep,name=ports" json:"ports,omitempty"`
+	Version          *string              `protobuf:"bytes,9,req,name=version" json:"version,omitempty"`
+	Status           *AppStatus           `protobuf:"varint,10,req,name=status,enum=protocol.AppStatus,def=1" json:"status,omitempty"`
+	LogDir           *string              `protobuf:"bytes,11,opt,name=log_dir" json:"log_dir,omitempty"`
+	WorkDir          *string              `protobuf:"bytes,12,opt,name=work_dir" json:"work_dir,omitempty"`
+	ConfDir          *string              `protobuf:"bytes,13,opt,name=conf_dir" json:"conf_dir,omitempty"`
 	Distribution     *Distribution        `protobuf:"varint,14,req,name=distribution,enum=protocol.Distribution,def=0" json:"distribution,omitempty"`
 	ComponentType    *ComponentType       `protobuf:"varint,15,req,name=component_type,enum=protocol.ComponentType,def=0" json:"component_type,omitempty"`
 	XXX_unrecognized []byte               `json:"-"`
@@ -286,6 +317,13 @@ func (m *ApplicationComponent) GetCpus() float32 {
 func (m *ApplicationComponent) GetMem() float32 {
 	if m != nil && m.Mem != nil {
 		return *m.Mem
+	}
+	return 0
+}
+
+func (m *ApplicationComponent) GetDiskSpace() int64 {
+	if m != nil && m.DiskSpace != nil {
+		return *m.DiskSpace
 	}
 	return 0
 }
@@ -367,6 +405,9 @@ func (m *ApplicationComponent) GetComponentType() ComponentType {
 	return Default_ApplicationComponent_ComponentType
 }
 
+//
+// ApplicationManifest gives an application a name and contains the various
+// components that make up an application, like nginx, service, cron jobs
 type ApplicationManifest struct {
 	Name             *string                 `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
 	Components       []*ApplicationComponent `protobuf:"bytes,2,rep,name=components" json:"components,omitempty"`
@@ -401,6 +442,43 @@ func (m *ApplicationManifest) GetStatus() AppStatus {
 	return Default_ApplicationManifest_Status
 }
 
+//
+// ScheduledAppComponent a structure to describe an application
+// component that has been scheduled for deployment.
+type ScheduledAppComponent struct {
+	Name             *string               `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
+	AppName          *string               `protobuf:"bytes,2,req,name=app_name" json:"app_name,omitempty"`
+	Component        *ApplicationComponent `protobuf:"bytes,3,req,name=component" json:"component,omitempty"`
+	XXX_unrecognized []byte                `json:"-"`
+}
+
+func (m *ScheduledAppComponent) Reset()         { *m = ScheduledAppComponent{} }
+func (m *ScheduledAppComponent) String() string { return proto.CompactTextString(m) }
+func (*ScheduledAppComponent) ProtoMessage()    {}
+
+func (m *ScheduledAppComponent) GetName() string {
+	if m != nil && m.Name != nil {
+		return *m.Name
+	}
+	return ""
+}
+
+func (m *ScheduledAppComponent) GetAppName() string {
+	if m != nil && m.AppName != nil {
+		return *m.AppName
+	}
+	return ""
+}
+
+func (m *ScheduledAppComponent) GetComponent() *ApplicationComponent {
+	if m != nil {
+		return m.Component
+	}
+	return nil
+}
+
+//
+// HealthCheck
 type HealthCheck struct {
 	Mode             *HealthCheck_HealthCheckMode `protobuf:"varint,1,req,name=mode,enum=protocol.HealthCheck_HealthCheckMode,def=0" json:"mode,omitempty"`
 	Host             *string                      `protobuf:"bytes,2,req,name=host" json:"host,omitempty"`
@@ -461,6 +539,8 @@ func (m *HealthCheck) GetScheme() string {
 	return Default_HealthCheck_Scheme
 }
 
+//
+// ApplicationSLA
 type ApplicationSLA struct {
 	Instances        *int32       `protobuf:"varint,1,req,name=instances,def=1" json:"instances,omitempty"`
 	HealthCheck      *HealthCheck `protobuf:"bytes,2,req,name=health_check" json:"health_check,omitempty"`

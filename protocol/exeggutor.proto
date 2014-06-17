@@ -6,72 +6,112 @@ option cc_generic_services = false;
 option java_generic_services = false;
 option py_generic_services = false;
 
+/* StringKeyValue represents a pair of 2 strings used as a replacement for maps
+ */
 message StringKeyValue {
+
   required string key = 1;
   required string value = 2;
 }
 
+/* StringIntKeyValue represents a pair of string to int, used as a replacement for maps
+ */
 message StringIntKeyValue {
+  /* Key the key of this pair */
   required string key = 1;
+  /* Value the value of this pair */
   required int32  value = 2;
 }
 
-
+/*
+ * AppStatus is used to indicate where an app is in a lifecycle on the cluster
+ */
 enum AppStatus {
+  /* AppStatus_ABSENT the application has no running instances */
   ABSENT = 1;
+  /* AppStatus_DEPLOYING the application is currently being deployed */
   DEPLOYING = 2;
+  /* AppStatus_STOPPED the application has been stopped */
   STOPPED = 3;
+  /* AppStatus_STOPPING the application has is stopping, a command was issued to stop the app */
   STOPPING = 4;
+  /* AppStatus_STARTING the application has been deployed and is currently starting up */
   STARTING = 5;
+  /* AppStatus_STARTED the application is fully available for taking requests */
   STARTED = 6;
+  /* AppStatus_VERY_BUSY the application is still up but timing out very often, best to avoid it for a while */
   VERY_BUSY = 7;
+  /* AppStatus_UNHEALTHY the application has a running process but is otherwise broken, don't send requests here */
   UNHEALTHY = 8;
 }
 
+/*
+ * ComponentType is used to describe what type of service this is.
+ * This is used for determining montitoring strategy and so on. 
+ * It might also influence the way an application is deployed
+ */ 
 enum ComponentType {
-  // A long-running service
+  /* ComponentType_SERVICE A long-running service */
   SERVICE = 0;
-  // A short one-off task
+  /* ComponentType_TASK A short one-off task */
   TASK = 1;
-  // A task scheduled to repeat on a schedule or to be executed at a later, scheduled time
+  /* ComponentType_CRON A task scheduled to repeat on a schedule or to be executed at a later, scheduled time */
   CRON = 2;
-  // A spark job
+  /* ComponentType_SPARK_JOB A spark job */
   SPARK_JOB = 3;
 }
 
-
+/*
+ * Distribution is used to decide how an application should be deployed 
+ * This determines whether it needs extraction etc. 
+ */ 
 enum Distribution {
-  // Distributed as a package for the OS package manager (RPM, DEB, ...)
+  /* Distributed as a package for the OS package manager (RPM, DEB, ...)
+   * This implies that a docker container will be created ad-hoc to install this package.
+   * It's probably better to get jenkins to build a proper docker container for your application.
+   */
   PACKAGE = 0;
-  // Distributed as a Docker Container
+  /* Distributed as a Docker Container */
   DOCKER = 1;
-  // Ad-Hoc script, fat-jar, single-binary
+  /* Ad-Hoc script, fat-jar, single-binary */
   SCRIPT = 2;
-  // Distributed as executable jar
+  /* Distributed as executable jar */
   FAT_JAR = 3;
 }
 
+/*
+ * ApplicationComponent is a part of what makes up a single application.
+ * It describes the packaging and distribution model of the component
+ * It also describes the requirements for the component in terms of disk space, cpu and memory
+ * Furthermore it contains the configuration for the environment and scheme to port mapping
+ * It also has a status field to track the deployment status of this component
+ */
 message ApplicationComponent {
 
   required string name = 1;
   required float cpus = 2;
   required float mem = 3;
-  required string dist_url = 4;
-  required string command = 5;
-  repeated StringKeyValue env = 6;
-  repeated StringIntKeyValue ports = 7;
-  required string version = 8;
+  required int64 disk_space = 4;
+  required string dist_url = 5;
+  required string command = 6;
+  repeated StringKeyValue env = 7;
+  repeated StringIntKeyValue ports = 8;
+  required string version = 9;
 
-  required AppStatus status = 9 [ default = ABSENT ];
-  optional string log_dir = 10;
-  optional string work_dir = 11;
-  optional string conf_dir = 12;
+  required AppStatus status = 10 [ default = ABSENT ];
+  optional string log_dir = 11;
+  optional string work_dir = 12;
+  optional string conf_dir = 13;
 
   required Distribution distribution = 14 [ default = PACKAGE ];
 
   required ComponentType component_type = 15 [ default = SERVICE ];
 }
 
+/*
+ * ApplicationManifest gives an application a name and contains the various
+ * components that make up an application, like nginx, service, cron jobs
+ */
 message ApplicationManifest {
   required string name = 1;
   repeated ApplicationComponent components = 2;
@@ -79,6 +119,22 @@ message ApplicationManifest {
   optional AppStatus status = 3 [default = ABSENT];
 }
 
+/*
+ * ScheduledAppComponent a structure to describe an application
+ * component that has been scheduled for deployment.
+ */ 
+message ScheduledAppComponent {
+  /* Name the name of the component */
+  required string name = 1;
+  /* AppName the name of the app this component belongs to */
+  required string app_name = 2;
+  /* Component the full component that has been scheduled */
+  required ApplicationComponent component = 3;
+}
+
+/* 
+ * HealthCheck 
+ */ 
 message HealthCheck {
   enum HealthCheckMode {
     REST = 0;
@@ -92,6 +148,10 @@ message HealthCheck {
   optional string path = 10 [ default = "/api/api-docs" ];
   optional string scheme = 11 [ default = "http" ];
 }
+
+/* 
+ * ApplicationSLA 
+ */ 
 message ApplicationSLA {
   required int32 instances = 1 [ default = 1 ];
   required HealthCheck health_check = 2;

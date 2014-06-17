@@ -2,6 +2,7 @@ package tasks
 
 import (
 	"github.com/op/go-logging"
+	"github.com/reverb/exeggutor"
 	"github.com/reverb/exeggutor/protocol"
 	"github.com/reverb/go-mesos/mesos"
 )
@@ -13,6 +14,7 @@ var log = logging.MustGetLogger("exeggutor.tasks")
 // This allows for task managers to be substituted in tests
 // with simpler implementations
 type TaskManager interface {
+	exeggutor.Module
 	SubmitApp(app protocol.ApplicationManifest) error
 	FulfillOffer(offer mesos.Offer) []mesos.TaskInfo
 	TaskFailed(taskID *mesos.TaskID, slaveID *mesos.SlaveID)
