@@ -127,21 +127,20 @@ var _ = Describe("TaskManager", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(q.Len()).To(Equal(2))
 
-			//var components []*protocol.ScheduledAppComponent
-			//for _, comp := range *q {
-			//comp.Since = proto.Int64(5)
-			//components = append(components, comp)
-			//}
-			//var expectedComponents []*protocol.ScheduledAppComponent
-			//total := len(expected.Components)
-			//for i, comp := range expected.Components {
-			//s := scheduledComponent(expected.GetName(), comp)
-			//scheduled := &s
-			//scheduled.Since = proto.Int64(5)
-			//scheduled.Position = proto.Int(total - 1 - i)
-			//expectedComponents = append(expectedComponents, scheduled)
-			//}
-			//Expect(components).To(Equal(expectedComponents))
+			var components []*protocol.ScheduledAppComponent
+			for _, comp := range *q {
+				comp.Since = proto.Int64(5)
+				components = append(components, comp)
+			}
+			var expectedComponents []*protocol.ScheduledAppComponent
+			for i, comp := range expected.Components {
+				s := scheduledComponent(expected.GetName(), comp)
+				scheduled := &s
+				scheduled.Since = proto.Int64(5)
+				scheduled.Position = proto.Int(i)
+				expectedComponents = append(expectedComponents, scheduled)
+			}
+			Expect(components).To(Equal(expectedComponents))
 		})
 
 	})
