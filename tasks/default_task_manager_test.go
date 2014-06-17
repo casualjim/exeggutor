@@ -160,11 +160,14 @@ var _ = Describe("TaskManager", func() {
 			Expect(actual.Resources).To(Equal(expectedResources))
 		})
 
-		PIt("should return an empty array when the offer can't be fullfilled", func() {
-			// expected := testApp("test-service-yada", 1.0, 256.0)
-			// mgr.SubmitApp(expected)
-			// offer := createOffer("offer-id-1", 5.0, 1024.0)
+		It("should return an empty array when the offer can't be fullfilled", func() {
+			manifest := testApp("test-service-yada", 5.0, 1024.0)
 
+			mgr.SubmitApp(manifest)
+			offer := createOffer("offer-id-1", 1.0, 256.0)
+			reply := mgr.FulfillOffer(offer)
+
+			Expect(reply).To(BeEmpty())
 		})
 	})
 })

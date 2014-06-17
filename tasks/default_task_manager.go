@@ -1,10 +1,6 @@
 package tasks
 
 import (
-	"errors"
-	"strconv"
-	"strings"
-
 	"code.google.com/p/goprotobuf/proto"
 	"github.com/reverb/exeggutor"
 	"github.com/reverb/exeggutor/protocol"
@@ -20,29 +16,6 @@ type DefaultTaskManager struct {
 	taskStore store.KVStore
 	config    *exeggutor.Config
 	flake     queue.IDGenerator
-}
-
-// ScheduledAppComponentSerializer a struct to implement a serializer for an
-// exeggutor.protocol.ScheduledAppComponent
-type ScheduledAppComponentSerializer struct{}
-
-// ReadBytes ScheduledAppComponentSerializer a byte slice into a ScheduledAppComponent
-func (a *ScheduledAppComponentSerializer) ReadBytes(data []byte) (interface{}, error) {
-	appManifest := &protocol.ScheduledAppComponent{}
-	err := proto.Unmarshal(data, appManifest)
-	if err != nil {
-		return nil, err
-	}
-	return appManifest, nil
-}
-
-// WriteBytes converts an application manifest into a byte slice
-func (a *ScheduledAppComponentSerializer) WriteBytes(target interface{}) ([]byte, error) {
-	msg, ok := target.(proto.Message)
-	if !ok {
-		return nil, errors.New("Expected to serialize an application manifest which is a proto message.")
-	}
-	return proto.Marshal(msg)
 }
 
 // NewDefaultTaskManager creates a new instance of a task manager with the values
@@ -141,41 +114,6 @@ func (t *DefaultTaskManager) SubmitApp(app protocol.ApplicationManifest) error {
 	return nil
 }
 
-func BuildResources(component *protocol.ApplicationComponent) []*mesos.Resource {
-	return []*mesos.Resource{
-		mesos.ScalarResource("cpus", float64(component.GetCpus())),
-		mesos.ScalarResource("mem", float64(component.GetMem())),
-	}
-}
-
-func BuildTaskEnvironment(envList []*protocol.StringKeyValue, ports []*protocol.StringIntKeyValue) *mesos.Environment {
-	var env []*mesos.Environment_Variable
-	for _, kv := range envList {
-		env = append(env, &mesos.Environment_Variable{
-			Name:  kv.Key,
-			Value: kv.Value,
-		})
-	}
-	for _, port := range ports {
-		env = append(env, &mesos.Environment_Variable{
-			Name:  proto.String(strings.ToUpper(port.GetKey()) + "_PORT"),
-			Value: proto.String(strconv.Itoa(int(port.GetValue()))),
-		})
-	}
-	return &mesos.Environment{Variables: env}
-}
-
-func BuildMesosCommand(component *protocol.ApplicationComponent) *mesos.CommandInfo {
-	return &mesos.CommandInfo{
-		Container:   nil,                        // TODO: use this to configure deimos
-		Uris:        []*mesos.CommandInfo_URI{}, // TODO: used to provide the docker image url for deimos?
-		Environment: BuildTaskEnvironment(component.GetEnv(), component.GetPorts()),
-		Value:       component.Command,
-		User:        nil, // TODO: allow this to be configured?
-		HealthCheck: nil, // TODO: allow this to be configured?
-	}
-}
-
 func (t *DefaultTaskManager) buildTaskInfo(offer mesos.Offer, scheduled protocol.ScheduledAppComponent) mesos.TaskInfo {
 	taskID, _ := t.flake.Next()
 	component := scheduled.Component
@@ -190,6 +128,30 @@ func (t *DefaultTaskManager) buildTaskInfo(offer mesos.Offer, scheduled protocol
 	return info
 }
 
+func (t *DefaultTaskManager) hasEnoughMem(availableMem float64, component *protocol.ApplicationComponent) bool {
+	return availableMem >= float64(component.GetMem())
+}
+
+func (t *DefaultTaskManager) hasEnoughCpu(availableCpus float64, component *protocol.ApplicationComponent) bool {
+	return availableCpus >= float64(component.GetCpus())
+}
+
+func (t *DefaultTaskManager) fitsInOffer(offer mesos.Offer, component protocol.ScheduledAppComponent) bool {
+	var availCpus float64
+	var availMem float64
+
+	for _, resource := range offer.Resources {
+		switch resource.GetName() {
+		case "cpus":
+			availCpus = resource.GetScalar().GetValue()
+		case "mem":
+			availMem = resource.GetScalar().GetValue()
+		}
+	}
+
+	return t.hasEnoughCpu(availCpus, component.Component) && t.hasEnoughMem(availMem, component.Component)
+}
+
 // FulfillOffer tries to fullfil an offer with the biggest and oldest enqueued thing it can find.
 // this can be an expensive operation when the queue is large, in practice this queue should never
 // get very large because that would indicate we're grossly underprovisioned
@@ -198,7 +160,9 @@ func (t *DefaultTaskManager) FulfillOffer(offer mesos.Offer) []mesos.TaskInfo {
 	var allQueued []mesos.TaskInfo
 	t.queue.ForEach(func(v interface{}) {
 		scheduled := v.(protocol.ScheduledAppComponent)
-		allQueued = append(allQueued, t.buildTaskInfo(offer, scheduled))
+		if t.fitsInOffer(offer, scheduled) {
+			allQueued = append(allQueued, t.buildTaskInfo(offer, scheduled))
+		}
 	})
 	return allQueued
 }
