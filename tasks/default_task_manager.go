@@ -30,7 +30,7 @@ func (tq TaskQueue) byMemorySecondary(left, right *protocol.ApplicationComponent
 
 func (tq TaskQueue) mostRecent(left, right *protocol.ScheduledAppComponent) bool {
 	lcomp, rcomp := left.Component, right.Component
-	return lcomp.GetCpus() == rcomp.GetCpus() && lcomp.GetMem() == rcomp.GetMem() && left.GetSince() > right.GetSince()
+	return lcomp.GetCpus() == rcomp.GetCpus() && lcomp.GetMem() == rcomp.GetMem() && left.GetSince() < right.GetSince()
 }
 
 func (tq TaskQueue) Less(i, j int) bool {
