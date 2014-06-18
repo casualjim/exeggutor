@@ -9,7 +9,7 @@ import (
 	"github.com/reverb/go-mesos/mesos"
 )
 
-// FrameworkIDState Represents a cached value for the framework id
+// ZookeeperFrameworkIDState Represents a cached value for the framework id
 type ZookeeperFrameworkIDState struct {
 	current     *mesos.FrameworkID
 	cache       *rvb_zk.NodeCache

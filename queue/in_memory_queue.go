@@ -5,16 +5,16 @@ import (
 	"sync"
 )
 
-type inMemoryQueuNode struct {
+type inMemoryQueueNode struct {
 	data interface{}
-	next *inMemoryQueuNode
+	next *inMemoryQueueNode
 }
 
 // InMemoryQueue An in-memory FIFO queue datastructure.
 // has O(1) for inserting things into the queue, it does that by using a linked list.
 type InMemoryQueue struct {
-	head  *inMemoryQueuNode
-	tail  *inMemoryQueuNode
+	head  *inMemoryQueueNode
+	tail  *inMemoryQueueNode
 	count int
 	lock  *sync.Mutex
 }
@@ -42,7 +42,7 @@ func (q *InMemoryQueue) Enqueue(item interface{}) error {
 	q.lock.Lock()
 	defer q.lock.Unlock()
 
-	n := &inMemoryQueuNode{data: item}
+	n := &inMemoryQueueNode{data: item}
 
 	if q.tail == nil {
 		q.tail = n

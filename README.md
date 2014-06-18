@@ -22,7 +22,7 @@ cd $GOPATH/src/github.com/reverb/exeggutor
 make setup
 ```
 
-## For development you'll need several tools
+### Setting up a go dev env
 
 Create a folder on your file system. This will be root of your go workspace but not the project.
 
@@ -66,18 +66,6 @@ Install the dependency management tool
 ```bash
 go get -u github.com/tools/godep
 ```
-
-There is a Makefile included that has a setup task and that will download all the necessary dependencies. Once you've completed the above steps
-
-```bash
-git clone https://github.com/reverb/exeggutor $GOPATH/src/github.com/reverb/exeggutor
-cd $GOPATH/src/github.com/reverb/exeggutor
-make setup
-```
-
-
-### Setting up a dev environment
-
 
 If you're using an editor like Sublime, Vim or Emacs you will probably need all or most of the tools below (make setup took care of this):
 

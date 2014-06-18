@@ -50,6 +50,7 @@ func BuildMesosCommand(component *protocol.ApplicationComponent) *mesos.CommandI
 	}
 }
 
+// BuildTaskInfo builds a mesos.TaskInfo object from an offer and a scheduled component
 func BuildTaskInfo(taskID string, offer *mesos.Offer, scheduled *protocol.ScheduledAppComponent) mesos.TaskInfo {
 	component := scheduled.Component
 	return mesos.TaskInfo{

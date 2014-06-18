@@ -111,7 +111,7 @@ func (pq prioQueue) Len() int {
 	return len(pq)
 }
 
-func (pq prioQueue) byCpu(left, right *protocol.ApplicationComponent) bool {
+func (pq prioQueue) byCPU(left, right *protocol.ApplicationComponent) bool {
 	return left.GetCpus() > right.GetCpus()
 }
 
@@ -128,7 +128,7 @@ func (pq prioQueue) leastRecent(left, right *protocol.ScheduledAppComponent) boo
 // is higher on the list than the item at index j
 func (pq prioQueue) Less(i, j int) bool {
 	left, right := pq[i], pq[j]
-	return pq.byCpu(left.Component, right.Component) ||
+	return pq.byCPU(left.Component, right.Component) ||
 		pq.byMemorySecondary(left.Component, right.Component) ||
 		pq.leastRecent(left, right)
 }
