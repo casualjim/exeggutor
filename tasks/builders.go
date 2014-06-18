@@ -10,6 +10,7 @@ import (
 	"github.com/reverb/go-mesos/mesos"
 )
 
+// BuildResources builds the []*mesos.Resource from a protocol.ApplicationComponent
 func BuildResources(component *protocol.ApplicationComponent) []*mesos.Resource {
 	return []*mesos.Resource{
 		mesos.ScalarResource("cpus", float64(component.GetCpus())),
@@ -17,6 +18,8 @@ func BuildResources(component *protocol.ApplicationComponent) []*mesos.Resource 
 	}
 }
 
+// BuildTaskEnvironment builds a mesos.Environment from the environment and ports
+// provided by the application component
 func BuildTaskEnvironment(envList []*protocol.StringKeyValue, ports []*protocol.StringIntKeyValue) *mesos.Environment {
 	var env []*mesos.Environment_Variable
 	for _, kv := range envList {
@@ -34,6 +37,8 @@ func BuildTaskEnvironment(envList []*protocol.StringKeyValue, ports []*protocol.
 	return &mesos.Environment{Variables: env}
 }
 
+// BuildMesosCommand builds a mesos.CommandInfo object from a protocol.ApplicationComponent
+// This is what drives our deployment and how it works.
 func BuildMesosCommand(component *protocol.ApplicationComponent) *mesos.CommandInfo {
 	return &mesos.CommandInfo{
 		Container:   nil,                        // TODO: use this to configure deimos

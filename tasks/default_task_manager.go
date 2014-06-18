@@ -162,40 +162,36 @@ func (t *DefaultTaskManager) moveTaskToStore(taskID *mesos.TaskID) error {
 	return nil
 }
 
-// TaskFailed a callback for when a task failed
-func (t *DefaultTaskManager) TaskFailed(taskID *mesos.TaskID, slaveID *mesos.SlaveID) {
-	// Track failures and keep count, eventually alert
+func (t *DefaultTaskManager) forgetTask(taskID *mesos.TaskID) {
+	delete(t.deploying, taskID.GetValue())
 	err := t.taskStore.Delete(taskID.GetValue())
 	if err != nil {
 		log.Error("%v", err)
 	}
+}
+
+// TaskFailed a callback for when a task failed
+func (t *DefaultTaskManager) TaskFailed(taskID *mesos.TaskID, slaveID *mesos.SlaveID) {
+	// Track failures and keep count, eventually alert
+	t.forgetTask(taskID)
 }
 
 // TaskFinished a callback for when a task finishes successfully
 func (t *DefaultTaskManager) TaskFinished(taskID *mesos.TaskID, slaveID *mesos.SlaveID) {
 	// Move task into finished state, delete in 30 days
-	err := t.taskStore.Delete(taskID.GetValue())
-	if err != nil {
-		log.Error("%v", err)
-	}
+	t.forgetTask(taskID)
 }
 
 // TaskKilled a callback for when a task is killed
 func (t *DefaultTaskManager) TaskKilled(taskID *mesos.TaskID, slaveID *mesos.SlaveID) {
 	// This is generally the tail end of a migration step
-	err := t.taskStore.Delete(taskID.GetValue())
-	if err != nil {
-		log.Error("%v", err)
-	}
+	t.forgetTask(taskID)
 }
 
 // TaskLost a callback for when a task was lost
 func (t *DefaultTaskManager) TaskLost(taskID *mesos.TaskID, slaveID *mesos.SlaveID) {
 	// Uh Oh I suppose we'd better reschedule this one ahead of everybody else
-	err := t.taskStore.Delete(taskID.GetValue())
-	if err != nil {
-		log.Error("%v", err)
-	}
+	t.forgetTask(taskID)
 }
 
 // TaskRunning a callback for when a task enters the running state
