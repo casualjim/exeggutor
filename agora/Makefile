@@ -1,10 +1,13 @@
+GOPATH := $(CURDIR)/../_vendor:$(GOPATH)
+GO ?= go
+
 all: run-forever
 
 build-binary: 
-	go build
+	@go build
 
 build-frontend:
-	cd static; grunt build 
+	@cd static; grunt build 
 
 dist: build-binary build-frontend
 	mkdir -p dist
@@ -29,8 +32,8 @@ run-forever:
 	gin
 
 run:
-	go run main.go
+	@go run main.go
 
 test:
-	ginkgo -r 
+	@ginkgo -r 
 

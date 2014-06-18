@@ -107,7 +107,7 @@ func (t *DefaultTaskManager) hasEnoughMem(availableMem float64, component *proto
 	return availableMem >= float64(component.GetMem())
 }
 
-func (t *DefaultTaskManager) hasEnoughCpu(availableCpus float64, component *protocol.ApplicationComponent) bool {
+func (t *DefaultTaskManager) hasEnoughCPU(availableCpus float64, component *protocol.ApplicationComponent) bool {
 	return availableCpus >= float64(component.GetCpus())
 }
 
@@ -124,7 +124,7 @@ func (t *DefaultTaskManager) fitsInOffer(offer mesos.Offer, component *protocol.
 		}
 	}
 
-	return t.hasEnoughCpu(availCpus, component.Component) && t.hasEnoughMem(availMem, component.Component)
+	return t.hasEnoughCPU(availCpus, component.Component) && t.hasEnoughMem(availMem, component.Component)
 }
 
 // FulfillOffer tries to fullfil an offer with the biggest and oldest enqueued thing it can find.
