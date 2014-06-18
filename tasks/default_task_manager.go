@@ -40,20 +40,24 @@ func NewDefaultTaskManager(config *exeggutor.Config) (*DefaultTaskManager, error
 }
 
 // NewCustomDefaultTaskManager creates a new instance of a task manager with all the internal components injected
-func NewCustomDefaultTaskManager(q TaskQueue, ts store.KVStore, config *exeggutor.Config) (*DefaultTaskManager, error) {
+func NewCustomDefaultTaskManager(q TaskQueue, ts store.KVStore, config *exeggutor.Config, deploying map[string]*mesos.TaskInfo) (*DefaultTaskManager, error) {
 	return &DefaultTaskManager{
 		queue:     q,
 		taskStore: ts,
 		config:    config,
 		flake:     flake.NewFlake(),
-		deploying: make(map[string]*mesos.TaskInfo),
+		deploying: deploying,
 	}, nil
 }
 
 // Start starts the instance of the taks manager and all the components it depends on.
 func (t *DefaultTaskManager) Start() error {
 	err := t.taskStore.Start()
-	t.queue.Start()
+	if err != nil {
+		return err
+	}
+
+	err = t.queue.Start()
 	if err != nil {
 		return err
 	}
@@ -65,11 +69,17 @@ func (t *DefaultTaskManager) Start() error {
 // it might have required and owns.
 func (t *DefaultTaskManager) Stop() error {
 	err := t.taskStore.Stop()
-	t.queue.Stop()
+	err2 := t.queue.Stop()
 	if err != nil {
 		log.Warning("There were problems shutting down the task manager:")
 		log.Warning("%v", err)
+		if err2 != nil {
+			log.Warning("%v", err2)
+		}
 		return err
+	}
+	if err2 != nil {
+		return err2
 	}
 	return nil
 }
@@ -90,16 +100,7 @@ func (t *DefaultTaskManager) SubmitApp(app protocol.ApplicationManifest) error {
 
 func (t *DefaultTaskManager) buildTaskInfo(offer mesos.Offer, scheduled *protocol.ScheduledAppComponent) mesos.TaskInfo {
 	taskID, _ := t.flake.Next()
-	component := scheduled.Component
-	info := mesos.TaskInfo{
-		Name:      scheduled.Name,
-		TaskId:    &mesos.TaskID{Value: proto.String("exeggutor-task-" + taskID)},
-		SlaveId:   offer.SlaveId,
-		Command:   BuildMesosCommand(component),
-		Resources: BuildResources(component),
-		Executor:  nil, // TODO: Make use of an executor to increase visibility into execution
-	}
-	return info
+	return BuildTaskInfo(taskID, &offer, scheduled)
 }
 
 func (t *DefaultTaskManager) hasEnoughMem(availableMem float64, component *protocol.ApplicationComponent) bool {

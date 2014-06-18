@@ -44,6 +44,7 @@ go get code.google.com/p/go.tools/cmd/godoc
 go get code.google.com/p/go.tools/cmd/goimports
 go get code.google.com/p/go.tools/cmd/oracle
 go get code.google.com/p/go.tools/cmd/gotype
+go get code.google.com/p/go.tools/cmd/cover
 go get code.google.com/p/rog-go/exp/cmd/godef
 go get github.com/axw/gocov/gocov
 go get gopkg.in/matm/v1/gocov-html

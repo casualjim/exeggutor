@@ -4,6 +4,7 @@ import (
 	"code.google.com/p/goprotobuf/proto"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	o "github.com/onsi/gomega"
 	"github.com/reverb/exeggutor/protocol"
 	"github.com/reverb/exeggutor/store"
 	. "github.com/reverb/exeggutor/tasks"
@@ -92,6 +93,7 @@ var _ = Describe("TaskManager", func() {
 		q   *PrioQueue
 		tq  TaskQueue
 		ts  store.KVStore
+		de  map[string]*mesos.TaskInfo
 	)
 
 	BeforeEach(func() {
@@ -99,7 +101,8 @@ var _ = Describe("TaskManager", func() {
 		tq = NewTaskQueueWithPrioQueue(q)
 		tq.Start()
 		ts = store.NewEmptyInMemoryStore()
-		m, _ := NewCustomDefaultTaskManager(tq, ts, nil)
+		de = make(map[string]*mesos.TaskInfo)
+		m, _ := NewCustomDefaultTaskManager(tq, ts, nil, de)
 		m.Start()
 		mgr = m
 	})
@@ -181,6 +184,219 @@ var _ = Describe("TaskManager", func() {
 			reply := mgr.FulfillOffer(offer)
 
 			Expect(reply).To(BeEmpty())
+		})
+	})
+
+	Context("when handling callbacks", func() {
+
+		It("should remove undeployed items from the deploying store when they fail", func() {
+			offer := createOffer("offer id", 1.0, 64.0)
+			component := testComponent("component name", 1.0, 64.0)
+			scheduled := scheduledComponent("app name", &component)
+			task := BuildTaskInfo("task id", &offer, &scheduled)
+			id := task.GetTaskId()
+			de[id.GetValue()] = &task
+			mgr.TaskFailed(id, nil)
+			Expect(de).NotTo(o.HaveKey(id.GetValue()))
+		})
+
+		It("should remove persisted items from the persistent store when they fail", func() {
+			offer := createOffer("offer id", 1.0, 64.0)
+			component := testComponent("component name", 1.0, 64.0)
+			scheduled := scheduledComponent("app name", &component)
+			task := BuildTaskInfo("task id", &offer, &scheduled)
+			id := task.GetTaskId()
+			bytes, _ := proto.Marshal(&task)
+			ts.Set(id.GetValue(), bytes)
+			mgr.TaskFailed(id, nil)
+			actual, _ := ts.Get(id.GetValue())
+			Expect(actual).To(BeNil())
+		})
+
+		It("should remove undeployed items from the deploying store when they finish", func() {
+			offer := createOffer("offer id", 1.0, 64.0)
+			component := testComponent("component name", 1.0, 64.0)
+			scheduled := scheduledComponent("app name", &component)
+			task := BuildTaskInfo("task id", &offer, &scheduled)
+			id := task.GetTaskId()
+			de[id.GetValue()] = &task
+			mgr.TaskFinished(id, nil)
+			Expect(de).NotTo(o.HaveKey(id.GetValue()))
+		})
+
+		It("should remove persisted items from the persistent store when they finish", func() {
+			offer := createOffer("offer id", 1.0, 64.0)
+			component := testComponent("component name", 1.0, 64.0)
+			scheduled := scheduledComponent("app name", &component)
+			task := BuildTaskInfo("task id", &offer, &scheduled)
+			id := task.GetTaskId()
+			bytes, _ := proto.Marshal(&task)
+			ts.Set(id.GetValue(), bytes)
+			mgr.TaskFinished(id, nil)
+			actual, _ := ts.Get(id.GetValue())
+			Expect(actual).To(BeNil())
+		})
+
+		It("should remove undeployed items from the deploying store when they are killed", func() {
+			offer := createOffer("offer id", 1.0, 64.0)
+			component := testComponent("component name", 1.0, 64.0)
+			scheduled := scheduledComponent("app name", &component)
+			task := BuildTaskInfo("task id", &offer, &scheduled)
+			id := task.GetTaskId()
+			de[id.GetValue()] = &task
+			mgr.TaskKilled(id, nil)
+			Expect(de).NotTo(o.HaveKey(id.GetValue()))
+		})
+
+		It("should remove persisted items from the persistent store when they are killed", func() {
+			offer := createOffer("offer id", 1.0, 64.0)
+			component := testComponent("component name", 1.0, 64.0)
+			scheduled := scheduledComponent("app name", &component)
+			task := BuildTaskInfo("task id", &offer, &scheduled)
+			id := task.GetTaskId()
+			bytes, _ := proto.Marshal(&task)
+			ts.Set(id.GetValue(), bytes)
+			mgr.TaskKilled(id, nil)
+			actual, _ := ts.Get(id.GetValue())
+			Expect(actual).To(BeNil())
+		})
+
+		It("should remove undeployed items from the deploying store when they are lost", func() {
+			offer := createOffer("offer id", 1.0, 64.0)
+			component := testComponent("component name", 1.0, 64.0)
+			scheduled := scheduledComponent("app name", &component)
+			task := BuildTaskInfo("task id", &offer, &scheduled)
+			id := task.GetTaskId()
+			de[id.GetValue()] = &task
+			mgr.TaskLost(id, nil)
+			Expect(de).NotTo(o.HaveKey(id.GetValue()))
+		})
+
+		It("should remove persisted items from the persistent store when they are lost", func() {
+			offer := createOffer("offer id", 1.0, 64.0)
+			component := testComponent("component name", 1.0, 64.0)
+			scheduled := scheduledComponent("app name", &component)
+			task := BuildTaskInfo("task id", &offer, &scheduled)
+			id := task.GetTaskId()
+			bytes, _ := proto.Marshal(&task)
+			ts.Set(id.GetValue(), bytes)
+			mgr.TaskLost(id, nil)
+			actual, _ := ts.Get(id.GetValue())
+			Expect(actual).To(BeNil())
+		})
+
+		It("should add to the persistence store if it exists in the deploying store for running", func() {
+			offer := createOffer("offer id", 1.0, 64.0)
+			component := testComponent("component name", 1.0, 64.0)
+			scheduled := scheduledComponent("app name", &component)
+			task := BuildTaskInfo("task id", &offer, &scheduled)
+			id := task.GetTaskId()
+			cr := &task
+			de[id.GetValue()] = cr
+
+			notThere, err := ts.Get(id.GetValue())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(notThere).To(BeNil())
+			mgr.TaskRunning(id, nil)
+
+			bytes, err := ts.Get(id.GetValue())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(bytes).NotTo(BeNil())
+
+			actual := mesos.TaskInfo{}
+			proto.Unmarshal(bytes, &actual)
+			Expect(actual).To(Equal(task))
+		})
+
+		It("shouldn't add to the persistence store when the item isn't in the deploying store", func() {
+			offer := createOffer("offer id", 1.0, 64.0)
+			component := testComponent("component name", 1.0, 64.0)
+			scheduled := scheduledComponent("app name", &component)
+			task := BuildTaskInfo("task id", &offer, &scheduled)
+			id := task.GetTaskId()
+
+			mgr.TaskRunning(id, nil)
+
+			notThere, err := ts.Get(id.GetValue())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(notThere).To(BeNil())
+
+		})
+
+		It("should add to the persistence store if it exists in the deploying store for staging", func() {
+			offer := createOffer("offer id", 1.0, 64.0)
+			component := testComponent("component name", 1.0, 64.0)
+			scheduled := scheduledComponent("app name", &component)
+			task := BuildTaskInfo("task id", &offer, &scheduled)
+			id := task.GetTaskId()
+			cr := &task
+			de[id.GetValue()] = cr
+
+			notThere, err := ts.Get(id.GetValue())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(notThere).To(BeNil())
+			mgr.TaskStaging(id, nil)
+
+			bytes, err := ts.Get(id.GetValue())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(bytes).NotTo(BeNil())
+
+			actual := mesos.TaskInfo{}
+			proto.Unmarshal(bytes, &actual)
+			Expect(actual).To(Equal(task))
+		})
+
+		It("shouldn't add to the persistence store when the item isn't in the deploying store for staging", func() {
+			offer := createOffer("offer id", 1.0, 64.0)
+			component := testComponent("component name", 1.0, 64.0)
+			scheduled := scheduledComponent("app name", &component)
+			task := BuildTaskInfo("task id", &offer, &scheduled)
+			id := task.GetTaskId()
+
+			mgr.TaskStaging(id, nil)
+
+			notThere, err := ts.Get(id.GetValue())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(notThere).To(BeNil())
+
+		})
+
+		It("should add to the persistence store if it exists in the deploying store for starting", func() {
+			offer := createOffer("offer id", 1.0, 64.0)
+			component := testComponent("component name", 1.0, 64.0)
+			scheduled := scheduledComponent("app name", &component)
+			task := BuildTaskInfo("task id", &offer, &scheduled)
+			id := task.GetTaskId()
+			cr := &task
+			de[id.GetValue()] = cr
+
+			notThere, err := ts.Get(id.GetValue())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(notThere).To(BeNil())
+			mgr.TaskStarting(id, nil)
+
+			bytes, err := ts.Get(id.GetValue())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(bytes).NotTo(BeNil())
+
+			actual := mesos.TaskInfo{}
+			proto.Unmarshal(bytes, &actual)
+			Expect(actual).To(Equal(task))
+		})
+
+		It("shouldn't add to the persistence store when the item isn't in the deploying store for starting", func() {
+			offer := createOffer("offer id", 1.0, 64.0)
+			component := testComponent("component name", 1.0, 64.0)
+			scheduled := scheduledComponent("app name", &component)
+			task := BuildTaskInfo("task id", &offer, &scheduled)
+			id := task.GetTaskId()
+
+			mgr.TaskStarting(id, nil)
+
+			notThere, err := ts.Get(id.GetValue())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(notThere).To(BeNil())
+
 		})
 	})
 })
