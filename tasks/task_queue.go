@@ -2,6 +2,7 @@
 package tasks
 
 import (
+	"sync"
 	"time"
 
 	"container/heap"
@@ -33,6 +34,7 @@ type TaskQueue interface {
 // highest memory needs over least recently added to the queue.
 type DefaultTaskQueue struct {
 	pQueue *PrioQueue
+	lock   sync.Locker
 }
 
 // NewTaskQueue creates a new instance of the default task queue with
@@ -44,7 +46,7 @@ func NewTaskQueue() TaskQueue {
 // NewTaskQueueWithPrioQueue creates a new instance of a default task queue
 // with the provided priority queue as storage (mainly used for testing)
 func NewTaskQueueWithPrioQueue(q *PrioQueue) TaskQueue {
-	tq := &DefaultTaskQueue{pQueue: q}
+	tq := &DefaultTaskQueue{pQueue: q, lock: &sync.Mutex{}}
 	heap.Init(tq.pQueue)
 	return tq
 }
@@ -52,11 +54,15 @@ func NewTaskQueueWithPrioQueue(q *PrioQueue) TaskQueue {
 // Start starts this component, acquiring a database etc when backed with
 // a persistent priority queue
 func (tq *DefaultTaskQueue) Start() error {
+	tq.lock.Lock()
+	defer tq.lock.Unlock()
 	return nil
 }
 
 // Stop stops this component, releasing any resources it might be holding on to
 func (tq *DefaultTaskQueue) Stop() error {
+	tq.lock.Lock()
+	defer tq.lock.Unlock()
 	return nil
 }
 
@@ -67,18 +73,24 @@ func (tq *DefaultTaskQueue) Len() int {
 
 // Enqueue enqueues an item if it hasn't been queued already
 func (tq *DefaultTaskQueue) Enqueue(item *protocol.ScheduledAppComponent) error {
+	tq.lock.Lock()
+	defer tq.lock.Unlock()
 	heap.Push(tq.pQueue, item)
 	return nil
 }
 
 // Dequeue dequeues an item from the queue
 func (tq *DefaultTaskQueue) Dequeue() (*protocol.ScheduledAppComponent, error) {
+	tq.lock.Lock()
+	defer tq.lock.Unlock()
 	item := heap.Pop(tq.pQueue)
 	return item.(*protocol.ScheduledAppComponent), nil
 }
 
 // DequeueFirst dequeues the first item from the queue that matches the predicated
 func (tq *DefaultTaskQueue) DequeueFirst(shouldDequeue func(*protocol.ScheduledAppComponent) bool) (*protocol.ScheduledAppComponent, error) {
+	tq.lock.Lock()
+	defer tq.lock.Unlock()
 	queue := *tq.pQueue
 	var found *protocol.ScheduledAppComponent
 	for _, item := range queue {
