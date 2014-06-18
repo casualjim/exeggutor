@@ -1,4 +1,4 @@
-package api_test
+package api
 
 import (
 	"bytes"
@@ -14,7 +14,6 @@ import (
 	"github.com/onsi/ginkgo/reporters"
 	. "github.com/onsi/gomega"
 	"github.com/reverb/exeggutor"
-	"github.com/reverb/exeggutor/agora/api"
 
 	"testing"
 )
@@ -62,7 +61,7 @@ func (t *testHTTP) Mount(method, pattern string, handler httprouter.Handle) {
 
 func (t *testHTTP) Get(route string) {
 	request, _ := http.NewRequest("GET", route, nil)
-	request.Header.Set("Content-Type", api.JSONContentType)
+	request.Header.Set("Content-Type", JSONContentType)
 	response = httptest.NewRecorder()
 	t.router.ServeHTTP(response, request)
 }
@@ -73,7 +72,7 @@ func (t *testHTTP) Post(route string, data interface{}) {
 		d, _ = json.Marshal(data)
 	}
 	request, _ := http.NewRequest("POST", route, bytes.NewBuffer(d))
-	request.Header.Set("Content-Type", api.JSONContentType)
+	request.Header.Set("Content-Type", JSONContentType)
 
 	response = httptest.NewRecorder()
 	t.router.ServeHTTP(response, request)
@@ -85,7 +84,7 @@ func (t *testHTTP) Put(route string, data interface{}) {
 		d, _ = json.Marshal(data)
 	}
 	request, _ := http.NewRequest("PUT", route, bytes.NewBuffer(d))
-	request.Header.Set("Content-Type", api.JSONContentType)
+	request.Header.Set("Content-Type", JSONContentType)
 
 	response = httptest.NewRecorder()
 	t.router.ServeHTTP(response, request)
@@ -93,7 +92,7 @@ func (t *testHTTP) Put(route string, data interface{}) {
 
 func (t *testHTTP) Delete(route string) {
 	request, _ := http.NewRequest("DELETE", route, nil)
-	request.Header.Set("Content-Type", api.JSONContentType)
+	request.Header.Set("Content-Type", JSONContentType)
 
 	response = httptest.NewRecorder()
 	t.router.ServeHTTP(response, request)

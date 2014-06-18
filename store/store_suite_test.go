@@ -1,11 +1,9 @@
-package store_test
+package store
 
 import (
 	"fmt"
 	"sort"
 	"strconv"
-
-	. "github.com/reverb/exeggutor/store"
 
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"

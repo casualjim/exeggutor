@@ -6,14 +6,9 @@
 	],
 	"Deps": [
 		{
-			"ImportPath": "bitbucket.org/tebeka/base62",
-			"Comment": "v0.2.0-2",
-			"Rev": "b3433bc179c6e1d59fb151cf443e73caa0d4c31f"
-		},
-		{
 			"ImportPath": "code.google.com/p/goprotobuf/proto",
-			"Comment": "go.r60-142",
-			"Rev": "556b9de4249f50f311584f75324a45e426324a19"
+			"Comment": "go.r60-143",
+			"Rev": "cbd7916e5dceea418a5c75273aa0f8e20aef6c9e"
 		},
 		{
 			"ImportPath": "github.com/armon/gomdb",
@@ -26,8 +21,8 @@
 		},
 		{
 			"ImportPath": "github.com/codegangsta/negroni",
-			"Comment": "v0.1-4-ga13766a",
-			"Rev": "a13766a8c2572caeb14341b7de158aff2fd00fa9"
+			"Comment": "v0.1-6-g06a6530",
+			"Rev": "06a6530bcb8cc6a157af7cde7c05b649d105d7c7"
 		},
 		{
 			"ImportPath": "github.com/imdario/mergo",
@@ -62,16 +57,16 @@
 		},
 		{
 			"ImportPath": "github.com/reverb/go-mesos/mesos",
-			"Comment": "v0.19.0-rvb1-1-gfd75774",
-			"Rev": "fd757741a962fb11221b899cffa6648ffa388729"
+			"Comment": "v0.19.0-rvb1-2-g2c06569",
+			"Rev": "2c06569b5036ed1805ef809bb1d91793e514fb8d"
 		},
 		{
 			"ImportPath": "github.com/reverb/go-utils/flake",
-			"Rev": "7b67d1db3474977e4b9158afb7b997bec57ae210"
+			"Rev": "315dd0b52decb1ec4ec28fccc209737f9492aeb2"
 		},
 		{
 			"ImportPath": "github.com/reverb/go-utils/rvb_zk",
-			"Rev": "7b67d1db3474977e4b9158afb7b997bec57ae210"
+			"Rev": "315dd0b52decb1ec4ec28fccc209737f9492aeb2"
 		},
 		{
 			"ImportPath": "github.com/samuel/go-zookeeper/zk",

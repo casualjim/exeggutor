@@ -1,4 +1,4 @@
-package queue_test
+package queue
 
 import (
 	"fmt"
@@ -6,7 +6,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	// . "github.com/onsi/gomega"
-	. "github.com/reverb/exeggutor/queue"
 )
 
 type stringSerializer struct{}

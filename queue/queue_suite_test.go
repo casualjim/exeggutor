@@ -1,4 +1,4 @@
-package queue_test
+package queue
 
 import (
 	"fmt"
@@ -9,7 +9,6 @@ import (
 
 	"github.com/onsi/ginkgo/config"
 	"github.com/onsi/ginkgo/reporters"
-	. "github.com/reverb/exeggutor/queue"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

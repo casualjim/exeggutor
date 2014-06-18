@@ -1,4 +1,4 @@
-package tasks_test
+package tasks
 
 import (
 	"code.google.com/p/goprotobuf/proto"
@@ -7,7 +7,6 @@ import (
 	o "github.com/onsi/gomega"
 	"github.com/reverb/exeggutor/protocol"
 	"github.com/reverb/exeggutor/store"
-	. "github.com/reverb/exeggutor/tasks"
 	"github.com/reverb/go-mesos/mesos"
 )
 
@@ -90,15 +89,15 @@ func createOffer(id string, cpus, mem float64) mesos.Offer {
 var _ = Describe("TaskManager", func() {
 	var (
 		mgr TaskManager
-		q   *PrioQueue
+		q   *prioQueue
 		tq  TaskQueue
 		ts  store.KVStore
 		de  map[string]*mesos.TaskInfo
 	)
 
 	BeforeEach(func() {
-		q = &PrioQueue{}
-		tq = NewTaskQueueWithPrioQueue(q)
+		q = &prioQueue{}
+		tq = NewTaskQueueWithprioQueue(q)
 		tq.Start()
 		ts = store.NewEmptyInMemoryStore()
 		de = make(map[string]*mesos.TaskInfo)

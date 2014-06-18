@@ -1,9 +1,8 @@
-package queue_test
+package queue
 
 import (
 	. "github.com/onsi/ginkgo"
 	// . "github.com/onsi/gomega"
-	. "github.com/reverb/exeggutor/queue"
 )
 
 var _ = Describe("An InMemoryQueue", func() {

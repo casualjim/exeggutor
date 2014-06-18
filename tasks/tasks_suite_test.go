@@ -1,4 +1,4 @@
-package tasks_test
+package tasks
 
 import (
 	"fmt"

@@ -1,4 +1,4 @@
-package api_test
+package api
 
 import (
 	"encoding/json"
@@ -9,7 +9,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/op/go-logging"
-	. "github.com/reverb/exeggutor/agora/api"
 	"github.com/reverb/exeggutor/store"
 )
 

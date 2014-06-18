@@ -1,11 +1,9 @@
-package store_test
+package store
 
 import (
 	"fmt"
 	"io/ioutil"
 	"os"
-
-	. "github.com/reverb/exeggutor/store"
 
 	. "github.com/onsi/ginkgo"
 	// . "github.com/onsi/gomega"

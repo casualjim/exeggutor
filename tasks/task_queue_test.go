@@ -1,23 +1,22 @@
 // Package tasks_test provides ...
-package tasks_test
+package tasks
 
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/reverb/exeggutor/protocol"
-	. "github.com/reverb/exeggutor/tasks"
 )
 
-var _ = Describe("A PrioQueue", func() {
+var _ = Describe("A DefaultTaskQueue", func() {
 	var (
-		q  *PrioQueue
+		q  *prioQueue
 		tq TaskQueue
 	)
 
 	BeforeEach(func() {
-		q = &PrioQueue{}
-		tq = NewTaskQueueWithPrioQueue(q)
+		q = &prioQueue{}
+		tq = NewTaskQueueWithprioQueue(q)
 		tq.Start()
 	})
 

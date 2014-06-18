@@ -1,8 +1,6 @@
-package store_test
+package store
 
 import (
-	. "github.com/reverb/exeggutor/store"
-
 	. "github.com/onsi/ginkgo"
 	// . "github.com/onsi/gomega"
 )

@@ -31,43 +31,6 @@ type Framework struct {
 	taskManager tasks.TaskManager
 }
 
-// func resourceOffer(driver *mesos.SchedulerDriver, offers []mesos.Offer) {
-// 	log.Notice("Received %d offers:", len(offers))
-// 	for _, offer := range offers {
-// 		log.Debug("  * %+v", offer)
-// 		if !launched {
-// 			launched = true
-// 			taskID, _ := flake.NewFlake().Next()
-// 			task := mesos.TaskInfo{
-// 				Name: proto.String("exeggutor-go-task"),
-// 				TaskId: &mesos.TaskID{
-// 					Value: proto.String("exeggutor-go-task-" + taskID),
-// 				},
-// 				SlaveId: offer.SlaveId,
-// 				Command: &mesos.CommandInfo{
-// 					Value: proto.String("java -jar /Users/ivan/projects/wordnik/exeggutor/sample/target/exeggutor-sample-assembly.jar"),
-// 					Environment: &mesos.Environment{
-// 						Variables: []*mesos.Environment_Variable{
-// 							&mesos.Environment_Variable{
-// 								Name:  proto.String("PORT"),
-// 								Value: proto.String("8001"),
-// 							},
-// 						},
-// 					},
-// 				},
-// 				Resources: []*mesos.Resource{
-// 					mesos.ScalarResource("cpus", 1),
-// 					mesos.ScalarResource("mem", 512),
-// 				},
-// 			}
-
-// 			driver.LaunchTasks(offer.GetId(), []mesos.TaskInfo{task})
-// 		} else {
-// 			driver.DeclineOffer(offer.GetId())
-// 		}
-// 	}
-// }
-
 // NewFramework creates a new instance of Framework with the specified config
 func NewFramework(config *exeggutor.Config, taskManager tasks.TaskManager) *Framework {
 	log.Debug("Creating a new instance of a mesos scheduler")
@@ -160,7 +123,7 @@ func (fw *Framework) defaultMesosScheduler() *mesos.Scheduler {
 		ResourceOffers: func(driver *mesos.SchedulerDriver, offers []mesos.Offer) {
 			logged := false
 			for _, offer := range offers {
-				// if fw.taskManager != nil {
+				//if fw.taskManager != nil {
 				if !logged {
 					log.Debug("Received %d offers:", len(offers))
 					logged = true
