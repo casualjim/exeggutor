@@ -1,7 +1,6 @@
 package tasks
 
 import (
-	"container/heap"
 	"errors"
 
 	"code.google.com/p/goprotobuf/proto"
@@ -15,7 +14,7 @@ import (
 
 // DefaultTaskManager the task manager accept
 type DefaultTaskManager struct {
-	queue     *TaskQueue
+	queue     TaskQueue
 	taskStore store.KVStore
 	config    *exeggutor.Config
 	flake     queue.IDGenerator
@@ -30,7 +29,7 @@ func NewDefaultTaskManager(config *exeggutor.Config) (*DefaultTaskManager, error
 		return nil, err
 	}
 
-	q := &TaskQueue{}
+	q := NewTaskQueue()
 	return &DefaultTaskManager{
 		queue:     q,
 		taskStore: store,
@@ -41,7 +40,7 @@ func NewDefaultTaskManager(config *exeggutor.Config) (*DefaultTaskManager, error
 }
 
 // NewCustomDefaultTaskManager creates a new instance of a task manager with all the internal components injected
-func NewCustomDefaultTaskManager(q *TaskQueue, ts store.KVStore, config *exeggutor.Config) (*DefaultTaskManager, error) {
+func NewCustomDefaultTaskManager(q TaskQueue, ts store.KVStore, config *exeggutor.Config) (*DefaultTaskManager, error) {
 	return &DefaultTaskManager{
 		queue:     q,
 		taskStore: ts,
@@ -54,7 +53,7 @@ func NewCustomDefaultTaskManager(q *TaskQueue, ts store.KVStore, config *exeggut
 // Start starts the instance of the taks manager and all the components it depends on.
 func (t *DefaultTaskManager) Start() error {
 	err := t.taskStore.Start()
-	heap.Init(t.queue)
+	t.queue.Start()
 	if err != nil {
 		return err
 	}
@@ -65,17 +64,12 @@ func (t *DefaultTaskManager) Start() error {
 // Stop stops this task manager, cleaning up any resources
 // it might have required and owns.
 func (t *DefaultTaskManager) Stop() error {
-	//err1 := t.queue.Stop()
-	err1 := t.taskStore.Stop()
-
-	// This is a bit of a weird break down but this way
-	// we preserve all error messages logged as warnings
-	// even though we return the first one that failed
-	// from this function
-	if err1 != nil {
+	err := t.taskStore.Stop()
+	t.queue.Stop()
+	if err != nil {
 		log.Warning("There were problems shutting down the task manager:")
-		log.Warning("%v", err1)
-		return err1
+		log.Warning("%v", err)
+		return err
 	}
 	return nil
 }
@@ -89,7 +83,7 @@ func (t *DefaultTaskManager) SubmitApp(app protocol.ApplicationManifest) error {
 			AppName:   app.Name,
 			Component: comp,
 		}
-		heap.Push(t.queue, &component)
+		t.queue.Enqueue(&component)
 	}
 	return nil
 }
@@ -138,15 +132,17 @@ func (t *DefaultTaskManager) fitsInOffer(offer mesos.Offer, component *protocol.
 // So when this starts taking too long we should provide more instances to this cluster
 func (t *DefaultTaskManager) FulfillOffer(offer mesos.Offer) []mesos.TaskInfo {
 	var allQueued []mesos.TaskInfo
-	queue := *t.queue
-	for _, scheduled := range queue {
-		if t.fitsInOffer(offer, scheduled) {
-			task := t.buildTaskInfo(offer, scheduled)
-			allQueued = append(allQueued, task)
-			t.deploying[task.GetTaskId().GetValue()] = &task
-			heap.Remove(t.queue, int(scheduled.GetPosition()))
-		}
+	item, err := t.queue.DequeueFirst(func(i *protocol.ScheduledAppComponent) bool { return t.fitsInOffer(offer, i) })
+	if err != nil {
+		log.Critical("Couldn't dequeue from the task queue because: %v", err)
+		return nil
 	}
+
+	if item == nil {
+		log.Debug("Couldn't get an item of the queue, skipping this one")
+		return nil
+	}
+	allQueued = append(allQueued, t.buildTaskInfo(offer, item))
 	return allQueued
 }
 

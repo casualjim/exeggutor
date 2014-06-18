@@ -89,19 +89,23 @@ func createOffer(id string, cpus, mem float64) mesos.Offer {
 var _ = Describe("TaskManager", func() {
 	var (
 		mgr TaskManager
-		q   *TaskQueue
+		q   *PrioQueue
+		tq  TaskQueue
 		ts  store.KVStore
 	)
 
 	BeforeEach(func() {
-		q = &TaskQueue{}
+		q = &PrioQueue{}
+		tq = NewTaskQueueWithPrioQueue(q)
+		tq.Start()
 		ts = store.NewEmptyInMemoryStore()
-		m, _ := NewCustomDefaultTaskManager(q, ts, nil)
+		m, _ := NewCustomDefaultTaskManager(tq, ts, nil)
 		m.Start()
 		mgr = m
 	})
 
 	AfterEach(func() {
+		tq.Stop()
 		mgr.Stop()
 	})
 
