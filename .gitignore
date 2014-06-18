@@ -95,3 +95,4 @@ tags
 tmp
 tags_sorted_by_file
 agora/static/static.tar.gz
+*.coverprofile
