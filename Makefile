@@ -1,4 +1,3 @@
-ORIG_GOPATH := $(GOPATH)
 GOPATH := $(CURDIR)/_vendor:$(GOPATH)
 GO ?= go
 DEVENV_DEPS = github.com/golang/lint \
@@ -27,7 +26,10 @@ update-all:
 	$(GO) get -u ./...
 
 setup: 	
-	GOPATH=$(ORIG_GOPATH) @godep restore
+	@godep restore
 
 test: 
 	@ginkgo -r
+
+dist:
+

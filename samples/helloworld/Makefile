@@ -1,12 +1,20 @@
 VERSION=0.0.1
+GO ?= go
+DOCKER ?= docker
 
-all: go-build docker-build 
+all: docker
 
-go-build:
-	go build
+build:
+	$(GO) build -o $(shell basename $(CURDIR)-$(VERSION))
 
-docker-build:
-	docker build -t $(shell basename $(CURDIR))-$(VERSION) .
+build-linux:
+	$(shell GOOS=linux $(GO) build -o $(shell basename $(CURDIR)).linux)
+
+docker: build-linux
+	$(DOCKER) build -t $(shell basename $(CURDIR))-$(VERSION) .
 
 test:
-	go test
+	$(GO) test
+
+clean:
+	-rm -f $(shell basename $(CURDIR))*

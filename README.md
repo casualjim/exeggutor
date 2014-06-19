@@ -31,6 +31,8 @@ make test
 Create a distribution:
 
 ```bash
+cd agora
+make distclean
 make dist
 ```
 
@@ -86,6 +88,7 @@ Now time to edit .bashrc or .zshrc and perhaps also /etc/launchd.conf if you're 
 Add the following to .bashrc or .zshrc
 
 ```bash
+export DOCKER_HOST=tcp://192.168.11.253:4243
 export GOPATH=$HOME/projects/wordnik/go # bring godep into scope
 export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
 ```
