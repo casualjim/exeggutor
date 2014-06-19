@@ -1,0 +1,36 @@
+# -*- mode: ansible -*-
+# vi: set ft=ansible :
+---
+- hosts: exeggutor-box
+  sudo: True
+  tasks:
+    - name: add ivan user with zsh and add to groups docker and vagrant
+      user: name=ivan state=present shell=/bin/zsh  groups=docker,vagrant
+   
+    - name: add ivans public key
+      authorized_key: user=ivan key='ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAtB+xYy2FaNbkOlMGa5WtXQ5iKjC7Cbv2zERiuE7gYdHE3RHevHqcVl6pQ6Pm9lbFNZ91aE7oe/33c+jWKrD4Fh/9wBDuWNAV6dOpSjmw1k06lww73jJbXUeuqM8cChKvqdy3BhRhwhmvz7JOEnEi/wMQL4R2KwNMiqS7+1jSC0ppogu7SEOsfxToq3Wxl63zBzMhDNYBPPFV7KVNoO83xjtfP23HVvJl04s0p6bGGJ5iFslVRdihI5UXPosXKI967w/dGWE/tPF9hte8YE4YihxZM4Rasm/5LNZpoynAUyyR6rtkLks4p/D7QTyBQutt87UicJq+W52/DzuYRTKvCQ== ivan@ivan-mbp.cloudslide.local'
+   
+    - name: add ivan to sudoers
+      lineinfile: "dest=/etc/sudoers state=present regexp='^ivan' line='ivan ALL=(ALL) NOPASSWD: ALL'"
+
+    - name: get dot-files for ivan
+      command: git clone --recursive git://github.com/casualjim/dot-files.git creates=/home/ivan/dot-files chdir=/home/ivan
+      register: got_dot_files
+
+    - name: set ivan as owner for dot-files
+      file: path=/home/ivan/dot-files owner=ivan group=ivan recurse=yes state=directory
+
+    - name: install dependencies for youcompleteme 
+      apt: state=present name={{item}}
+      when: got_dot_files.changed
+      with_items:
+        - cmake
+        - python-dev
+        - clang
+        - libclang-dev
+
+    - name: set up dot-files for ivan
+      command: ./setup.sh chdir=/home/ivan/dot-files
+      when: got_dot_files.changed
+    
+

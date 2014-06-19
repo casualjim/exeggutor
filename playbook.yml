@@ -1,0 +1,29 @@
+# -*- mode: ansible -*-
+# vi: set ft=ansible :
+---
+- hosts: exeggutor-box
+  sudo: True
+  tasks:
+    - name: upgrade packages
+      apt: upgrade=full update_cache=yes
+
+    - name: install common tools
+      apt: name={{item}} state=present
+      with_items:
+        - zsh
+        - vim-nox
+        - git-core
+        - unzip
+        - tar
+
+    - name: add ansible debian repository
+      apt_repository: repo='ppa:rquillo/ansible' update_cache=yes
+
+    - name: install ansible
+      apt: name=ansible state=present
+  
+  roles:
+    - docker-host
+
+    
+
