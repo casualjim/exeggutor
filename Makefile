@@ -1,3 +1,4 @@
+ORIG_GOPATH := $(GOPATH)
 GOPATH := $(CURDIR)/_vendor:$(GOPATH)
 GO ?= go
 DEVENV_DEPS = github.com/golang/lint \
@@ -14,7 +15,10 @@ DEVENV_DEPS = github.com/golang/lint \
 	github.com/nsf/gocode \
 	github.com/golang/lint/golint \
 	github.com/kisielk/errcheck \
-	github.com/jstemmer/gotags 
+	github.com/jstemmer/gotags \
+	code.google.com/p/goprotobuf/proto \
+	code.google.com/p/goprotobuf/protoc-gen-go \
+	github.com/tools/godep
 
 devenv: 
 	@$(foreach dir,$(DEVENV_DEPS),echo "installing $(dir)" && go get $(dir);)
@@ -22,8 +26,8 @@ devenv:
 update-all:
 	$(GO) get -u ./...
 
-setup: 
-	@godep restore
+setup: 	
+	GOPATH=$(ORIG_GOPATH) @godep restore
 
 test: 
 	@ginkgo -r
