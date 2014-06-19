@@ -20,7 +20,7 @@ devenv:
 	@$(foreach dir,$(DEVENV_DEPS),echo "installing $(dir)" && go get $(dir);)
 
 update-all:
-	go get -u ./...
+	$(GO) get -u ./...
 
 setup: 
 	@godep restore
