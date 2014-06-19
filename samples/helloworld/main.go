@@ -15,5 +15,6 @@ func main() {
 }
 
 func helloWold(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Hello, World"))
+	w.Header().Set("Content-Type", "text/plain")
+	w.Write([]byte("Hello, World\n"))
 }
