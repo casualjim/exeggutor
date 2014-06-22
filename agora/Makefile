@@ -3,19 +3,27 @@ GO ?= go
 
 all: run-forever
 
-build-binary: 
-	@go build
-
 build-frontend:
 	@cd static; grunt build 
+
+build-binary:
+	$(shell GOOS=darwin $(GO) build -o $(shell basename $(CURDIR)))
+
+build-linux:
+	$(shell GOOS=linux $(GO) build -o $(shell basename $(CURDIR)).linux)
+
+docker: build-linux
+	$(DOCKER) build -t $(shell basename $(CURDIR))-$(VERSION) .
 
 dist: build-binary build-frontend
 	mkdir -p dist
 	mv agora dist
 	mv static/build dist/static
-	mv dist agora
+
+archive: 
 	tar -czf agora.tar.gz agora
 	rm -rf agora
+
 
 upload: 
 	scp agora.tar.gz mesos.helloreverb.com:~

@@ -21,7 +21,23 @@
         - libclang-dev
 
     - name: set up dot-files for vagrant
-      shell: ./setup.sh chdir=/home/vagrant/dot-files
+      shell: /home/vagrant/dot-files/setup.sh chdir=/home/vagrant/dot-files
       when: got_dot_files.changed
+
+    - name: download godeb
+      get_url: url=https://godeb.s3.amazonaws.com/godeb-amd64.tar.gz dest=/tmp/godeb-amd64.tar.gz
+      register: godeb_download
+
+    - name: extract godeb
+      command: tar -zxf /tmp/godeb-amd64.tar.gz -C /usr/bin
+      when: godeb_download.changed
+      
+    - name: install golang 1.3
+      command: /usr/bin/godeb install 1.3 chdir=/tmp
+      when: godeb_download.changed
+
+      
+
+
     
 

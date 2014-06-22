@@ -3,7 +3,20 @@
 ---
 - hosts: exeggutor-box
   sudo: True
+  # remote_user: vagrant
+  gather_facts: true
+  vars:
+
   tasks:
+    - name: add host to zookeeper group
+      add_host:  groups=zookeeper name='exeggutor-box'    
+    - name: add host to mesos-master group
+      add_host:  groups=mesos-master name='exeggutor-box'    
+    - name: add host to mesos-slave group
+      add_host:  groups=mesos-slave name='exeggutor-box'    
+    - name: set zookeeper id
+      set_fact: myid=1
+
     - name: upgrade packages
       apt: upgrade=full update_cache=yes
 
@@ -15,6 +28,8 @@
         - git-core
         - unzip
         - tar
+        - gnome-keyring
+        - libgnome-keyring-dev
 
     - name: add ansible debian repository
       apt_repository: repo='ppa:rquillo/ansible' update_cache=yes
@@ -22,8 +37,93 @@
     - name: install ansible
       apt: name=ansible state=present
   
+
+
+- hosts: exeggutor-box
+  sudo: True
+  # remote_user: vagrant
+  vars:
+    system:
+      mtu: 9216
+      # IPv4 maximum transmission unit, 9216 is the maximum for Intel/Cisco hardware
+      kernel_swappiness: 1
+      # Open file limits.
+      limits_nofile_hard: 65536
+      limits_nofile_soft: 65536
+      # Configure rsyslog polling.
+      rsyslog_polling_interval_secs: 10
+
+    java_versions: 
+        - oracle-java8
+
+    java_alternative: java-8-oracle
+    
+    java:
+      version: 60
+
+    snappy:
+      version: 1.1.2
+
+    scala:
+      version: 2.10.4
+
+    sbt:
+      version: 0.13.2
+
+    mesos_cluster_frontend_name: Exeggutor Mesos
+
+    spark:
+      version: "1.0.0-rvb-1"        
+
+    hadoop:    
+      version: 2.4.0
+
+      #Variables for <core-site_xml> - common    
+      fs_default_FS_port: 9000
+      nameservice_id: mesos_hadoop
+
+      #Variables for <hdfs-site_xml>
+      dfs_permissions_superusergroup: hdfs
+      dfs_namenode_name_dir: 
+         - /var/lib/hadoop/hdfs/names
+      dfs_replication: 1
+      dfs_namenode_handler_count: 50
+      dfs_blocksize: 67108864
+      dfs_datanode_data_dir:
+         - /var/lib/hadoop/hdfs/data
+      dfs_datanode_address_port: 50010
+      dfs_datanode_http_address_port: 50075
+      dfs_datanode_ipc_address_port:  50020
+      dfs_namenode_http_address_port: 50070
+      dfs_ha_zkfc_port: 8019
+      qjournal_port: 8485  
+      qjournal_http_port: 8480 
+      dfs_journalnode_edits_dir: /var/lib/hadoop/hdfs/journals/
+
+      zookeeper_clientport: 2181
+      zookeeper_leader_port: 2888
+      zookeeper_election_port: 3888
+
+      #Variables for <mapred-site_xml> - common
+      mapred_job_tracker_ha_servicename: myjt4 
+      mapred_job_tracker_http_address_port: 50030
+      mapred_task_tracker_http_address_port: 50060 
+      mapred_job_tracker_port: 9001
+      mapred_ha_jobtracker_rpc-address_port: 8023
+      mapred_ha_zkfc_port: 8018
+      mapred_job_tracker_persist_jobstatus_dir: /var/lib/hadoop/mapred/jobs
+      mapred_local_dir:
+        - /var/lib/hadoop/mapred/tasks
+
   roles:
     - docker-host
+    - java
+    - zookeeper
+    - { role: hadoop-local, tags: ['hadoop'], hadoop_role: namenode }
+    - { role: hadoop-local, tags: ['hadoop'], hadoop_role: datanode }
+    - { role: mesos-local, mesos_role: master, mesos: { work_dir: /var/lib/mesos-master/work, version: 0.19.0-rvb1, quorum: 1, log_dir: /var/lib/mesos-master/log } }    
+    - { role: mesos-local, mesos_role: slave, mesos: { work_dir: /var/lib/mesos-slave/work, version: 0.19.0-rvb1, log_dir: /var/lib/mesos-slave/log } }    
+
 
     
 
