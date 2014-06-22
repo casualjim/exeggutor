@@ -12,8 +12,5 @@
   "dependencies": {
     "ngAnimate-animate.css": "~0.1.1",
     "animate.css": "~3.1.1"
-  },
-  "resolutions": {
-    "angular": "1.2.17"
   }
 }

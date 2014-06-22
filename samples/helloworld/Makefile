@@ -5,7 +5,7 @@ DOCKER ?= docker
 all: docker
 
 build:
-	$(GO) build -o $(shell basename $(CURDIR)-$(VERSION))
+	$(shell GOOS=darwin $(GO) build -o $(shell basename $(CURDIR)))
 
 build-linux:
 	$(shell GOOS=linux $(GO) build -o $(shell basename $(CURDIR)).linux)

@@ -12,18 +12,19 @@ build-binary:
 build-linux:
 	$(shell GOOS=linux $(GO) build -o $(shell basename $(CURDIR)).linux)
 
-docker: build-linux
+docker: build-linux build-frontend
+	-rm -rf dist
+	mkdir -p dist
+	mv agora.linux dist
+	vm static/build dist/static
 	$(DOCKER) build -t $(shell basename $(CURDIR))-$(VERSION) .
 
 dist: build-binary build-frontend
 	mkdir -p dist
 	mv agora dist
 	mv static/build dist/static
-
-archive: 
 	tar -czf agora.tar.gz agora
 	rm -rf agora
-
 
 upload: 
 	scp agora.tar.gz mesos.helloreverb.com:~
@@ -40,7 +41,7 @@ run-forever:
 	gin
 
 run:
-	@go run main.go
+	@$(GO) run main.go
 
 test:
 	@ginkgo -r 
