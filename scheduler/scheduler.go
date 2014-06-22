@@ -146,8 +146,8 @@ func (fw *Framework) defaultMesosScheduler() *mesos.Scheduler {
 						SlaveId: offer.SlaveId,
 						Command: &mesos.CommandInfo{
 							Container: &mesos.CommandInfo_ContainerInfo{
-								Image:   proto.String("docker:///helloworld"),
-								Options: []string{"--port=8001:3000"},
+								Image:   proto.String("docker:///helloworld:0.0.1"),
+								Options: []string{"--publish=8001:3000"},
 							},
 							Value: proto.String(""),
 							//Value: proto.String("java -jar /Users/ivan/projects/wordnik/exeggutor/sample/target/exeggutor-sample-assembly.jar"),

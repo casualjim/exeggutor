@@ -10,7 +10,7 @@ build-binary:
 	$(shell GOOS=darwin $(GO) build -o $(shell basename $(CURDIR)))
 
 build-linux:
-	$(shell GOOS=linux CGO_ENABLED=1 CC_FOR_TARGET=gcc-4.8 CXX_FOR_TARGET=g++-4.8 $(GO) build -o $(shell basename $(CURDIR)).linux)
+	$(shell GOOS=linux CGO_ENABLED=1 $(GO) build -o $(shell basename $(CURDIR)).linux)
 
 docker: build-linux build-frontend
 	-rm -rf dist

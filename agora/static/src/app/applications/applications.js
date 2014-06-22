@@ -10,18 +10,6 @@ angular.module( 'agora.applications', [
       "main": {
         controller: 'ApplicationsCtrl',
         templateUrl: 'applications/applications.tpl.html'
-      },
-      "portmapping": {
-        controller: "PortMappingCtrl",
-        templateUrl: 'applications/portmapping.tpl.html'
-      },
-      "envvars": {
-        controller: "EnvVarCtrl",
-        templateUrl: 'applications/envvars.tpl.html'
-      },
-      "component": {
-        controller: "AppComponentCtrl",
-        templateUrl: 'applications/component.tpl.html'
       }
     },
     data:{ pageTitle: 'Manage Applications' }
