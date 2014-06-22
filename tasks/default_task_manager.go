@@ -1,8 +1,6 @@
 package tasks
 
 import (
-	"errors"
-
 	"code.google.com/p/goprotobuf/proto"
 	"github.com/reverb/exeggutor"
 	"github.com/reverb/exeggutor/protocol"
@@ -150,7 +148,8 @@ func (t *DefaultTaskManager) FulfillOffer(offer mesos.Offer) []mesos.TaskInfo {
 func (t *DefaultTaskManager) moveTaskToStore(taskID *mesos.TaskID) error {
 	task, ok := t.deploying[taskID.GetValue()]
 	if !ok {
-		return errors.New("Couldn't find task with id: " + taskID.GetValue())
+		log.Warning("Couldn't find task with id: " + taskID.GetValue())
+		return nil
 	}
 	bytes, err := proto.Marshal(task)
 	if err != nil {

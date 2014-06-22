@@ -1,23 +1,25 @@
 GOPATH := $(CURDIR)/../_vendor:$(GOPATH)
 GO ?= go
+VERSION ?= 0.0.1
+DOCKER ?= docker
 
 all: run-forever
 
 build-frontend:
-	@cd static; grunt build 
+	-@cd static; grunt build 
 
 build-binary:
 	$(shell GOOS=darwin $(GO) build -o $(shell basename $(CURDIR)))
 
 build-linux:
-	$(shell GOOS=linux CGO_ENABLED=1 $(GO) build -o $(shell basename $(CURDIR)).linux)
+	$(shell GOOS=linux $(GO) build -o $(shell basename $(CURDIR)).linux)
 
 docker: build-linux build-frontend
 	-rm -rf dist
 	mkdir -p dist
 	mv agora.linux dist
-	vm static/build dist/static
-	$(DOCKER) build -t $(shell basename $(CURDIR))-$(VERSION) .
+	mv static/build dist/static
+	$(DOCKER) build -t $(shell basename $(CURDIR)):$(VERSION) .
 
 dist: build-binary build-frontend
 	mkdir -p dist

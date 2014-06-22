@@ -98,3 +98,4 @@ agora/static/static.tar.gz
 *.coverprofile
 .vagrant/
 _vendor
+dist
