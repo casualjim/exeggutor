@@ -145,7 +145,12 @@ func (fw *Framework) defaultMesosScheduler() *mesos.Scheduler {
 						},
 						SlaveId: offer.SlaveId,
 						Command: &mesos.CommandInfo{
-							Value: proto.String("java -jar /Users/ivan/projects/wordnik/exeggutor/sample/target/exeggutor-sample-assembly.jar"),
+							Container: &mesos.CommandInfo_ContainerInfo{
+								Image:   proto.String("docker:///helloworld"),
+								Options: []string{"--port=8001:3000"},
+							},
+							Value: proto.String(""),
+							//Value: proto.String("java -jar /Users/ivan/projects/wordnik/exeggutor/sample/target/exeggutor-sample-assembly.jar"),
 							Environment: &mesos.Environment{
 								Variables: []*mesos.Environment_Variable{
 									&mesos.Environment_Variable{
@@ -157,7 +162,7 @@ func (fw *Framework) defaultMesosScheduler() *mesos.Scheduler {
 						},
 						Resources: []*mesos.Resource{
 							mesos.ScalarResource("cpus", 1),
-							mesos.ScalarResource("mem", 512),
+							mesos.ScalarResource("mem", 256),
 						},
 					}
 
