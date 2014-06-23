@@ -101,7 +101,7 @@ var _ = Describe("TaskManager", func() {
 		tq.Start()
 		ts = store.NewEmptyInMemoryStore()
 		de = make(map[string]*mesos.TaskInfo)
-		m, _ := NewCustomDefaultTaskManager(tq, ts, nil, de)
+		m, _ := NewCustomDefaultTaskManager(tq, ts, nil, de, nil)
 		m.Start()
 		mgr = m
 	})
@@ -162,7 +162,7 @@ var _ = Describe("TaskManager", func() {
 		It("should fullfill an offer when there is an app queued that can statisfy it", func() {
 			manifest := testApp("test-service-yada", 1.0, 256.0)
 			component := manifest.Components[0]
-			expectedCommand := BuildMesosCommand(component)
+			expectedCommand := BuildMesosCommand("", component, nil)
 			expectedResources := BuildResources(component)
 			mgr.SubmitApp(manifest)
 			offer := createOffer("offer-id-1", 5.0, 1024.0)
@@ -192,7 +192,7 @@ var _ = Describe("TaskManager", func() {
 			offer := createOffer("offer id", 1.0, 64.0)
 			component := testComponent("component name", 1.0, 64.0)
 			scheduled := scheduledComponent("app name", &component)
-			task := BuildTaskInfo("task id", &offer, &scheduled)
+			task := BuildTaskInfo("task id", &offer, &scheduled, nil)
 			id := task.GetTaskId()
 			de[id.GetValue()] = &task
 			mgr.TaskFailed(id, nil)
@@ -203,7 +203,7 @@ var _ = Describe("TaskManager", func() {
 			offer := createOffer("offer id", 1.0, 64.0)
 			component := testComponent("component name", 1.0, 64.0)
 			scheduled := scheduledComponent("app name", &component)
-			task := BuildTaskInfo("task id", &offer, &scheduled)
+			task := BuildTaskInfo("task id", &offer, &scheduled, nil)
 			id := task.GetTaskId()
 			bytes, _ := proto.Marshal(&task)
 			ts.Set(id.GetValue(), bytes)
@@ -216,7 +216,7 @@ var _ = Describe("TaskManager", func() {
 			offer := createOffer("offer id", 1.0, 64.0)
 			component := testComponent("component name", 1.0, 64.0)
 			scheduled := scheduledComponent("app name", &component)
-			task := BuildTaskInfo("task id", &offer, &scheduled)
+			task := BuildTaskInfo("task id", &offer, &scheduled, nil)
 			id := task.GetTaskId()
 			de[id.GetValue()] = &task
 			mgr.TaskFinished(id, nil)
@@ -227,7 +227,7 @@ var _ = Describe("TaskManager", func() {
 			offer := createOffer("offer id", 1.0, 64.0)
 			component := testComponent("component name", 1.0, 64.0)
 			scheduled := scheduledComponent("app name", &component)
-			task := BuildTaskInfo("task id", &offer, &scheduled)
+			task := BuildTaskInfo("task id", &offer, &scheduled, nil)
 			id := task.GetTaskId()
 			bytes, _ := proto.Marshal(&task)
 			ts.Set(id.GetValue(), bytes)
@@ -240,7 +240,7 @@ var _ = Describe("TaskManager", func() {
 			offer := createOffer("offer id", 1.0, 64.0)
 			component := testComponent("component name", 1.0, 64.0)
 			scheduled := scheduledComponent("app name", &component)
-			task := BuildTaskInfo("task id", &offer, &scheduled)
+			task := BuildTaskInfo("task id", &offer, &scheduled, nil)
 			id := task.GetTaskId()
 			de[id.GetValue()] = &task
 			mgr.TaskKilled(id, nil)
@@ -251,7 +251,7 @@ var _ = Describe("TaskManager", func() {
 			offer := createOffer("offer id", 1.0, 64.0)
 			component := testComponent("component name", 1.0, 64.0)
 			scheduled := scheduledComponent("app name", &component)
-			task := BuildTaskInfo("task id", &offer, &scheduled)
+			task := BuildTaskInfo("task id", &offer, &scheduled, nil)
 			id := task.GetTaskId()
 			bytes, _ := proto.Marshal(&task)
 			ts.Set(id.GetValue(), bytes)
@@ -264,7 +264,7 @@ var _ = Describe("TaskManager", func() {
 			offer := createOffer("offer id", 1.0, 64.0)
 			component := testComponent("component name", 1.0, 64.0)
 			scheduled := scheduledComponent("app name", &component)
-			task := BuildTaskInfo("task id", &offer, &scheduled)
+			task := BuildTaskInfo("task id", &offer, &scheduled, nil)
 			id := task.GetTaskId()
 			de[id.GetValue()] = &task
 			mgr.TaskLost(id, nil)
@@ -275,7 +275,7 @@ var _ = Describe("TaskManager", func() {
 			offer := createOffer("offer id", 1.0, 64.0)
 			component := testComponent("component name", 1.0, 64.0)
 			scheduled := scheduledComponent("app name", &component)
-			task := BuildTaskInfo("task id", &offer, &scheduled)
+			task := BuildTaskInfo("task id", &offer, &scheduled, nil)
 			id := task.GetTaskId()
 			bytes, _ := proto.Marshal(&task)
 			ts.Set(id.GetValue(), bytes)
@@ -288,7 +288,7 @@ var _ = Describe("TaskManager", func() {
 			offer := createOffer("offer id", 1.0, 64.0)
 			component := testComponent("component name", 1.0, 64.0)
 			scheduled := scheduledComponent("app name", &component)
-			task := BuildTaskInfo("task id", &offer, &scheduled)
+			task := BuildTaskInfo("task id", &offer, &scheduled, nil)
 			id := task.GetTaskId()
 			cr := &task
 			de[id.GetValue()] = cr
@@ -311,7 +311,7 @@ var _ = Describe("TaskManager", func() {
 			offer := createOffer("offer id", 1.0, 64.0)
 			component := testComponent("component name", 1.0, 64.0)
 			scheduled := scheduledComponent("app name", &component)
-			task := BuildTaskInfo("task id", &offer, &scheduled)
+			task := BuildTaskInfo("task id", &offer, &scheduled, nil)
 			id := task.GetTaskId()
 
 			mgr.TaskRunning(id, nil)
@@ -326,7 +326,7 @@ var _ = Describe("TaskManager", func() {
 			offer := createOffer("offer id", 1.0, 64.0)
 			component := testComponent("component name", 1.0, 64.0)
 			scheduled := scheduledComponent("app name", &component)
-			task := BuildTaskInfo("task id", &offer, &scheduled)
+			task := BuildTaskInfo("task id", &offer, &scheduled, nil)
 			id := task.GetTaskId()
 			cr := &task
 			de[id.GetValue()] = cr
@@ -349,7 +349,7 @@ var _ = Describe("TaskManager", func() {
 			offer := createOffer("offer id", 1.0, 64.0)
 			component := testComponent("component name", 1.0, 64.0)
 			scheduled := scheduledComponent("app name", &component)
-			task := BuildTaskInfo("task id", &offer, &scheduled)
+			task := BuildTaskInfo("task id", &offer, &scheduled, nil)
 			id := task.GetTaskId()
 
 			mgr.TaskStaging(id, nil)
@@ -364,7 +364,7 @@ var _ = Describe("TaskManager", func() {
 			offer := createOffer("offer id", 1.0, 64.0)
 			component := testComponent("component name", 1.0, 64.0)
 			scheduled := scheduledComponent("app name", &component)
-			task := BuildTaskInfo("task id", &offer, &scheduled)
+			task := BuildTaskInfo("task id", &offer, &scheduled, nil)
 			id := task.GetTaskId()
 			cr := &task
 			de[id.GetValue()] = cr
@@ -387,7 +387,7 @@ var _ = Describe("TaskManager", func() {
 			offer := createOffer("offer id", 1.0, 64.0)
 			component := testComponent("component name", 1.0, 64.0)
 			scheduled := scheduledComponent("app name", &component)
-			task := BuildTaskInfo("task id", &offer, &scheduled)
+			task := BuildTaskInfo("task id", &offer, &scheduled, nil)
 			id := task.GetTaskId()
 
 			mgr.TaskStarting(id, nil)

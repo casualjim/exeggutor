@@ -71,6 +71,7 @@ func main() {
 	router.POST("/api/applications", applicationsController.Save)
 	router.PUT("/api/applications/:name", applicationsController.Save)
 	router.DELETE("/api/applications/:name", applicationsController.Delete)
+	router.POST("/api/applications/:name/deploy", applicationsController.Deploy)
 
 	router.GET("/api/mesos/fwid", mesosController.ShowFrameworkID)
 

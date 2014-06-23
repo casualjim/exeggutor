@@ -2,9 +2,9 @@ package scheduler
 
 import (
 	"github.com/reverb/exeggutor"
+	"github.com/reverb/exeggutor/protocol"
 	"github.com/reverb/exeggutor/state"
 	"github.com/reverb/exeggutor/tasks"
-	"github.com/reverb/go-utils/flake"
 	"github.com/reverb/go-utils/rvb_zk"
 
 	"code.google.com/p/goprotobuf/proto"
@@ -54,6 +54,12 @@ func (fw *Framework) infoFromConfig() mesos.FrameworkInfo {
 		Name: proto.String(fw.config.FrameworkInfo.Name),
 		Id:   fw.id.Get(),
 	}
+}
+
+// SubmitApp submits an application to the queue for scheduling on the
+// cluster
+func (fw *Framework) SubmitApp(app protocol.ApplicationManifest) error {
+	return fw.taskManager.SubmitApp(app)
 }
 
 // ID gets the id of the framework is one is known for this framework at this stage.
@@ -123,57 +129,57 @@ func (fw *Framework) defaultMesosScheduler() *mesos.Scheduler {
 		ResourceOffers: func(driver *mesos.SchedulerDriver, offers []mesos.Offer) {
 			logged := false
 			for _, offer := range offers {
-				//if fw.taskManager != nil {
-				if !logged {
-					log.Debug("Received %d offers:", len(offers))
-					logged = true
-				}
-				log.Debug("  * %+v", offer)
-				// fulfilment := fw.taskManager.FulfillOffer(offer)
-				// if len(fulfilment) == 0 {
-				// 	driver.DeclineOffer(offer.GetId())
-				// } else {
-				// 	driver.LaunchTasks(offer.GetId(), fulfilment)
-				// }
-				if !launched {
-					launched = true
-					taskID, _ := flake.NewFlake().Next()
-					task := mesos.TaskInfo{
-						Name: proto.String("exeggutor-go-task"),
-						TaskId: &mesos.TaskID{
-							Value: proto.String("exeggutor-go-task-" + taskID),
-						},
-						SlaveId: offer.SlaveId,
-						Command: &mesos.CommandInfo{
-							Container: &mesos.CommandInfo_ContainerInfo{
-								Image:   proto.String("docker:///helloworld:0.0.1"),
-								Options: []string{"--publish=8001:3000"},
-							},
-							Value: proto.String(""),
-							//Value: proto.String("java -jar /Users/ivan/projects/wordnik/exeggutor/sample/target/exeggutor-sample-assembly.jar"),
-							Environment: &mesos.Environment{
-								Variables: []*mesos.Environment_Variable{
-									&mesos.Environment_Variable{
-										Name:  proto.String("PORT"),
-										Value: proto.String("8001"),
-									},
-								},
-							},
-						},
-						Resources: []*mesos.Resource{
-							mesos.ScalarResource("cpus", 1),
-							mesos.ScalarResource("mem", 256),
-						},
+				if fw.taskManager != nil {
+					if !logged {
+						log.Debug("Received %d offers:", len(offers))
+						logged = true
 					}
+					log.Debug("  * %+v", offer)
+					fulfilment := fw.taskManager.FulfillOffer(offer)
+					if len(fulfilment) == 0 {
+						driver.DeclineOffer(offer.GetId())
+					} else {
+						driver.LaunchTasks(offer.GetId(), fulfilment)
+					}
+					//if !launched {
+					//launched = true
+					//taskID, _ := flake.NewFlake().Next()
+					//task := mesos.TaskInfo{
+					//Name: proto.String("exeggutor-go-task"),
+					//TaskId: &mesos.TaskID{
+					//Value: proto.String("exeggutor-go-task-" + taskID),
+					//},
+					//SlaveId: offer.SlaveId,
+					//Command: &mesos.CommandInfo{
+					//Container: &mesos.CommandInfo_ContainerInfo{
+					//Image:   proto.String("docker:///helloworld:0.0.1"),
+					//Options: []string{"--publish=8001:3000"},
+					//},
+					//Value: proto.String(""),
+					////Value: proto.String("java -jar /Users/ivan/projects/wordnik/exeggutor/sample/target/exeggutor-sample-assembly.jar"),
+					//Environment: &mesos.Environment{
+					//Variables: []*mesos.Environment_Variable{
+					//&mesos.Environment_Variable{
+					//Name:  proto.String("PORT"),
+					//Value: proto.String("8001"),
+					//},
+					//},
+					//},
+					//},
+					//Resources: []*mesos.Resource{
+					//mesos.ScalarResource("cpus", 1),
+					//mesos.ScalarResource("mem", 256),
+					//},
+					//}
 
-					driver.LaunchTasks(offer.GetId(), []mesos.TaskInfo{task})
+					//driver.LaunchTasks(offer.GetId(), []mesos.TaskInfo{task})
+					//} else {
+					//driver.DeclineOffer(offer.GetId())
+					//}
 				} else {
+					log.Notice("Received an offer but no task manager is available to handle the offer, declining %s", offer.GetId().GetValue())
 					driver.DeclineOffer(offer.GetId())
 				}
-				// } else {
-				// 	log.Notice("Received an offer but no task manager is available to handle the offer, declining %s", offer.GetId().GetValue())
-				// 	driver.DeclineOffer(offer.GetId())
-				// }
 			}
 		},
 	}

@@ -15,6 +15,8 @@ type Config struct {
 }
 
 type FrameworkConfig struct {
-	User string `json:"user,omitempty" long:"framework-user" description:"The user under which this framework should authenticate"`
-	Name string `json:"name,omitempty" long:"framework-name" description:"The name of this framework"`
+	User    string `json:"user,omitempty" long:"framework-user" description:"The user under which this framework should authenticate"`
+	Name    string `json:"name,omitempty" long:"framework-name" description:"The name of this framework"`
+	MinPort int    `json:"minPort,omitempty" long:"framework-min-port" description:"The minimum port to use for dynamically allocating ports on slaves" default:"10000"`
+	MaxPort int    `json:"maxPort,omitempty" long:"framework-max-port" description:"The maximum port to use for dynamically allocating ports on slaves" default:"20000"`
 }

@@ -1,6 +1,9 @@
 package tasks
 
 import (
+	"fmt"
+	"sync"
+
 	"code.google.com/p/goprotobuf/proto"
 	"github.com/reverb/exeggutor"
 	"github.com/reverb/exeggutor/protocol"
@@ -10,13 +13,132 @@ import (
 	"github.com/reverb/go-utils/flake"
 )
 
-// DefaultTaskManager the task manager accept
+// PortProvider an interface for generating ports
+// It operates on a per slave id basis.
+// The default implementation gets its range values from the
+// config and keeps track of which slave has which port
+// so that it never hands out a port
+type PortProvider interface {
+	Acquire(id string) (int, error)
+	Release(id string, port int)
+}
+
+type defaultPortProvider struct {
+	min      int
+	max      int
+	used     map[string][]int
+	released map[string][]int
+	current  map[string]int
+	lock     *sync.Mutex
+}
+
+// NewPortProvider creates a new instance of the default port provider
+func NewPortProvider(config *exeggutor.Config) PortProvider {
+	return &defaultPortProvider{
+		min:      config.FrameworkInfo.MinPort,
+		max:      config.FrameworkInfo.MaxPort,
+		used:     make(map[string][]int),
+		released: make(map[string][]int),
+		current:  make(map[string]int),
+		lock:     &sync.Mutex{},
+	}
+}
+
+func (p *defaultPortProvider) Acquire(slaveID string) (int, error) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	cur, ok := p.current[slaveID]
+
+	if !ok {
+		cur = p.min
+		p.current[slaveID] = cur
+		p.used[slaveID] = []int{cur}
+		p.released[slaveID] = []int{}
+		return cur, nil
+	}
+
+	// First try to see if we have a released port around for recycling
+	next := p.popReleased(slaveID)
+	if next == 0 {
+		next = cur + 1
+	}
+
+	// paranoia! Keep incrementing the port number until we have one that's not in use
+	// in practice this should normally return false or something must have gone horribly wrong
+	for p.hasUsed(slaveID, next) {
+		next++
+	}
+
+	// if we're at a port higher than the max we can't acquire new ports,
+	// we've handed out 10k ports to that particular slave, it might also be
+	// spontaneously exploding at this place or used to warm up a cold winter night.
+	if p.overstepsMax(next) {
+		return 0, fmt.Errorf("%v is larger than %v, can't acquire a new id for slave %s", next, p.max, slaveID)
+	}
+
+	// update the states for this newly acquired id
+	p.current[slaveID] = next
+	p.used[slaveID] = append(p.used[slaveID], next)
+
+	return next, nil
+}
+
+func (p *defaultPortProvider) overstepsMax(port int) bool {
+	return p.max < port
+}
+
+func (p *defaultPortProvider) hasUsed(slaveID string, port int) bool {
+	inUse, ok := p.used[slaveID]
+	if !ok {
+		return false
+	}
+
+	for _, v := range inUse {
+		if port == v {
+			return true
+		}
+	}
+	return false
+}
+
+func (p *defaultPortProvider) popReleased(slaveID string) int {
+	available, ok := p.released[slaveID]
+	if !ok || len(available) == 0 {
+		return 0
+	}
+
+	popped, remaining := available[len(available)-1], available[:len(available)-1]
+	p.released[slaveID] = remaining
+	return popped
+}
+
+func (p *defaultPortProvider) Release(slaveID string, port int) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	var newUsed []int
+	for _, v := range p.used[slaveID] {
+		if v != port {
+			newUsed = append(newUsed, v)
+		}
+	}
+	p.used[slaveID] = newUsed
+	p.released[slaveID] = append(p.released[slaveID], port)
+}
+
+// DefaultTaskManager the task manager accepts application manifests
+// and schedules them when a suitable offer arrives.
+// It then tracks the state of the running components, so that eventually
+// an SLA enforcement service will be able to make sure the
+// necessary application components are always alive.
 type DefaultTaskManager struct {
 	queue     TaskQueue
 	taskStore store.KVStore
 	config    *exeggutor.Config
 	flake     queue.IDGenerator
 	deploying map[string]*mesos.TaskInfo
+	ports     PortProvider
 }
 
 // NewDefaultTaskManager creates a new instance of a task manager with the values
@@ -34,17 +156,19 @@ func NewDefaultTaskManager(config *exeggutor.Config) (*DefaultTaskManager, error
 		config:    config,
 		flake:     flake.NewFlake(),
 		deploying: make(map[string]*mesos.TaskInfo),
+		ports:     NewPortProvider(config),
 	}, nil
 }
 
 // NewCustomDefaultTaskManager creates a new instance of a task manager with all the internal components injected
-func NewCustomDefaultTaskManager(q TaskQueue, ts store.KVStore, config *exeggutor.Config, deploying map[string]*mesos.TaskInfo) (*DefaultTaskManager, error) {
+func NewCustomDefaultTaskManager(q TaskQueue, ts store.KVStore, config *exeggutor.Config, deploying map[string]*mesos.TaskInfo, ports PortProvider) (*DefaultTaskManager, error) {
 	return &DefaultTaskManager{
 		queue:     q,
 		taskStore: ts,
 		config:    config,
 		flake:     flake.NewFlake(),
 		deploying: deploying,
+		ports:     ports,
 	}, nil
 }
 
@@ -85,6 +209,7 @@ func (t *DefaultTaskManager) Stop() error {
 // SubmitApp submits an application to the queue for scheduling on the
 // cluster
 func (t *DefaultTaskManager) SubmitApp(app protocol.ApplicationManifest) error {
+	log.Debug("Submitting app: %+v", app)
 	for _, comp := range app.Components {
 		component := protocol.ScheduledAppComponent{
 			Name:      comp.Name,
@@ -98,7 +223,7 @@ func (t *DefaultTaskManager) SubmitApp(app protocol.ApplicationManifest) error {
 
 func (t *DefaultTaskManager) buildTaskInfo(offer mesos.Offer, scheduled *protocol.ScheduledAppComponent) mesos.TaskInfo {
 	taskID, _ := t.flake.Next()
-	return BuildTaskInfo(taskID, &offer, scheduled)
+	return BuildTaskInfo(taskID, &offer, scheduled, t.ports)
 }
 
 func (t *DefaultTaskManager) hasEnoughMem(availableMem float64, component *protocol.ApplicationComponent) bool {
@@ -141,7 +266,10 @@ func (t *DefaultTaskManager) FulfillOffer(offer mesos.Offer) []mesos.TaskInfo {
 		log.Debug("Couldn't get an item of the queue, skipping this one")
 		return nil
 	}
-	allQueued = append(allQueued, t.buildTaskInfo(offer, item))
+	task := t.buildTaskInfo(offer, item)
+	allQueued = append(allQueued, task)
+	t.deploying[task.GetTaskId().GetValue()] = &task
+	log.Debug("fullfilling offer with %+v", task)
 	return allQueued
 }
 

@@ -65,6 +65,7 @@ module.exports = {
       'vendor/jquery/dist/jquery.js',
       'vendor/lodash/dist/lodash.js',
       'vendor/angular/angular.js',      
+      'vendor/angular-lodash/angular-lodash.js',      
       'vendor/angular-bootstrap/ui-bootstrap-tpls.js',
       'vendor/placeholders/angular-placeholders-0.0.1-SNAPSHOT.js',
       'vendor/angular-ui-router/release/angular-ui-router.js',

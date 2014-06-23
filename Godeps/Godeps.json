@@ -1,14 +1,14 @@
 {
 	"ImportPath": "github.com/reverb/exeggutor",
-	"GoVersion": "go1.2.2",
+	"GoVersion": "go1.3",
 	"Packages": [
 		"./..."
 	],
 	"Deps": [
 		{
 			"ImportPath": "code.google.com/p/goprotobuf/proto",
-			"Comment": "go.r60-143",
-			"Rev": "cbd7916e5dceea418a5c75273aa0f8e20aef6c9e"
+			"Comment": "go.r60-146",
+			"Rev": "f5ac12b15e49095c60ae0acc6da0e28d47e2a29f"
 		},
 		{
 			"ImportPath": "github.com/armon/gomdb",
@@ -16,13 +16,13 @@
 		},
 		{
 			"ImportPath": "github.com/astaxie/beego/validation",
-			"Comment": "v1.2.0-43-g3e4c015",
-			"Rev": "3e4c01598298f31f62441af9b6a1fb520e4ec285"
+			"Comment": "v1.3.0-1-gaf4f153",
+			"Rev": "af4f153830ed90898ea1c3ff8d5790c243ecbe76"
 		},
 		{
 			"ImportPath": "github.com/codegangsta/negroni",
-			"Comment": "v0.1-6-g06a6530",
-			"Rev": "06a6530bcb8cc6a157af7cde7c05b649d105d7c7"
+			"Comment": "v0.1-9-gfdad03a",
+			"Rev": "fdad03a1937d0406f95433aac2ccd06d682e9dad"
 		},
 		{
 			"ImportPath": "github.com/imdario/mergo",
@@ -31,8 +31,8 @@
 		},
 		{
 			"ImportPath": "github.com/jessevdk/go-flags",
-			"Comment": "v1-174-g0aa6f1f",
-			"Rev": "0aa6f1f72ff95a9274dd29a776f1d40be6f027bc"
+			"Comment": "v1-193-gd9d88f0",
+			"Rev": "d9d88f0ec542ae8f8dc041b2ec831b71e7c55558"
 		},
 		{
 			"ImportPath": "github.com/julienschmidt/httprouter",
@@ -57,8 +57,8 @@
 		},
 		{
 			"ImportPath": "github.com/reverb/go-mesos/mesos",
-			"Comment": "v0.19.0-rvb1-2-g2c06569",
-			"Rev": "2c06569b5036ed1805ef809bb1d91793e514fb8d"
+			"Comment": "v0.19.0-rvb1-3-gbb20c1f",
+			"Rev": "bb20c1f7718c9c13d8bb2a7dd40944c3e30dae80"
 		},
 		{
 			"ImportPath": "github.com/reverb/go-utils/flake",

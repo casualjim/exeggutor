@@ -4,10 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
+
+	"code.google.com/p/goprotobuf/proto"
 
 	// "github.com/reverb/exeggutor/protocol"
 	"github.com/astaxie/beego/validation"
 	"github.com/julienschmidt/httprouter"
+	"github.com/reverb/exeggutor/protocol"
 	"github.com/reverb/exeggutor/store"
 )
 
@@ -183,4 +187,80 @@ func (a *ApplicationsController) Delete(rw http.ResponseWriter, req *http.Reques
 		return
 	}
 	rw.WriteHeader(http.StatusNoContent)
+}
+
+// Deploy takes this application and schedules it for deploy
+// or for upgrade.
+func (a *ApplicationsController) Deploy(rw http.ResponseWriter, req *http.Request, pathParams httprouter.Params) {
+	pparam := pathParams.ByName("name")
+	log.Debug("Received a request to deploy app [%s]", pparam)
+	data, err := a.AppStore.Get(pparam)
+
+	if err != nil {
+		unknownErrorWithMessge(rw, err)
+		return
+	}
+	if data == nil {
+		notFound(rw, "App", pparam)
+		return
+	}
+
+	app := &App{}
+	err = json.Unmarshal(data, app)
+	if err != nil {
+		unknownErrorWithMessge(rw, err)
+		return
+	}
+	log.Debug("Building a manifest from app %+v", app)
+
+	var cmps []*protocol.ApplicationComponent
+	for _, comp := range app.Components {
+
+		var env []*protocol.StringKeyValue
+		for k, v := range comp.Env {
+			env = append(env, &protocol.StringKeyValue{
+				Key:   proto.String(k),
+				Value: proto.String(v),
+			})
+		}
+
+		var ports []*protocol.StringIntKeyValue
+		for k, v := range comp.Ports {
+			ports = append(ports, &protocol.StringIntKeyValue{
+				Key:   proto.String(k),
+				Value: proto.Int32(int32(v)),
+			})
+		}
+
+		dist := protocol.Distribution(protocol.Distribution_value[strings.ToUpper(comp.Distribution)])
+		compType := protocol.ComponentType(protocol.ComponentType_value[strings.ToUpper(comp.ComponentType)])
+
+		cmp := &protocol.ApplicationComponent{
+			Name:          proto.String(comp.Name),
+			Cpus:          proto.Float32(float32(comp.Cpus)),
+			Mem:           proto.Float32(float32(comp.Mem)),
+			DiskSpace:     proto.Int64(0),
+			DistUrl:       nil,
+			Command:       proto.String(comp.Command),
+			Env:           env,
+			Ports:         ports,
+			Version:       proto.String(comp.Version),
+			LogDir:        proto.String("/var/log/" + comp.Name),
+			WorkDir:       proto.String("/tmp/" + comp.Name),
+			ConfDir:       proto.String("/etc/" + comp.Name),
+			Distribution:  &dist,
+			ComponentType: &compType,
+		}
+		cmps = append(cmps, cmp)
+	}
+
+	appManifest := protocol.ApplicationManifest{
+		Name:       proto.String(app.Name),
+		Components: cmps,
+	}
+
+	a.apiContext.Framework.SubmitApp(appManifest)
+
+	rw.WriteHeader(http.StatusAccepted)
+	rw.Write([]byte("{}"))
 }
