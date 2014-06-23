@@ -5,12 +5,18 @@ VAGRANTFILE_API_VERSION = "2"
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.box = "casualjim/trusty-vagrant"
+  config.vm.hostname = "exeggutor-box"
+
+  config.vm.define "exeggutor-box" do |b|    
+    b.vm.network :private_network, ip: "192.168.11.253"
+    b.vm.synced_folder ".", "/vagrant", disabled: true
+  end
 
   config.vm.provider "virtualbox" do |v|
     v.name = "exeggutor-box"
     v.memory = 4096
     v.cpus = 4
-    
+
     v.customize ["modifyvm", :id, "--cpuexecutioncap", "50"]    
     v.customize ["modifyvm", :id, "--usb", "off"]
     v.customize ["modifyvm", :id, "--usbehci", "off"]
@@ -22,12 +28,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     v.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
   end
   
-  config.vm.define "exeggutor-box" do |b|
-    b.vm.network :private_network, ip: "192.168.11.253"
-    b.vm.synced_folder ".", "/vagrant", disabled: true
-    b.vm.synced_folder ".", "/usr/share/exeggutor"
-  end
-
   config.vm.provision "ansible" do |ansible|
     ansible.playbook = "./playbook.yml"
     ansible.sudo = true

@@ -1,4 +1,3 @@
-GOPATH := $(GOPATH)
 GO ?= go
 DEVENV_DEPS = github.com/golang/lint \
 	code.google.com/p/go.tools/cmd/gotype \

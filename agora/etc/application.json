@@ -2,8 +2,12 @@
   "dataDirectory": "./data",
   "logDirectory": "./logs",
   "staticFiles": "./static/build",
-  "zookeeper": "zk://localhost:2181/exeggutor",
-  "mesos": "zk://localhost:2181/mesos",
+  "zookeeper": "zk://exeggutor-box:2181/exeggutor",
+  "mesos": "zk://exeggutor-box:2181/mesos",
   "port": 8000,
-  "interface": "0.0.0.0"
+  "interface": "0.0.0.0",
+  "framework": {
+    "user": "vagrant",
+    "name": "Reverb Agora"
+  }
 }

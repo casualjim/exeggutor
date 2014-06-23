@@ -19,6 +19,7 @@
         - python-dev
         - clang
         - libclang-dev
+        - tmux
 
     - name: set up dot-files for vagrant
       shell: /home/vagrant/dot-files/setup.sh chdir=/home/vagrant/dot-files
@@ -51,9 +52,4 @@
         - grunt-cli 
         - karma 
         - bower
-        
-      
-
-
-    
 
