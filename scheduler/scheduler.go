@@ -141,41 +141,41 @@ func (fw *Framework) defaultMesosScheduler() *mesos.Scheduler {
 					} else {
 						driver.LaunchTasks(offer.GetId(), fulfilment)
 					}
-					//if !launched {
-					//launched = true
-					//taskID, _ := flake.NewFlake().Next()
-					//task := mesos.TaskInfo{
-					//Name: proto.String("exeggutor-go-task"),
-					//TaskId: &mesos.TaskID{
-					//Value: proto.String("exeggutor-go-task-" + taskID),
-					//},
-					//SlaveId: offer.SlaveId,
-					//Command: &mesos.CommandInfo{
-					//Container: &mesos.CommandInfo_ContainerInfo{
-					//Image:   proto.String("docker:///helloworld:0.0.1"),
-					//Options: []string{"--publish=8001:3000"},
-					//},
-					//Value: proto.String(""),
-					////Value: proto.String("java -jar /Users/ivan/projects/wordnik/exeggutor/sample/target/exeggutor-sample-assembly.jar"),
-					//Environment: &mesos.Environment{
-					//Variables: []*mesos.Environment_Variable{
-					//&mesos.Environment_Variable{
-					//Name:  proto.String("PORT"),
-					//Value: proto.String("8001"),
-					//},
-					//},
-					//},
-					//},
-					//Resources: []*mesos.Resource{
-					//mesos.ScalarResource("cpus", 1),
-					//mesos.ScalarResource("mem", 256),
-					//},
-					//}
+					// if !launched {
+					// 	launched = true
+					// 	taskID, _ := flake.NewFlake().Next()
+					// 	task := mesos.TaskInfo{
+					// 		Name: proto.String("exeggutor-go-task"),
+					// 		TaskId: &mesos.TaskID{
+					// 			Value: proto.String("exeggutor-go-task-" + taskID),
+					// 		},
+					// 		SlaveId: offer.SlaveId,
+					// 		Command: &mesos.CommandInfo{
+					// 			Container: &mesos.CommandInfo_ContainerInfo{
+					// 				Image:   proto.String("docker:///helloworld:0.0.1"),
+					// 				Options: []string{"--publish=8001:3000"},
+					// 			},
+					// 			Value: proto.String(""),
+					// 			//Value: proto.String("java -jar /Users/ivan/projects/wordnik/exeggutor/sample/target/exeggutor-sample-assembly.jar"),
+					// 			Environment: &mesos.Environment{
+					// 				Variables: []*mesos.Environment_Variable{
+					// 					&mesos.Environment_Variable{
+					// 						Name:  proto.String("PORT"),
+					// 						Value: proto.String("8001"),
+					// 					},
+					// 				},
+					// 			},
+					// 		},
+					// 		Resources: []*mesos.Resource{
+					// 			mesos.ScalarResource("cpus", 1),
+					// 			mesos.ScalarResource("mem", 256),
+					// 		},
+					// 	}
 
-					//driver.LaunchTasks(offer.GetId(), []mesos.TaskInfo{task})
-					//} else {
-					//driver.DeclineOffer(offer.GetId())
-					//}
+					// 	driver.LaunchTasks(offer.GetId(), []mesos.TaskInfo{task})
+					// } else {
+					// 	driver.DeclineOffer(offer.GetId())
+					// }
 				} else {
 					log.Notice("Received an offer but no task manager is available to handle the offer, declining %s", offer.GetId().GetValue())
 					driver.DeclineOffer(offer.GetId())
