@@ -21,8 +21,8 @@ func New(config *exeggutor.Config) *ApplicationsConverter {
 }
 
 // ToAppManifest convert the provided app to a protobuf application manifest
-func (a *ApplicationsConverter) ToAppManifest(app *model.App) protocol.ApplicationManifest {
-	var cmps []*protocol.ApplicationComponent
+func (a *ApplicationsConverter) ToAppManifest(app *model.App) []protocol.Application {
+	var cmps []protocol.Application
 	for _, comp := range app.Components {
 
 		var env []*protocol.StringKeyValue
@@ -44,7 +44,7 @@ func (a *ApplicationsConverter) ToAppManifest(app *model.App) protocol.Applicati
 		dist := protocol.Distribution(protocol.Distribution_value[strings.ToUpper(comp.Distribution)])
 		compType := protocol.ComponentType(protocol.ComponentType_value[strings.ToUpper(comp.ComponentType)])
 
-		cmp := &protocol.ApplicationComponent{
+		cmp := protocol.Application{
 			Name:          proto.String(comp.Name),
 			Cpus:          proto.Float32(float32(comp.Cpus)),
 			Mem:           proto.Float32(float32(comp.Mem)),
@@ -54,17 +54,15 @@ func (a *ApplicationsConverter) ToAppManifest(app *model.App) protocol.Applicati
 			Env:           env,
 			Ports:         ports,
 			Version:       proto.String(comp.Version),
-			LogDir:        proto.String("/var/log/" + comp.Name),
-			WorkDir:       proto.String("/tmp/" + comp.Name),
-			ConfDir:       proto.String("/etc/" + comp.Name),
+			LogDir:        nil, //proto.String("/var/log/" + comp.Name),
+			WorkDir:       nil, //proto.String("/tmp/" + comp.Name),
+			ConfDir:       nil, //proto.String("/etc/" + comp.Name),
 			Distribution:  &dist,
 			ComponentType: &compType,
+			AppName:       proto.String(app.Name),
 		}
 		cmps = append(cmps, cmp)
 	}
 
-	return protocol.ApplicationManifest{
-		Name:       proto.String(app.Name),
-		Components: cmps,
-	}
+	return cmps
 }

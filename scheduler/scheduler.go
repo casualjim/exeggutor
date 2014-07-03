@@ -58,22 +58,22 @@ func (fw *Framework) infoFromConfig() mesos.FrameworkInfo {
 
 // SubmitApp submits an application to the queue for scheduling on the
 // cluster
-func (fw *Framework) SubmitApp(app protocol.ApplicationManifest) error {
+func (fw *Framework) SubmitApp(app []protocol.Application) error {
 	return fw.taskManager.SubmitApp(app)
 }
 
 // KillApp stops all the components of an application
-func (fw *Framework) KillApp(app protocol.ApplicationManifest) error {
+func (fw *Framework) KillApp(app string) error {
 	return nil
 }
 
 // KillComponent stops a single component
-func (fw *Framework) KillComponent(app protocol.ApplicationComponent) error {
+func (fw *Framework) KillComponent(app, component string) error {
 	return nil
 }
 
 // KillComponentOnSlave stop s a single component instance on a particular slave
-func (fw *Framework) KillComponentOnSlave(app protocol.ApplicationComponent, slaveID string) error {
+func (fw *Framework) KillComponentOnSlave(app, component, slaveID string) error {
 	return nil
 }
 

@@ -88,25 +88,40 @@ func (t *DefaultTaskManager) Stop() error {
 
 // SubmitApp submits an application to the queue for scheduling on the
 // cluster
-func (t *DefaultTaskManager) SubmitApp(app protocol.ApplicationManifest) error {
+func (t *DefaultTaskManager) SubmitApp(app []protocol.Application) error {
 	log.Debug("Submitting app: %+v", app)
-	for _, comp := range app.Components {
-		component := protocol.ScheduledAppComponent{
-			Name:      comp.Name,
-			AppName:   app.Name,
-			Component: comp,
+	for _, comp := range app {
+		component := protocol.ScheduledApp{
+			Name:    comp.Name,
+			AppName: comp.AppName,
+			App:     &comp,
 		}
 		t.queue.Enqueue(&component)
 	}
 	return nil
 }
 
-func (t *DefaultTaskManager) buildTaskInfo(offer mesos.Offer, scheduled *protocol.ScheduledAppComponent) mesos.TaskInfo {
+// FindTasksForApp finds all the tasks for the specified application name
+func (t *DefaultTaskManager) FindTasksForApp(name string) ([]*mesos.TaskID, error) {
+	return nil, nil
+}
+
+// FindTasksForComponent finds all the deployed tasks for the specified component
+func (t *DefaultTaskManager) FindTasksForComponent(app, component string) ([]*mesos.TaskID, error) {
+	return nil, nil
+}
+
+// FindTaskForComponent finds the task for this
+func (t *DefaultTaskManager) FindTaskForComponent(app, component, task string) (*mesos.TaskID, error) {
+	return nil, nil
+}
+
+func (t *DefaultTaskManager) buildTaskInfo(offer mesos.Offer, scheduled *protocol.ScheduledApp) mesos.TaskInfo {
 	taskID, _ := t.flake.Next()
 	return BuildTaskInfo(taskID, &offer, scheduled)
 }
 
-func (t *DefaultTaskManager) fitsInOffer(offer mesos.Offer, component *protocol.ScheduledAppComponent) bool {
+func (t *DefaultTaskManager) fitsInOffer(offer mesos.Offer, component *protocol.ScheduledApp) bool {
 	var availCpus float64
 	var availMem float64
 	var maxPortsLen uint64
@@ -129,7 +144,7 @@ func (t *DefaultTaskManager) fitsInOffer(offer mesos.Offer, component *protocol.
 		}
 	}
 
-	comp := component.GetComponent()
+	comp := component.App
 
 	return availCpus >= float64(comp.GetCpus()) && // has enough cpu
 		availMem >= float64(comp.GetMem()) && // has enough memory
@@ -142,7 +157,7 @@ func (t *DefaultTaskManager) fitsInOffer(offer mesos.Offer, component *protocol.
 // So when this starts taking too long we should provide more instances to this cluster
 func (t *DefaultTaskManager) FulfillOffer(offer mesos.Offer) []mesos.TaskInfo {
 
-	thatFits := func(i *protocol.ScheduledAppComponent) bool { return t.fitsInOffer(offer, i) }
+	thatFits := func(i *protocol.ScheduledApp) bool { return t.fitsInOffer(offer, i) }
 
 	item, err := t.queue.DequeueFirst(thatFits)
 	if err != nil {

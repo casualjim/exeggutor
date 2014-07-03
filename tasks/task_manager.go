@@ -16,7 +16,7 @@ var log = logging.MustGetLogger("exeggutor.tasks")
 type TaskManager interface {
 	exeggutor.Module
 
-	SubmitApp(app protocol.ApplicationManifest) error
+	SubmitApp(app []protocol.Application) error
 	FulfillOffer(offer mesos.Offer) []mesos.TaskInfo
 
 	TaskFailed(taskID *mesos.TaskID, slaveID *mesos.SlaveID)
@@ -27,10 +27,10 @@ type TaskManager interface {
 	TaskStaging(taskID *mesos.TaskID, slaveID *mesos.SlaveID)
 	TaskStarting(taskID *mesos.TaskID, slaveID *mesos.SlaveID)
 
-	FindTasksForApp(name string) ([]*mesos.TaskInfo, error)
-	FindTasksForComponent(app, component string) ([]*mesos.TaskInfo, error)
-	FindTaskForComponent(app, component, task string) (*mesos.TaskInfo, error)
+	FindTasksForApp(name string) ([]*mesos.TaskID, error)
+	FindTasksForComponent(app, component string) ([]*mesos.TaskID, error)
+	FindTaskForComponent(app, component, task string) (*mesos.TaskID, error)
 
-	// RunningApps() []*protocol.ApplicationManifest
+	//RunningApps() []*protocol.Application
 	// Schedules
 }

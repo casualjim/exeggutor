@@ -18,7 +18,7 @@ type portRange struct {
 }
 
 // BuildResources builds the []*mesos.Resource from a protocol.ApplicationComponent
-func BuildResources(component *protocol.ApplicationComponent, ports []portRange) []*mesos.Resource {
+func BuildResources(component *protocol.Application, ports []portRange) []*mesos.Resource {
 	var pres []*mesos.Value_Range
 
 	for _, port := range ports {
@@ -60,7 +60,7 @@ func BuildTaskEnvironment(envList []*protocol.StringKeyValue, ports []*protocol.
 
 // BuildContainerInfo builds a mesos.ContainerInfo object from a protocol.ApplicationComponent
 // It will only do this when the distribution is docker, otherwise it will return nil
-func BuildContainerInfo(slaveID string, component *protocol.ApplicationComponent) *mesos.CommandInfo_ContainerInfo {
+func BuildContainerInfo(slaveID string, component *protocol.Application) *mesos.CommandInfo_ContainerInfo {
 	// av := ports
 	if component.GetDistribution() != protocol.Distribution_DOCKER {
 		return nil
@@ -79,7 +79,7 @@ func BuildContainerInfo(slaveID string, component *protocol.ApplicationComponent
 
 // BuildMesosCommand builds a mesos.CommandInfo object from a protocol.ApplicationComponent
 // This is what drives our deployment and how it works.
-func BuildMesosCommand(slaveID string, component *protocol.ApplicationComponent) *mesos.CommandInfo {
+func BuildMesosCommand(slaveID string, component *protocol.Application) *mesos.CommandInfo {
 
 	return &mesos.CommandInfo{
 		Container:   BuildContainerInfo(slaveID, component),
@@ -143,12 +143,12 @@ func getPorts(offer *mesos.Offer, count int) []portRange {
 }
 
 // BuildTaskInfo builds a mesos.TaskInfo object from an offer and a scheduled component
-func BuildTaskInfo(taskID string, offer *mesos.Offer, scheduled *protocol.ScheduledAppComponent) mesos.TaskInfo {
-	component := scheduled.Component
+func BuildTaskInfo(taskID string, offer *mesos.Offer, scheduled *protocol.ScheduledApp) mesos.TaskInfo {
+	component := scheduled.App
 	slaveID := offer.GetSlaveId().GetValue()
 
 	return mesos.TaskInfo{
-		Name:      scheduled.Name,
+		Name:      proto.String(scheduled.GetAppName() + "-" + scheduled.GetName()),
 		TaskId:    &mesos.TaskID{Value: proto.String("exeggutor-task-" + taskID)},
 		SlaveId:   offer.SlaveId,
 		Command:   BuildMesosCommand(slaveID, component),

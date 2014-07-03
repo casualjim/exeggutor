@@ -8,13 +8,13 @@ import (
 	"github.com/reverb/exeggutor/protocol"
 )
 
-// ScheduledAppComponentSerializer a struct to implement a serializer for an
-// exeggutor.protocol.ScheduledAppComponent
-type ScheduledAppComponentSerializer struct{}
+// ScheduledAppSerializer a struct to implement a serializer for an
+// exeggutor.protocol.ScheduledApp
+type ScheduledAppSerializer struct{}
 
-// ReadBytes ScheduledAppComponentSerializer a byte slice into a ScheduledAppComponent
-func (a *ScheduledAppComponentSerializer) ReadBytes(data []byte) (interface{}, error) {
-	appManifest := &protocol.ScheduledAppComponent{}
+// ReadBytes ScheduledAppSerializer a byte slice into a ScheduledApp
+func (a *ScheduledAppSerializer) ReadBytes(data []byte) (interface{}, error) {
+	appManifest := &protocol.ScheduledApp{}
 	err := proto.Unmarshal(data, appManifest)
 	if err != nil {
 		return nil, err
@@ -23,7 +23,7 @@ func (a *ScheduledAppComponentSerializer) ReadBytes(data []byte) (interface{}, e
 }
 
 // WriteBytes converts an application manifest into a byte slice
-func (a *ScheduledAppComponentSerializer) WriteBytes(target interface{}) ([]byte, error) {
+func (a *ScheduledAppSerializer) WriteBytes(target interface{}) ([]byte, error) {
 	msg, ok := target.(proto.Message)
 	if !ok {
 		return nil, errors.New("Expected to serialize an application manifest which is a proto message.")

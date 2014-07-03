@@ -19,11 +19,11 @@ import (
 type TaskQueue interface {
 	exeggutor.Module
 	// Enqueue puts an item on the queue
-	Enqueue(item *protocol.ScheduledAppComponent) error
+	Enqueue(item *protocol.ScheduledApp) error
 	// Dequeue pops the first item of the queue
-	Dequeue() (*protocol.ScheduledAppComponent, error)
+	Dequeue() (*protocol.ScheduledApp, error)
 	// DequeueFirst pops the first item of the queue that matches the predicated
-	DequeueFirst(func(*protocol.ScheduledAppComponent) bool) (*protocol.ScheduledAppComponent, error)
+	DequeueFirst(func(*protocol.ScheduledApp) bool) (*protocol.ScheduledApp, error)
 	// Len returns the size of the queue
 	Len() int
 }
@@ -72,7 +72,7 @@ func (tq *taskQueue) Len() int {
 }
 
 // Enqueue enqueues an item if it hasn't been queued already
-func (tq *taskQueue) Enqueue(item *protocol.ScheduledAppComponent) error {
+func (tq *taskQueue) Enqueue(item *protocol.ScheduledApp) error {
 	tq.lock.Lock()
 	defer tq.lock.Unlock()
 	heap.Push(tq.pQueue, item)
@@ -80,19 +80,19 @@ func (tq *taskQueue) Enqueue(item *protocol.ScheduledAppComponent) error {
 }
 
 // Dequeue dequeues an item from the queue
-func (tq *taskQueue) Dequeue() (*protocol.ScheduledAppComponent, error) {
+func (tq *taskQueue) Dequeue() (*protocol.ScheduledApp, error) {
 	tq.lock.Lock()
 	defer tq.lock.Unlock()
 	item := heap.Pop(tq.pQueue)
-	return item.(*protocol.ScheduledAppComponent), nil
+	return item.(*protocol.ScheduledApp), nil
 }
 
 // DequeueFirst dequeues the first item from the queue that matches the predicated
-func (tq *taskQueue) DequeueFirst(shouldDequeue func(*protocol.ScheduledAppComponent) bool) (*protocol.ScheduledAppComponent, error) {
+func (tq *taskQueue) DequeueFirst(shouldDequeue func(*protocol.ScheduledApp) bool) (*protocol.ScheduledApp, error) {
 	tq.lock.Lock()
 	defer tq.lock.Unlock()
 	queue := *tq.pQueue
-	var found *protocol.ScheduledAppComponent
+	var found *protocol.ScheduledApp
 	for _, item := range queue {
 		if shouldDequeue(item) {
 			found = item
@@ -104,23 +104,23 @@ func (tq *taskQueue) DequeueFirst(shouldDequeue func(*protocol.ScheduledAppCompo
 }
 
 // prioQueue a type to represent the default priority queue
-type prioQueue []*protocol.ScheduledAppComponent
+type prioQueue []*protocol.ScheduledApp
 
 // Len returns the size of this priority queue
 func (pq prioQueue) Len() int {
 	return len(pq)
 }
 
-func (pq prioQueue) byCPU(left, right *protocol.ApplicationComponent) bool {
+func (pq prioQueue) byCPU(left, right *protocol.Application) bool {
 	return left.GetCpus() > right.GetCpus()
 }
 
-func (pq prioQueue) byMemorySecondary(left, right *protocol.ApplicationComponent) bool {
+func (pq prioQueue) byMemorySecondary(left, right *protocol.Application) bool {
 	return left.GetCpus() == right.GetCpus() && left.GetMem() > right.GetMem()
 }
 
-func (pq prioQueue) leastRecent(left, right *protocol.ScheduledAppComponent) bool {
-	lcomp, rcomp := left.Component, right.Component
+func (pq prioQueue) leastRecent(left, right *protocol.ScheduledApp) bool {
+	lcomp, rcomp := left.App, right.App
 	return lcomp.GetCpus() == rcomp.GetCpus() && lcomp.GetMem() == rcomp.GetMem() && left.GetSince() < right.GetSince()
 }
 
@@ -128,8 +128,8 @@ func (pq prioQueue) leastRecent(left, right *protocol.ScheduledAppComponent) boo
 // is higher on the list than the item at index j
 func (pq prioQueue) Less(i, j int) bool {
 	left, right := pq[i], pq[j]
-	return pq.byCPU(left.Component, right.Component) ||
-		pq.byMemorySecondary(left.Component, right.Component) ||
+	return pq.byCPU(left.App, right.App) ||
+		pq.byMemorySecondary(left.App, right.App) ||
 		pq.leastRecent(left, right)
 }
 
@@ -143,7 +143,7 @@ func (pq prioQueue) Swap(i, j int) {
 // Push pushes a new item onto this queue
 func (pq *prioQueue) Push(x interface{}) {
 	n := len(*pq)
-	item := x.(*protocol.ScheduledAppComponent)
+	item := x.(*protocol.ScheduledApp)
 	item.Position = proto.Int(n)
 	item.Since = proto.Int64(time.Now().UTC().UnixNano())
 	*pq = append(*pq, item)
