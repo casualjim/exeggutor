@@ -1,7 +1,8 @@
 package exeggutor
 
+// Config the main configuration object to use in the application
 type Config struct {
-	ZookeeperUrl    string          `json:"zookeeper,omitempty" long:"zk" description:"The uri for zookeeper in the form of zk://localhost:2181/root"`
+	ZookeeperURL    string          `json:"zookeeper,omitempty" long:"zk" description:"The uri for zookeeper in the form of zk://localhost:2181/root"`
 	MesosMaster     string          `json:"mesos,omitempty" long:"mesos" description:"The uri for the mesos master"`
 	DataDirectory   string          `json:"dataDirectory,omitempty" long:"data_dir" description:"The base path for storing the data" default:"./data"`
 	LogDirectory    string          `json:"logDirectory,omitempty" long:"log_dir" description:"The directory to store log files in" default:"./logs"`
@@ -12,11 +13,13 @@ type Config struct {
 	Interface       string          `json:"interface,omitempty" long:"listen" description:"The interface to use to listen for web requests" default:"0.0.0.0"`
 	Mode            string          `json:"mode,omitempty" long:"mode" description:"The mode in which to run this application (dev, prod, stage, jenkins)" default:"development"`
 	FrameworkInfo   FrameworkConfig `json:"framework,omitempty"`
+	DockerIndex     string          `json:"dockerIndex,omitempty" long:"docker_index" description:"The docker index this application should use for pulling docker images" default:""`
 }
 
+// FrameworkConfig framework config contains configuration specific to mesos.
+// It has things like a name of the framework and user to use when running applications
+// on mesos
 type FrameworkConfig struct {
-	User    string `json:"user,omitempty" long:"framework-user" description:"The user under which this framework should authenticate"`
-	Name    string `json:"name,omitempty" long:"framework-name" description:"The name of this framework"`
-	MinPort int    `json:"minPort,omitempty" long:"framework-min-port" description:"The minimum port to use for dynamically allocating ports on slaves" default:"10000"`
-	MaxPort int    `json:"maxPort,omitempty" long:"framework-max-port" description:"The maximum port to use for dynamically allocating ports on slaves" default:"20000"`
+	User string `json:"user,omitempty" long:"framework_user" description:"The user under which this framework should authenticate"`
+	Name string `json:"name,omitempty" long:"framework_name" description:"The name of this framework" default:"Agora"`
 }

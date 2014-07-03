@@ -6,6 +6,7 @@
   "mesos": "zk://exeggutor-box:2181/mesos",
   "port": 8000,
   "interface": "0.0.0.0",
+  "dockerIndex": "dev-docker.helloreverb.com",
   "framework": {
     "user": "vagrant",
     "name": "Reverb Agora"

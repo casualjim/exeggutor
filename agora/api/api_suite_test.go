@@ -27,7 +27,7 @@ func testAppConfig() *exeggutor.Config {
 	logs, _ := ioutil.TempDir("", "agora-api-logs")
 	work, _ := ioutil.TempDir("", "agora-api-work")
 	return &exeggutor.Config{
-		ZookeeperUrl:    "zk://localhost:2181/apiTests",
+		ZookeeperURL:    "zk://localhost:2181/apiTests",
 		MesosMaster:     "zk://localhost:2181/mesos",
 		DataDirectory:   data,
 		LogDirectory:    logs,

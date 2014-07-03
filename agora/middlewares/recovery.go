@@ -31,7 +31,7 @@ func (rec *Recovery) ServeHTTP(rw http.ResponseWriter, r *http.Request, next htt
 			rec.Logger.Critical(fmt.Sprintf("%s\n%s", err, stack))
 
 			if rec.PrintStack {
-				fmtStr := `{"message":"%s","stack":"%s","type":"panic"}`
+				fmtStr := `{"message":"%s","stack":"%s","type":"error"}`
 				fmt.Fprintf(rw, fmtStr, err, stack)
 			}
 		}
