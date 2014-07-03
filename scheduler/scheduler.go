@@ -62,6 +62,21 @@ func (fw *Framework) SubmitApp(app protocol.ApplicationManifest) error {
 	return fw.taskManager.SubmitApp(app)
 }
 
+// KillApp stops all the components of an application
+func (fw *Framework) KillApp(app protocol.ApplicationManifest) error {
+	return nil
+}
+
+// KillComponent stops a single component
+func (fw *Framework) KillComponent(app protocol.ApplicationComponent) error {
+	return nil
+}
+
+// KillComponentOnSlave stop s a single component instance on a particular slave
+func (fw *Framework) KillComponentOnSlave(app protocol.ApplicationComponent, slaveID string) error {
+	return nil
+}
+
 // ID gets the id of the framework is one is known for this framework at this stage.
 func (fw *Framework) ID() string {
 	if fw.id == nil || fw.id.Get() == nil {
@@ -81,12 +96,14 @@ func (fw *Framework) defaultMesosScheduler() *mesos.Scheduler {
 		},
 		Disconnected: func(driver *mesos.SchedulerDriver) {
 			log.Warning("Disconnected from master!")
+			// TODO: terminate all the tasks
 		},
 		Reregistered: func(driver *mesos.SchedulerDriver, masterInfo mesos.MasterInfo) {
 			log.Info("Re-registered with master %s:%d\n", masterInfo.GetHostname(), masterInfo.GetPort())
 		},
 		SlaveLost: func(driver *mesos.SchedulerDriver, slaveID mesos.SlaveID) {
 			log.Warning("Lost slave", slaveID.GetValue())
+			// TODO: terminate all the tasks belonging to this slave.
 		},
 		Error: func(driver *mesos.SchedulerDriver, message string) {
 			log.Error("Got an error:", message)
@@ -112,11 +129,13 @@ func (fw *Framework) defaultMesosScheduler() *mesos.Scheduler {
 				log.Notice("Task %s running on %s", taskID, slaveID)
 				fw.taskManager.TaskRunning(status.GetTaskId(), status.SlaveId)
 			case mesos.TaskState_TASK_STAGING:
-				log.Info("Task %s is staging on %s", taskID, slaveID)
+				log.Warning("Task %s is stuck in staging on %s, killing...", taskID, slaveID)
 				fw.taskManager.TaskStaging(status.GetTaskId(), status.SlaveId)
+				driver.KillTask(status.GetTaskId())
 			case mesos.TaskState_TASK_STARTING:
-				log.Info("Task %s is starting on %s", taskID, slaveID)
+				log.Warning("Task %s is stuck in starting on %s, killing...", taskID, slaveID)
 				fw.taskManager.TaskStarting(status.GetTaskId(), status.SlaveId)
+				driver.KillTask(status.GetTaskId())
 			}
 
 		},
@@ -141,41 +160,6 @@ func (fw *Framework) defaultMesosScheduler() *mesos.Scheduler {
 					} else {
 						driver.LaunchTasks(offer.GetId(), fulfilment)
 					}
-					// if !launched {
-					// 	launched = true
-					// 	taskID, _ := flake.NewFlake().Next()
-					// 	task := mesos.TaskInfo{
-					// 		Name: proto.String("exeggutor-go-task"),
-					// 		TaskId: &mesos.TaskID{
-					// 			Value: proto.String("exeggutor-go-task-" + taskID),
-					// 		},
-					// 		SlaveId: offer.SlaveId,
-					// 		Command: &mesos.CommandInfo{
-					// 			Container: &mesos.CommandInfo_ContainerInfo{
-					// 				Image:   proto.String("docker:///helloworld:0.0.1"),
-					// 				Options: []string{"--publish=8001:3000"},
-					// 			},
-					// 			Value: proto.String(""),
-					// 			//Value: proto.String("java -jar /Users/ivan/projects/wordnik/exeggutor/sample/target/exeggutor-sample-assembly.jar"),
-					// 			Environment: &mesos.Environment{
-					// 				Variables: []*mesos.Environment_Variable{
-					// 					&mesos.Environment_Variable{
-					// 						Name:  proto.String("PORT"),
-					// 						Value: proto.String("8001"),
-					// 					},
-					// 				},
-					// 			},
-					// 		},
-					// 		Resources: []*mesos.Resource{
-					// 			mesos.ScalarResource("cpus", 1),
-					// 			mesos.ScalarResource("mem", 256),
-					// 		},
-					// 	}
-
-					// 	driver.LaunchTasks(offer.GetId(), []mesos.TaskInfo{task})
-					// } else {
-					// 	driver.DeclineOffer(offer.GetId())
-					// }
 				} else {
 					log.Notice("Received an offer but no task manager is available to handle the offer, declining %s", offer.GetId().GetValue())
 					driver.DeclineOffer(offer.GetId())
@@ -187,7 +171,7 @@ func (fw *Framework) defaultMesosScheduler() *mesos.Scheduler {
 
 // Start initializes the scheduler and everything it depends on
 func (fw *Framework) Start() error {
-	uri := fw.config.ZookeeperUrl
+	uri := fw.config.ZookeeperURL
 	master := fw.config.MesosMaster
 
 	if fw.ownsCurator {

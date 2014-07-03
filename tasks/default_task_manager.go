@@ -141,8 +141,10 @@ func (t *DefaultTaskManager) fitsInOffer(offer mesos.Offer, component *protocol.
 // get very large because that would indicate we're grossly underprovisioned
 // So when this starts taking too long we should provide more instances to this cluster
 func (t *DefaultTaskManager) FulfillOffer(offer mesos.Offer) []mesos.TaskInfo {
-	var allQueued []mesos.TaskInfo
-	item, err := t.queue.DequeueFirst(func(i *protocol.ScheduledAppComponent) bool { return t.fitsInOffer(offer, i) })
+
+	thatFits := func(i *protocol.ScheduledAppComponent) bool { return t.fitsInOffer(offer, i) }
+
+	item, err := t.queue.DequeueFirst(thatFits)
 	if err != nil {
 		log.Critical("Couldn't dequeue from the task queue because: %v", err)
 		return nil
@@ -152,8 +154,9 @@ func (t *DefaultTaskManager) FulfillOffer(offer mesos.Offer) []mesos.TaskInfo {
 		log.Debug("Couldn't get an item of the queue, skipping this one")
 		return nil
 	}
+
 	task := t.buildTaskInfo(offer, item)
-	allQueued = append(allQueued, task)
+	allQueued := []mesos.TaskInfo{task}
 	t.deploying[task.GetTaskId().GetValue()] = &task
 	log.Debug("fullfilling offer with %+v", task)
 	return allQueued
@@ -217,20 +220,15 @@ func (t *DefaultTaskManager) TaskRunning(taskID *mesos.TaskID, slaveID *mesos.Sl
 	}
 }
 
-// TaskStaging a callback for when a task enters the first stage (probably never occurs in a framework)
+// TaskStaging a callback for when a task that doesn't belong to this framework ends up here anyway
+// we should remove traces of it should it still exist.
 func (t *DefaultTaskManager) TaskStaging(taskID *mesos.TaskID, slaveID *mesos.SlaveID) {
 	// We scheduled this app for deployment but nothing else happened, this is like an ack of the scheduler
-	err := t.moveTaskToStore(taskID)
-	if err != nil {
-		log.Error("%v", err)
-	}
+	t.forgetTask(taskID)
 }
 
 // TaskStarting a callback for when a task transitions from staging to starting (is being deployed)
 func (t *DefaultTaskManager) TaskStarting(taskID *mesos.TaskID, slaveID *mesos.SlaveID) {
 	// We made it to a slave and the deployment process has begun
-	err := t.moveTaskToStore(taskID)
-	if err != nil {
-		log.Error("%v", err)
-	}
+	t.forgetTask(taskID)
 }

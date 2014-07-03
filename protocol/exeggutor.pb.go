@@ -11,9 +11,9 @@ It is generated from these files:
 It has these top-level messages:
 	StringKeyValue
 	StringIntKeyValue
-	ApplicationComponent
-	ApplicationManifest
-	ScheduledAppComponent
+	DeployedAppComponent
+	Application
+	ScheduledApp
 	HealthCheck
 	ApplicationSLA
 */
@@ -21,6 +21,7 @@ package protocol
 
 import proto "code.google.com/p/goprotobuf/proto"
 import math "math"
+import mesos "mesos.pb"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -182,36 +183,45 @@ func (x *Distribution) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-type HealthCheck_HealthCheckMode int32
+//
+// HealthCheckMode the strategy to use when checking for health.
+// for the HTTP strategy we make a request
+type HealthCheckMode int32
 
 const (
-	HealthCheck_REST HealthCheck_HealthCheckMode = 0
-	HealthCheck_TCP  HealthCheck_HealthCheckMode = 1
+	// For the HTTP strategy it will make a request and expect a 200 OK status
+	HealthCheckMode_HTTP HealthCheckMode = 0
+	// For the TCP strategy it will just try to connect to the port
+	HealthCheckMode_TCP HealthCheckMode = 1
+	// For the METRICS strategy it will use the HTTP strategy but additionally the response body will be validated that all components are running fine.
+	HealthCheckMode_METRICS HealthCheckMode = 2
 )
 
-var HealthCheck_HealthCheckMode_name = map[int32]string{
-	0: "REST",
+var HealthCheckMode_name = map[int32]string{
+	0: "HTTP",
 	1: "TCP",
+	2: "METRICS",
 }
-var HealthCheck_HealthCheckMode_value = map[string]int32{
-	"REST": 0,
-	"TCP":  1,
+var HealthCheckMode_value = map[string]int32{
+	"HTTP":    0,
+	"TCP":     1,
+	"METRICS": 2,
 }
 
-func (x HealthCheck_HealthCheckMode) Enum() *HealthCheck_HealthCheckMode {
-	p := new(HealthCheck_HealthCheckMode)
+func (x HealthCheckMode) Enum() *HealthCheckMode {
+	p := new(HealthCheckMode)
 	*p = x
 	return p
 }
-func (x HealthCheck_HealthCheckMode) String() string {
-	return proto.EnumName(HealthCheck_HealthCheckMode_name, int32(x))
+func (x HealthCheckMode) String() string {
+	return proto.EnumName(HealthCheckMode_name, int32(x))
 }
-func (x *HealthCheck_HealthCheckMode) UnmarshalJSON(data []byte) error {
-	value, err := proto.UnmarshalJSONEnum(HealthCheck_HealthCheckMode_value, data, "HealthCheck_HealthCheckMode")
+func (x *HealthCheckMode) UnmarshalJSON(data []byte) error {
+	value, err := proto.UnmarshalJSONEnum(HealthCheckMode_value, data, "HealthCheckMode")
 	if err != nil {
 		return err
 	}
-	*x = HealthCheck_HealthCheckMode(value)
+	*x = HealthCheckMode(value)
 	return nil
 }
 
@@ -268,184 +278,231 @@ func (m *StringIntKeyValue) GetValue() int32 {
 }
 
 //
-// ApplicationComponent is a part of what makes up a single application.
+// DeployedAppComponent is a part of a deployed application
+// It links component definition to a mesos task info and an app status
+// This keeps track of the state an application is actually in.
+// So in an API this could be used to return the info we need for
+// displaying what has been deployed and how many instances of it and so forth.
+type DeployedAppComponent struct {
+	// the application name for the deployed application
+	AppName *string `protobuf:"bytes,1,req,name=app_name" json:"app_name,omitempty"`
+	// the application component that is deployed
+	Component *Application `protobuf:"bytes,2,req,name=component" json:"component,omitempty"`
+	// the task id that represents this component in the cluster
+	Task *mesos.TaskInfo `protobuf:"bytes,3,req,name=task" json:"task,omitempty"`
+	// the status this deployed application is in
+	Status *AppStatus `protobuf:"varint,4,req,name=status,enum=protocol.AppStatus,def=1" json:"status,omitempty"`
+	// the slave id to which this app is deployed
+	Slave            *mesos.SlaveID `protobuf:"bytes,20,opt,name=slave" json:"slave,omitempty"`
+	XXX_unrecognized []byte         `json:"-"`
+}
+
+func (m *DeployedAppComponent) Reset()         { *m = DeployedAppComponent{} }
+func (m *DeployedAppComponent) String() string { return proto.CompactTextString(m) }
+func (*DeployedAppComponent) ProtoMessage()    {}
+
+const Default_DeployedAppComponent_Status AppStatus = AppStatus_ABSENT
+
+func (m *DeployedAppComponent) GetAppName() string {
+	if m != nil && m.AppName != nil {
+		return *m.AppName
+	}
+	return ""
+}
+
+func (m *DeployedAppComponent) GetComponent() *Application {
+	if m != nil {
+		return m.Component
+	}
+	return nil
+}
+
+func (m *DeployedAppComponent) GetTask() *mesos.TaskInfo {
+	if m != nil {
+		return m.Task
+	}
+	return nil
+}
+
+func (m *DeployedAppComponent) GetStatus() AppStatus {
+	if m != nil && m.Status != nil {
+		return *m.Status
+	}
+	return Default_DeployedAppComponent_Status
+}
+
+func (m *DeployedAppComponent) GetSlave() *mesos.SlaveID {
+	if m != nil {
+		return m.Slave
+	}
+	return nil
+}
+
+//
+// Application is a part of what makes up a single application.
 // It describes the packaging and distribution model of the component
 // It also describes the requirements for the component in terms of disk space, cpu and memory
 // Furthermore it contains the configuration for the environment and scheme to port mapping
 // It also has a status field to track the deployment status of this component
-type ApplicationComponent struct {
-	Name             *string              `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
-	Cpus             *float32             `protobuf:"fixed32,2,req,name=cpus" json:"cpus,omitempty"`
-	Mem              *float32             `protobuf:"fixed32,3,req,name=mem" json:"mem,omitempty"`
-	DiskSpace        *int64               `protobuf:"varint,4,req,name=disk_space" json:"disk_space,omitempty"`
-	DistUrl          *string              `protobuf:"bytes,5,req,name=dist_url" json:"dist_url,omitempty"`
-	Command          *string              `protobuf:"bytes,6,req,name=command" json:"command,omitempty"`
-	Env              []*StringKeyValue    `protobuf:"bytes,7,rep,name=env" json:"env,omitempty"`
-	Ports            []*StringIntKeyValue `protobuf:"bytes,8,rep,name=ports" json:"ports,omitempty"`
-	Version          *string              `protobuf:"bytes,9,req,name=version" json:"version,omitempty"`
-	Status           *AppStatus           `protobuf:"varint,10,req,name=status,enum=protocol.AppStatus,def=1" json:"status,omitempty"`
-	LogDir           *string              `protobuf:"bytes,11,opt,name=log_dir" json:"log_dir,omitempty"`
-	WorkDir          *string              `protobuf:"bytes,12,opt,name=work_dir" json:"work_dir,omitempty"`
-	ConfDir          *string              `protobuf:"bytes,13,opt,name=conf_dir" json:"conf_dir,omitempty"`
-	Distribution     *Distribution        `protobuf:"varint,14,req,name=distribution,enum=protocol.Distribution,def=0" json:"distribution,omitempty"`
-	ComponentType    *ComponentType       `protobuf:"varint,15,req,name=component_type,enum=protocol.ComponentType,def=0" json:"component_type,omitempty"`
-	XXX_unrecognized []byte               `json:"-"`
+type Application struct {
+	// the name for this component
+	Name *string `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
+	// the amount of cpu cores this component requires
+	Cpus *float32 `protobuf:"fixed32,2,req,name=cpus" json:"cpus,omitempty"`
+	// the amount of memory this component requires
+	Mem *float32 `protobuf:"fixed32,3,req,name=mem" json:"mem,omitempty"`
+	// the amount of disk space this component requires
+	DiskSpace *int64 `protobuf:"varint,4,req,name=disk_space" json:"disk_space,omitempty"`
+	// the url to use when deploying the application
+	DistUrl *string `protobuf:"bytes,5,req,name=dist_url" json:"dist_url,omitempty"`
+	// the command to run when this application is deployed
+	Command *string `protobuf:"bytes,6,req,name=command" json:"command,omitempty"`
+	// the environment variables passed to the application
+	Env []*StringKeyValue `protobuf:"bytes,7,rep,name=env" json:"env,omitempty"`
+	// the scheme/port mapping for this component
+	Ports []*StringIntKeyValue `protobuf:"bytes,8,rep,name=ports" json:"ports,omitempty"`
+	// the version for this component
+	Version *string `protobuf:"bytes,9,req,name=version" json:"version,omitempty"`
+	// the application this component belongs to
+	AppName *string `protobuf:"bytes,10,req,name=app_name" json:"app_name,omitempty"`
+	// the distribution model used for this component
+	Distribution *Distribution `protobuf:"varint,11,req,name=distribution,enum=protocol.Distribution,def=1" json:"distribution,omitempty"`
+	// the modality as to how to treat this component
+	ComponentType *ComponentType `protobuf:"varint,12,req,name=component_type,enum=protocol.ComponentType,def=0" json:"component_type,omitempty"`
+	// where to expect logs to appear
+	LogDir *string `protobuf:"bytes,30,opt,name=log_dir" json:"log_dir,omitempty"`
+	// where to expect work to appear
+	WorkDir *string `protobuf:"bytes,31,opt,name=work_dir" json:"work_dir,omitempty"`
+	// where to expect the configuration to be
+	ConfDir *string `protobuf:"bytes,32,opt,name=conf_dir" json:"conf_dir,omitempty"`
+	// the application SLA to use for this component
+	Sla              *ApplicationSLA `protobuf:"bytes,33,opt,name=sla" json:"sla,omitempty"`
+	XXX_unrecognized []byte          `json:"-"`
 }
 
-func (m *ApplicationComponent) Reset()         { *m = ApplicationComponent{} }
-func (m *ApplicationComponent) String() string { return proto.CompactTextString(m) }
-func (*ApplicationComponent) ProtoMessage()    {}
+func (m *Application) Reset()         { *m = Application{} }
+func (m *Application) String() string { return proto.CompactTextString(m) }
+func (*Application) ProtoMessage()    {}
 
-const Default_ApplicationComponent_Status AppStatus = AppStatus_ABSENT
-const Default_ApplicationComponent_Distribution Distribution = Distribution_PACKAGE
-const Default_ApplicationComponent_ComponentType ComponentType = ComponentType_SERVICE
+const Default_Application_Distribution Distribution = Distribution_DOCKER
+const Default_Application_ComponentType ComponentType = ComponentType_SERVICE
 
-func (m *ApplicationComponent) GetName() string {
+func (m *Application) GetName() string {
 	if m != nil && m.Name != nil {
 		return *m.Name
 	}
 	return ""
 }
 
-func (m *ApplicationComponent) GetCpus() float32 {
+func (m *Application) GetCpus() float32 {
 	if m != nil && m.Cpus != nil {
 		return *m.Cpus
 	}
 	return 0
 }
 
-func (m *ApplicationComponent) GetMem() float32 {
+func (m *Application) GetMem() float32 {
 	if m != nil && m.Mem != nil {
 		return *m.Mem
 	}
 	return 0
 }
 
-func (m *ApplicationComponent) GetDiskSpace() int64 {
+func (m *Application) GetDiskSpace() int64 {
 	if m != nil && m.DiskSpace != nil {
 		return *m.DiskSpace
 	}
 	return 0
 }
 
-func (m *ApplicationComponent) GetDistUrl() string {
+func (m *Application) GetDistUrl() string {
 	if m != nil && m.DistUrl != nil {
 		return *m.DistUrl
 	}
 	return ""
 }
 
-func (m *ApplicationComponent) GetCommand() string {
+func (m *Application) GetCommand() string {
 	if m != nil && m.Command != nil {
 		return *m.Command
 	}
 	return ""
 }
 
-func (m *ApplicationComponent) GetEnv() []*StringKeyValue {
+func (m *Application) GetEnv() []*StringKeyValue {
 	if m != nil {
 		return m.Env
 	}
 	return nil
 }
 
-func (m *ApplicationComponent) GetPorts() []*StringIntKeyValue {
+func (m *Application) GetPorts() []*StringIntKeyValue {
 	if m != nil {
 		return m.Ports
 	}
 	return nil
 }
 
-func (m *ApplicationComponent) GetVersion() string {
+func (m *Application) GetVersion() string {
 	if m != nil && m.Version != nil {
 		return *m.Version
 	}
 	return ""
 }
 
-func (m *ApplicationComponent) GetStatus() AppStatus {
-	if m != nil && m.Status != nil {
-		return *m.Status
+func (m *Application) GetAppName() string {
+	if m != nil && m.AppName != nil {
+		return *m.AppName
 	}
-	return Default_ApplicationComponent_Status
+	return ""
 }
 
-func (m *ApplicationComponent) GetLogDir() string {
+func (m *Application) GetDistribution() Distribution {
+	if m != nil && m.Distribution != nil {
+		return *m.Distribution
+	}
+	return Default_Application_Distribution
+}
+
+func (m *Application) GetComponentType() ComponentType {
+	if m != nil && m.ComponentType != nil {
+		return *m.ComponentType
+	}
+	return Default_Application_ComponentType
+}
+
+func (m *Application) GetLogDir() string {
 	if m != nil && m.LogDir != nil {
 		return *m.LogDir
 	}
 	return ""
 }
 
-func (m *ApplicationComponent) GetWorkDir() string {
+func (m *Application) GetWorkDir() string {
 	if m != nil && m.WorkDir != nil {
 		return *m.WorkDir
 	}
 	return ""
 }
 
-func (m *ApplicationComponent) GetConfDir() string {
+func (m *Application) GetConfDir() string {
 	if m != nil && m.ConfDir != nil {
 		return *m.ConfDir
 	}
 	return ""
 }
 
-func (m *ApplicationComponent) GetDistribution() Distribution {
-	if m != nil && m.Distribution != nil {
-		return *m.Distribution
-	}
-	return Default_ApplicationComponent_Distribution
-}
-
-func (m *ApplicationComponent) GetComponentType() ComponentType {
-	if m != nil && m.ComponentType != nil {
-		return *m.ComponentType
-	}
-	return Default_ApplicationComponent_ComponentType
-}
-
-//
-// ApplicationManifest gives an application a name and contains the various
-// components that make up an application, like nginx, service, cron jobs
-type ApplicationManifest struct {
-	Name             *string                 `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
-	Components       []*ApplicationComponent `protobuf:"bytes,2,rep,name=components" json:"components,omitempty"`
-	Status           *AppStatus              `protobuf:"varint,3,opt,name=status,enum=protocol.AppStatus,def=1" json:"status,omitempty"`
-	XXX_unrecognized []byte                  `json:"-"`
-}
-
-func (m *ApplicationManifest) Reset()         { *m = ApplicationManifest{} }
-func (m *ApplicationManifest) String() string { return proto.CompactTextString(m) }
-func (*ApplicationManifest) ProtoMessage()    {}
-
-const Default_ApplicationManifest_Status AppStatus = AppStatus_ABSENT
-
-func (m *ApplicationManifest) GetName() string {
-	if m != nil && m.Name != nil {
-		return *m.Name
-	}
-	return ""
-}
-
-func (m *ApplicationManifest) GetComponents() []*ApplicationComponent {
+func (m *Application) GetSla() *ApplicationSLA {
 	if m != nil {
-		return m.Components
+		return m.Sla
 	}
 	return nil
-}
-
-func (m *ApplicationManifest) GetStatus() AppStatus {
-	if m != nil && m.Status != nil {
-		return *m.Status
-	}
-	return Default_ApplicationManifest_Status
 }
 
 //
 // ScheduledAppComponent a structure to describe an application
 // component that has been scheduled for deployment.
-type ScheduledAppComponent struct {
+type ScheduledApp struct {
 	// Id the id of the scheduled component (for retrieval from persistence medium for example)
 	Id *string `protobuf:"bytes,1,req,name=id" json:"id,omitempty"`
 	// Name the name of the component
@@ -453,7 +510,7 @@ type ScheduledAppComponent struct {
 	// AppName the name of the app this component belongs to
 	AppName *string `protobuf:"bytes,3,req,name=app_name" json:"app_name,omitempty"`
 	// Component the full component that has been scheduled
-	Component *ApplicationComponent `protobuf:"bytes,4,req,name=component" json:"component,omitempty"`
+	App *Application `protobuf:"bytes,4,req,name=app" json:"app,omitempty"`
 	// Position the full position of this item in the queue
 	Position *int32 `protobuf:"varint,5,req,name=position" json:"position,omitempty"`
 	// Since the timestamp in nanoseconds when this item was added to the queue
@@ -461,46 +518,46 @@ type ScheduledAppComponent struct {
 	XXX_unrecognized []byte `json:"-"`
 }
 
-func (m *ScheduledAppComponent) Reset()         { *m = ScheduledAppComponent{} }
-func (m *ScheduledAppComponent) String() string { return proto.CompactTextString(m) }
-func (*ScheduledAppComponent) ProtoMessage()    {}
+func (m *ScheduledApp) Reset()         { *m = ScheduledApp{} }
+func (m *ScheduledApp) String() string { return proto.CompactTextString(m) }
+func (*ScheduledApp) ProtoMessage()    {}
 
-func (m *ScheduledAppComponent) GetId() string {
+func (m *ScheduledApp) GetId() string {
 	if m != nil && m.Id != nil {
 		return *m.Id
 	}
 	return ""
 }
 
-func (m *ScheduledAppComponent) GetName() string {
+func (m *ScheduledApp) GetName() string {
 	if m != nil && m.Name != nil {
 		return *m.Name
 	}
 	return ""
 }
 
-func (m *ScheduledAppComponent) GetAppName() string {
+func (m *ScheduledApp) GetAppName() string {
 	if m != nil && m.AppName != nil {
 		return *m.AppName
 	}
 	return ""
 }
 
-func (m *ScheduledAppComponent) GetComponent() *ApplicationComponent {
+func (m *ScheduledApp) GetApp() *Application {
 	if m != nil {
-		return m.Component
+		return m.App
 	}
 	return nil
 }
 
-func (m *ScheduledAppComponent) GetPosition() int32 {
+func (m *ScheduledApp) GetPosition() int32 {
 	if m != nil && m.Position != nil {
 		return *m.Position
 	}
 	return 0
 }
 
-func (m *ScheduledAppComponent) GetSince() int64 {
+func (m *ScheduledApp) GetSince() int64 {
 	if m != nil && m.Since != nil {
 		return *m.Since
 	}
@@ -508,42 +565,45 @@ func (m *ScheduledAppComponent) GetSince() int64 {
 }
 
 //
-// HealthCheck
+// HealthCheck describes a health check for an application.
+// For the TCP strategy it will just try to connect to the port
+// For the HTTP strategy it will make a request and expect a 200 OK status
+// For the METRICS strategy it will use the HTTP strategy but additionally
+// the response body will be validated that all components are running fine.
 type HealthCheck struct {
-	Mode             *HealthCheck_HealthCheckMode `protobuf:"varint,1,req,name=mode,enum=protocol.HealthCheck_HealthCheckMode,def=0" json:"mode,omitempty"`
-	Host             *string                      `protobuf:"bytes,2,req,name=host" json:"host,omitempty"`
-	Port             *int32                       `protobuf:"varint,3,req,name=port" json:"port,omitempty"`
-	IntervalMillis   *int64                       `protobuf:"varint,4,req,name=interval_millis" json:"interval_millis,omitempty"`
-	Path             *string                      `protobuf:"bytes,10,opt,name=path,def=/api/api-docs" json:"path,omitempty"`
-	Scheme           *string                      `protobuf:"bytes,11,opt,name=scheme,def=http" json:"scheme,omitempty"`
-	XXX_unrecognized []byte                       `json:"-"`
+	// The strategy to use for the health check
+	Mode *HealthCheckMode `protobuf:"varint,1,req,name=mode,enum=protocol.HealthCheckMode,def=0" json:"mode,omitempty"`
+	// The delay in milliseconds to delay the initial health check after entering running state
+	RampUp *int64 `protobuf:"varint,2,req,name=ramp_up" json:"ramp_up,omitempty"`
+	// The interval in milliseconds at which to perform health checks
+	IntervalMillis *int64 `protobuf:"varint,3,req,name=interval_millis" json:"interval_millis,omitempty"`
+	// How quick should a health check return to be successful (in millis)
+	Timeout *int64 `protobuf:"varint,5,req,name=timeout" json:"timeout,omitempty"`
+	// when this is a http health check it will use this path to make the request
+	Path *string `protobuf:"bytes,20,opt,name=path,def=/api/api-docs" json:"path,omitempty"`
+	// for a http health check it will use this, other possible value is http
+	Scheme           *string `protobuf:"bytes,21,opt,name=scheme,def=http" json:"scheme,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
 }
 
 func (m *HealthCheck) Reset()         { *m = HealthCheck{} }
 func (m *HealthCheck) String() string { return proto.CompactTextString(m) }
 func (*HealthCheck) ProtoMessage()    {}
 
-const Default_HealthCheck_Mode HealthCheck_HealthCheckMode = HealthCheck_REST
+const Default_HealthCheck_Mode HealthCheckMode = HealthCheckMode_HTTP
 const Default_HealthCheck_Path string = "/api/api-docs"
 const Default_HealthCheck_Scheme string = "http"
 
-func (m *HealthCheck) GetMode() HealthCheck_HealthCheckMode {
+func (m *HealthCheck) GetMode() HealthCheckMode {
 	if m != nil && m.Mode != nil {
 		return *m.Mode
 	}
 	return Default_HealthCheck_Mode
 }
 
-func (m *HealthCheck) GetHost() string {
-	if m != nil && m.Host != nil {
-		return *m.Host
-	}
-	return ""
-}
-
-func (m *HealthCheck) GetPort() int32 {
-	if m != nil && m.Port != nil {
-		return *m.Port
+func (m *HealthCheck) GetRampUp() int64 {
+	if m != nil && m.RampUp != nil {
+		return *m.RampUp
 	}
 	return 0
 }
@@ -551,6 +611,13 @@ func (m *HealthCheck) GetPort() int32 {
 func (m *HealthCheck) GetIntervalMillis() int64 {
 	if m != nil && m.IntervalMillis != nil {
 		return *m.IntervalMillis
+	}
+	return 0
+}
+
+func (m *HealthCheck) GetTimeout() int64 {
+	if m != nil && m.Timeout != nil {
+		return *m.Timeout
 	}
 	return 0
 }
@@ -570,24 +637,41 @@ func (m *HealthCheck) GetScheme() string {
 }
 
 //
-// ApplicationSLA
+// ApplicationSLA an application SLA describes what makes a service healthy
+// It is used to enforce how many instance of an application should be running
+// it also defines the health check used and how many health checks should fail
+//
 type ApplicationSLA struct {
-	Instances        *int32       `protobuf:"varint,1,req,name=instances,def=1" json:"instances,omitempty"`
-	HealthCheck      *HealthCheck `protobuf:"bytes,2,req,name=health_check" json:"health_check,omitempty"`
-	XXX_unrecognized []byte       `json:"-"`
+	// The minimum number of instances that needs to be deployed
+	MinInstances *int32 `protobuf:"varint,1,req,name=min_instances,def=1" json:"min_instances,omitempty"`
+	// The maximum number of instances that is deployed
+	MaxInstances *int32 `protobuf:"varint,2,req,name=max_instances,def=1" json:"max_instances,omitempty"`
+	// The health check to use
+	HealthCheck *HealthCheck `protobuf:"bytes,3,req,name=health_check" json:"health_check,omitempty"`
+	// The amount of health checks that have to fail sequentially to be considered unhealthy
+	UnhealthyAt      *int32 `protobuf:"varint,4,req,name=unhealthy_at" json:"unhealthy_at,omitempty"`
+	XXX_unrecognized []byte `json:"-"`
 }
 
 func (m *ApplicationSLA) Reset()         { *m = ApplicationSLA{} }
 func (m *ApplicationSLA) String() string { return proto.CompactTextString(m) }
 func (*ApplicationSLA) ProtoMessage()    {}
 
-const Default_ApplicationSLA_Instances int32 = 1
+const Default_ApplicationSLA_MinInstances int32 = 1
+const Default_ApplicationSLA_MaxInstances int32 = 1
 
-func (m *ApplicationSLA) GetInstances() int32 {
-	if m != nil && m.Instances != nil {
-		return *m.Instances
+func (m *ApplicationSLA) GetMinInstances() int32 {
+	if m != nil && m.MinInstances != nil {
+		return *m.MinInstances
 	}
-	return Default_ApplicationSLA_Instances
+	return Default_ApplicationSLA_MinInstances
+}
+
+func (m *ApplicationSLA) GetMaxInstances() int32 {
+	if m != nil && m.MaxInstances != nil {
+		return *m.MaxInstances
+	}
+	return Default_ApplicationSLA_MaxInstances
 }
 
 func (m *ApplicationSLA) GetHealthCheck() *HealthCheck {
@@ -597,9 +681,16 @@ func (m *ApplicationSLA) GetHealthCheck() *HealthCheck {
 	return nil
 }
 
+func (m *ApplicationSLA) GetUnhealthyAt() int32 {
+	if m != nil && m.UnhealthyAt != nil {
+		return *m.UnhealthyAt
+	}
+	return 0
+}
+
 func init() {
 	proto.RegisterEnum("protocol.AppStatus", AppStatus_name, AppStatus_value)
 	proto.RegisterEnum("protocol.ComponentType", ComponentType_name, ComponentType_value)
 	proto.RegisterEnum("protocol.Distribution", Distribution_name, Distribution_value)
-	proto.RegisterEnum("protocol.HealthCheck_HealthCheckMode", HealthCheck_HealthCheckMode_name, HealthCheck_HealthCheckMode_value)
+	proto.RegisterEnum("protocol.HealthCheckMode", HealthCheckMode_name, HealthCheckMode_value)
 }

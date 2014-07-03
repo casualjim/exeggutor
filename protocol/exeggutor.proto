@@ -1,10 +1,15 @@
 package protocol;
 
+import "mesos.proto";
+
 option optimize_for = LITE_RUNTIME;
 option java_package = "com.reverb.exeggutor.protocol";
+option java_outer_classname = "Protos";
 option cc_generic_services = false;
 option java_generic_services = false;
 option py_generic_services = false;
+
+
 
 /* StringKeyValue represents a pair of 2 strings used as a replacement for maps
  */
@@ -79,51 +84,77 @@ enum Distribution {
   FAT_JAR = 3;
 }
 
+/* 
+ * DeployedAppComponent is a part of a deployed application
+ * It links component definition to a mesos task info and an app status
+ * This keeps track of the state an application is actually in.
+ * So in an API this could be used to return the info we need for
+ * displaying what has been deployed and how many instances of it and so forth. 
+ */
+message DeployedAppComponent {
+  /* the application name for the deployed application */
+  required string app_name = 1;
+  /* the application component that is deployed */
+  required Application component = 2;
+  /* the task id that represents this component in the cluster */
+  required mesos.TaskInfo task = 3;
+  /* the status this deployed application is in */
+  required AppStatus status = 4 [default = ABSENT ];
+
+  /* the slave id to which this app is deployed */
+  optional mesos.SlaveID slave = 20;
+}
+
 /*
- * ApplicationComponent is a part of what makes up a single application.
+ * Application is a part of what makes up a single application.
  * It describes the packaging and distribution model of the component
  * It also describes the requirements for the component in terms of disk space, cpu and memory
  * Furthermore it contains the configuration for the environment and scheme to port mapping
  * It also has a status field to track the deployment status of this component
  */
-message ApplicationComponent {
+message Application {
 
+  /* the name for this component */
   required string name = 1;
+  /* the amount of cpu cores this component requires */
   required float cpus = 2;
+  /* the amount of memory this component requires */
   required float mem = 3;
+  /* the amount of disk space this component requires */
   required int64 disk_space = 4;
+  /* the url to use when deploying the application */
   required string dist_url = 5;
+  /* the command to run when this application is deployed */
   required string command = 6;
+  /* the environment variables passed to the application */
   repeated StringKeyValue env = 7;
+  /* the scheme/port mapping for this component */
   repeated StringIntKeyValue ports = 8;
+  /* the version for this component */
   required string version = 9;
+  /* the application this component belongs to */
+  required string app_name = 10;
 
-  required AppStatus status = 10 [ default = ABSENT ];
-  optional string log_dir = 11;
-  optional string work_dir = 12;
-  optional string conf_dir = 13;
+  /* the distribution model used for this component */
+  required Distribution distribution = 11 [ default = DOCKER ];
+  /* the modality as to how to treat this component */
+  required ComponentType component_type = 12 [ default = SERVICE ];
 
-  required Distribution distribution = 14 [ default = PACKAGE ];
-
-  required ComponentType component_type = 15 [ default = SERVICE ];
-}
-
-/*
- * ApplicationManifest gives an application a name and contains the various
- * components that make up an application, like nginx, service, cron jobs
- */
-message ApplicationManifest {
-  required string name = 1;
-  repeated ApplicationComponent components = 2;
-
-  optional AppStatus status = 3 [default = ABSENT];
+  /* where to expect logs to appear */
+  optional string log_dir = 30;
+  /* where to expect work to appear */
+  optional string work_dir = 31;
+  /* where to expect the configuration to be */
+  optional string conf_dir = 32;
+  /* the application SLA to use for this component */
+  optional ApplicationSLA sla = 33;
 }
 
 /*
  * ScheduledAppComponent a structure to describe an application
  * component that has been scheduled for deployment.
  */ 
-message ScheduledAppComponent {
+message ScheduledApp {
   /* Id the id of the scheduled component (for retrieval from persistence medium for example) */
   required string id = 1;
   /* Name the name of the component */
@@ -131,7 +162,7 @@ message ScheduledAppComponent {
   /* AppName the name of the app this component belongs to */
   required string app_name = 3;
   /* Component the full component that has been scheduled */
-  required ApplicationComponent component = 4;
+  required Application app = 4;
   /* Position the full position of this item in the queue */
   required int32 position = 5;
   /* Since the timestamp in nanoseconds when this item was added to the queue */
@@ -139,26 +170,54 @@ message ScheduledAppComponent {
 }
 
 /* 
- * HealthCheck 
- */ 
-message HealthCheck {
-  enum HealthCheckMode {
-    REST = 0;
-    TCP = 1;
-  }
-
-  required HealthCheckMode mode = 1 [ default = REST ];
-  required string host = 2;
-  required int32 port = 3;
-  required int64 interval_millis = 4;
-  optional string path = 10 [ default = "/api/api-docs" ];
-  optional string scheme = 11 [ default = "http" ];
+ * HealthCheckMode the strategy to use when checking for health.
+ * for the HTTP strategy we make a request
+ */
+enum HealthCheckMode {
+  /* For the HTTP strategy it will make a request and expect a 200 OK status */
+  HTTP = 0;
+  /* For the TCP strategy it will just try to connect to the port */
+  TCP = 1;
+  /* For the METRICS strategy it will use the HTTP strategy but additionally the response body will be validated that all components are running fine. */
+  METRICS = 2;
 }
 
 /* 
- * ApplicationSLA 
+ * HealthCheck describes a health check for an application. 
+ * For the TCP strategy it will just try to connect to the port 
+ * For the HTTP strategy it will make a request and expect a 200 OK status
+ * For the METRICS strategy it will use the HTTP strategy but additionally
+ * the response body will be validated that all components are running fine.
+ */ 
+message HealthCheck {
+  /* The strategy to use for the health check */
+  required HealthCheckMode mode = 1 [ default = HTTP ];
+  /* The delay in milliseconds to delay the initial health check after entering running state */
+  required int64 ramp_up = 2;
+  /* The interval in milliseconds at which to perform health checks */
+  required int64 interval_millis = 3;
+  /* How quick should a health check return to be successful (in millis) */
+  required int64 timeout = 5;
+
+  /* when this is a http health check it will use this path to make the request */
+  optional string path = 20 [ default = "/api/api-docs" ];
+  /* for a http health check it will use this, other possible value is http */
+  optional string scheme = 21 [ default = "http" ];
+}
+
+/* 
+ * ApplicationSLA an application SLA describes what makes a service healthy
+ * It is used to enforce how many instance of an application should be running
+ * it also defines the health check used and how many health checks should fail
+ * 
  */ 
 message ApplicationSLA {
-  required int32 instances = 1 [ default = 1 ];
-  required HealthCheck health_check = 2;
+  /* The minimum number of instances that needs to be deployed */
+  required int32 min_instances = 1 [ default = 1 ];
+  /* The maximum number of instances that is deployed */
+  required int32 max_instances = 2 [ default = 1 ];
+  /* The health check to use */
+  required HealthCheck health_check = 3;
+  /* The amount of health checks that have to fail sequentially to be considered unhealthy */
+  required int32 unhealthy_at = 4;
 }
