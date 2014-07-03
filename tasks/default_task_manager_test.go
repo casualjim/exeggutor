@@ -3,87 +3,25 @@ package tasks
 import (
 	"code.google.com/p/goprotobuf/proto"
 	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	o "github.com/onsi/gomega"
 	"github.com/reverb/exeggutor/protocol"
 	"github.com/reverb/exeggutor/store"
 	"github.com/reverb/go-mesos/mesos"
 )
 
-func testApp(appName string, cpus, mem float32) protocol.ApplicationManifest {
-	comp := testComponent(appName, cpus, mem)
-	return protocol.ApplicationManifest{
-		Name:       proto.String(appName),
-		Components: []*protocol.ApplicationComponent{&comp},
-	}
-}
+func setupCallbackTestData(ts store.KVStore) (*mesos.TaskID, protocol.DeployedAppComponent) {
+	offer := createOffer("offer id", 1.0, 64.0)
+	component := testComponent("app name", "component name", 1.0, 64.0)
+	cr := &component
+	scheduled := scheduledComponent(cr)
+	task := BuildTaskInfo("task id", &offer, &scheduled)
+	tr := &task
+	id := task.GetTaskId()
+	deployed := deployedApp(cr, tr)
+	bytes, _ := proto.Marshal(&deployed)
+	ts.Set(id.GetValue(), bytes)
 
-func testComponent(compName string, cpus, mem float32) protocol.ApplicationComponent {
-	distURL := "package://" + compName
-	command := "./bin/" + compName
-	version := "0.1.0"
-	status := protocol.AppStatus_ABSENT
-	scheme := "http"
-	var port int32 = 8000
-	logs := "./logs"
-	work := "./work"
-	conf := "./conf"
-	dist := protocol.Distribution_PACKAGE
-	comp := protocol.ComponentType_SERVICE
-	return protocol.ApplicationComponent{
-		Name:          proto.String(compName),
-		Cpus:          proto.Float32(cpus),
-		Mem:           proto.Float32(mem),
-		DistUrl:       proto.String(distURL),
-		Command:       proto.String(command),
-		Version:       proto.String(version),
-		Status:        &status,
-		LogDir:        proto.String(logs),
-		WorkDir:       proto.String(work),
-		ConfDir:       proto.String(conf),
-		Distribution:  &dist,
-		ComponentType: &comp,
-		Env:           []*protocol.StringKeyValue{},
-		Ports: []*protocol.StringIntKeyValue{
-			&protocol.StringIntKeyValue{
-				Key:   proto.String(scheme),
-				Value: proto.Int32(port),
-			},
-		},
-	}
-}
-
-func scheduledComponent(appName string, component *protocol.ApplicationComponent) protocol.ScheduledAppComponent {
-	return protocol.ScheduledAppComponent{
-		Name:      component.Name,
-		AppName:   proto.String(appName),
-		Component: component,
-		Position:  proto.Int(0),
-		Since:     proto.Int64(5),
-	}
-}
-
-func createOffer(id string, cpus, mem float64) mesos.Offer {
-	offerID := &mesos.OfferID{
-		Value: proto.String(id),
-	}
-
-	return mesos.Offer{
-		Id: offerID,
-		FrameworkId: &mesos.FrameworkID{
-			Value: proto.String("exeggutor-tests-tasks-framework"),
-		},
-		SlaveId: &mesos.SlaveID{
-			Value: proto.String("exeggutor-tests-tasks-slave"),
-		},
-		Hostname: proto.String("exeggutor-slave-instance-1"),
-		Resources: []*mesos.Resource{
-			mesos.ScalarResource("cpus", cpus),
-			mesos.ScalarResource("mem", mem),
-		},
-		Attributes:  []*mesos.Attribute{},
-		ExecutorIds: []*mesos.ExecutorID{},
-	}
+	return id, deployed
 }
 
 var _ = Describe("TaskManager", func() {
@@ -92,7 +30,6 @@ var _ = Describe("TaskManager", func() {
 		q   *prioQueue
 		tq  TaskQueue
 		ts  store.KVStore
-		de  map[string]*mesos.TaskInfo
 	)
 
 	BeforeEach(func() {
@@ -100,8 +37,7 @@ var _ = Describe("TaskManager", func() {
 		tq = NewTaskQueueWithprioQueue(q)
 		tq.Start()
 		ts = store.NewEmptyInMemoryStore()
-		de = make(map[string]*mesos.TaskInfo)
-		m, _ := NewCustomDefaultTaskManager(tq, ts, nil, de)
+		m, _ := NewCustomDefaultTaskManager(tq, &DefaultTaskStore{ts}, nil)
 		m.Start()
 		mgr = m
 	})
@@ -113,40 +49,40 @@ var _ = Describe("TaskManager", func() {
 
 	Context("when enqueueing app manifests", func() {
 		It("should enqueue an application manifest", func() {
-			expected := testApp("test-service-1", 1.0, 256.0)
-			err := mgr.SubmitApp(expected)
+			expected := testComponent("test-service-1", "test-service-1", 1.0, 256.0)
+			err := mgr.SubmitApp([]protocol.Application{expected})
 
-			Expect(err).NotTo(HaveOccurred())
-			Expect(q.Len()).To(Equal(1))
-			scheduled := scheduledComponent(expected.GetName(), expected.Components[0])
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(q.Len()).To(o.Equal(1))
+			scheduled := scheduledComponent(&expected)
 			actual := (*q)[0]
 			actual.Since = proto.Int64(5)
-			Expect(actual).To(Equal(&scheduled))
+			o.Expect(actual).To(o.Equal(&scheduled))
 		})
 
 		It("should enqueue all the components in a manifest", func() {
-			expected := testApp("test-service-1", 1.0, 256.0)
-			comp := testComponent("component-2", 1.0, 256.0)
-			expected.Components = append(expected.Components, &comp)
-			err := mgr.SubmitApp(expected)
+			expected := testComponent("test-service-1", "test-service-1", 1.0, 256.0)
+			comp := testComponent("test-service-1", "component-2", 1.0, 256.0)
+			app := []protocol.Application{expected, comp}
+			err := mgr.SubmitApp(app)
 
-			Expect(err).NotTo(HaveOccurred())
-			Expect(q.Len()).To(Equal(2))
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(q.Len()).To(o.Equal(2))
 
-			var components []*protocol.ScheduledAppComponent
+			var components []*protocol.ScheduledApp
 			for _, comp := range *q {
 				comp.Since = proto.Int64(5)
 				components = append(components, comp)
 			}
-			var expectedComponents []*protocol.ScheduledAppComponent
-			for i, comp := range expected.Components {
-				s := scheduledComponent(expected.GetName(), comp)
+			var expectedComponents []*protocol.ScheduledApp
+			for i, comp := range app {
+				s := scheduledComponent(&comp)
 				scheduled := &s
 				scheduled.Since = proto.Int64(5)
 				scheduled.Position = proto.Int(i)
 				expectedComponents = append(expectedComponents, scheduled)
 			}
-			Expect(components).To(Equal(expectedComponents))
+			o.Expect(components).To(o.Equal(expectedComponents))
 		})
 
 	})
@@ -156,245 +92,97 @@ var _ = Describe("TaskManager", func() {
 		It("should return an empty array when there are no apps queued", func() {
 			offer := createOffer("offer-id-big", 5.0, 1024.0)
 			res := mgr.FulfillOffer(offer)
-			Expect(res).To(BeEmpty())
+			o.Expect(res).To(o.BeEmpty())
 		})
 
 		It("should fullfill an offer when there is an app queued that can statisfy it", func() {
-			manifest := testApp("test-service-yada", 1.0, 256.0)
-			component := manifest.Components[0]
-			expectedCommand := BuildMesosCommand("", component, nil)
-			expectedResources := BuildResources(component)
-			mgr.SubmitApp(manifest)
+			component := testComponent("test-service-yada", "test-service-yada", 1.0, 256.0)
+			expectedCommand := BuildMesosCommand("", &component)
+			expectedResources := BuildResources(&component, []portRange{})
+			mgr.SubmitApp([]protocol.Application{component})
 			offer := createOffer("offer-id-1", 5.0, 1024.0)
 			reply := mgr.FulfillOffer(offer)
 
-			Expect(reply).NotTo(BeEmpty())
-			Expect(reply).To(HaveLen(1))
+			o.Expect(reply).NotTo(o.BeEmpty())
+			o.Expect(reply).To(o.HaveLen(1))
 			actual := reply[0]
-			Expect(actual.Command).To(Equal(expectedCommand))
-			Expect(actual.Resources).To(Equal(expectedResources))
+			o.Expect(actual.Command).To(o.Equal(expectedCommand))
+			o.Expect(actual.Resources[0]).To(o.Equal(expectedResources[0]))
+			o.Expect(actual.Resources[1]).To(o.Equal(expectedResources[1]))
 		})
 
 		It("should return an empty array when the offer can't be fullfilled", func() {
-			manifest := testApp("test-service-yada", 5.0, 1024.0)
+			component := testComponent("test-service-yada", "test-service-yada", 5.0, 1024.0)
 
-			mgr.SubmitApp(manifest)
+			mgr.SubmitApp([]protocol.Application{component})
 			offer := createOffer("offer-id-1", 1.0, 256.0)
 			reply := mgr.FulfillOffer(offer)
 
-			Expect(reply).To(BeEmpty())
+			o.Expect(reply).To(o.BeEmpty())
 		})
 	})
 
 	Context("when handling callbacks", func() {
 
-		It("should remove undeployed items from the deploying store when they fail", func() {
-			offer := createOffer("offer id", 1.0, 64.0)
-			component := testComponent("component name", 1.0, 64.0)
-			scheduled := scheduledComponent("app name", &component)
-			task := BuildTaskInfo("task id", &offer, &scheduled)
-			id := task.GetTaskId()
-			de[id.GetValue()] = &task
-			mgr.TaskFailed(id, nil)
-			Expect(de).NotTo(o.HaveKey(id.GetValue()))
-		})
-
 		It("should remove persisted items from the persistent store when they fail", func() {
-			offer := createOffer("offer id", 1.0, 64.0)
-			component := testComponent("component name", 1.0, 64.0)
-			scheduled := scheduledComponent("app name", &component)
-			task := BuildTaskInfo("task id", &offer, &scheduled)
-			id := task.GetTaskId()
-			bytes, _ := proto.Marshal(&task)
-			ts.Set(id.GetValue(), bytes)
+			id, _ := setupCallbackTestData(ts)
 			mgr.TaskFailed(id, nil)
 			actual, _ := ts.Get(id.GetValue())
-			Expect(actual).To(BeNil())
-		})
-
-		It("should remove undeployed items from the deploying store when they finish", func() {
-			offer := createOffer("offer id", 1.0, 64.0)
-			component := testComponent("component name", 1.0, 64.0)
-			scheduled := scheduledComponent("app name", &component)
-			task := BuildTaskInfo("task id", &offer, &scheduled)
-			id := task.GetTaskId()
-			de[id.GetValue()] = &task
-			mgr.TaskFinished(id, nil)
-			Expect(de).NotTo(o.HaveKey(id.GetValue()))
+			o.Expect(actual).To(o.BeNil())
 		})
 
 		It("should remove persisted items from the persistent store when they finish", func() {
-			offer := createOffer("offer id", 1.0, 64.0)
-			component := testComponent("component name", 1.0, 64.0)
-			scheduled := scheduledComponent("app name", &component)
-			task := BuildTaskInfo("task id", &offer, &scheduled)
-			id := task.GetTaskId()
-			bytes, _ := proto.Marshal(&task)
-			ts.Set(id.GetValue(), bytes)
+			id, _ := setupCallbackTestData(ts)
 			mgr.TaskFinished(id, nil)
 			actual, _ := ts.Get(id.GetValue())
-			Expect(actual).To(BeNil())
-		})
-
-		It("should remove undeployed items from the deploying store when they are killed", func() {
-			offer := createOffer("offer id", 1.0, 64.0)
-			component := testComponent("component name", 1.0, 64.0)
-			scheduled := scheduledComponent("app name", &component)
-			task := BuildTaskInfo("task id", &offer, &scheduled)
-			id := task.GetTaskId()
-			de[id.GetValue()] = &task
-			mgr.TaskKilled(id, nil)
-			Expect(de).NotTo(o.HaveKey(id.GetValue()))
+			o.Expect(actual).To(o.BeNil())
 		})
 
 		It("should remove persisted items from the persistent store when they are killed", func() {
-			offer := createOffer("offer id", 1.0, 64.0)
-			component := testComponent("component name", 1.0, 64.0)
-			scheduled := scheduledComponent("app name", &component)
-			task := BuildTaskInfo("task id", &offer, &scheduled)
-			id := task.GetTaskId()
-			bytes, _ := proto.Marshal(&task)
-			ts.Set(id.GetValue(), bytes)
+			id, _ := setupCallbackTestData(ts)
 			mgr.TaskKilled(id, nil)
 			actual, _ := ts.Get(id.GetValue())
-			Expect(actual).To(BeNil())
-		})
-
-		It("should remove undeployed items from the deploying store when they are lost", func() {
-			offer := createOffer("offer id", 1.0, 64.0)
-			component := testComponent("component name", 1.0, 64.0)
-			scheduled := scheduledComponent("app name", &component)
-			task := BuildTaskInfo("task id", &offer, &scheduled)
-			id := task.GetTaskId()
-			de[id.GetValue()] = &task
-			mgr.TaskLost(id, nil)
-			Expect(de).NotTo(o.HaveKey(id.GetValue()))
+			o.Expect(actual).To(o.BeNil())
 		})
 
 		It("should remove persisted items from the persistent store when they are lost", func() {
-			offer := createOffer("offer id", 1.0, 64.0)
-			component := testComponent("component name", 1.0, 64.0)
-			scheduled := scheduledComponent("app name", &component)
-			task := BuildTaskInfo("task id", &offer, &scheduled)
-			id := task.GetTaskId()
-			bytes, _ := proto.Marshal(&task)
-			ts.Set(id.GetValue(), bytes)
+			id, _ := setupCallbackTestData(ts)
+
 			mgr.TaskLost(id, nil)
 			actual, _ := ts.Get(id.GetValue())
-			Expect(actual).To(BeNil())
+			o.Expect(actual).To(o.BeNil())
 		})
 
 		It("should add to the persistence store if it exists in the deploying store for running", func() {
-			offer := createOffer("offer id", 1.0, 64.0)
-			component := testComponent("component name", 1.0, 64.0)
-			scheduled := scheduledComponent("app name", &component)
-			task := BuildTaskInfo("task id", &offer, &scheduled)
-			id := task.GetTaskId()
-			cr := &task
-			de[id.GetValue()] = cr
-
-			notThere, err := ts.Get(id.GetValue())
-			Expect(err).NotTo(HaveOccurred())
-			Expect(notThere).To(BeNil())
+			id, deployed := setupCallbackTestData(ts)
 			mgr.TaskRunning(id, nil)
 
 			bytes, err := ts.Get(id.GetValue())
-			Expect(err).NotTo(HaveOccurred())
-			Expect(bytes).NotTo(BeNil())
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(bytes).NotTo(o.BeNil())
+			ts.Set(id.GetValue(), bytes)
 
-			actual := mesos.TaskInfo{}
+			actual := protocol.DeployedAppComponent{}
 			proto.Unmarshal(bytes, &actual)
-			Expect(actual).To(Equal(task))
+			deployed.Status = protocol.AppStatus_STARTED.Enum()
+			o.Expect(actual).To(o.Equal(deployed))
 		})
 
-		It("shouldn't add to the persistence store when the item isn't in the deploying store", func() {
-			offer := createOffer("offer id", 1.0, 64.0)
-			component := testComponent("component name", 1.0, 64.0)
-			scheduled := scheduledComponent("app name", &component)
-			task := BuildTaskInfo("task id", &offer, &scheduled)
-			id := task.GetTaskId()
-
-			mgr.TaskRunning(id, nil)
-
-			notThere, err := ts.Get(id.GetValue())
-			Expect(err).NotTo(HaveOccurred())
-			Expect(notThere).To(BeNil())
-
-		})
-
-		It("should add to the persistence store if it exists in the deploying store for staging", func() {
-			offer := createOffer("offer id", 1.0, 64.0)
-			component := testComponent("component name", 1.0, 64.0)
-			scheduled := scheduledComponent("app name", &component)
-			task := BuildTaskInfo("task id", &offer, &scheduled)
-			id := task.GetTaskId()
-			cr := &task
-			de[id.GetValue()] = cr
-
-			notThere, err := ts.Get(id.GetValue())
-			Expect(err).NotTo(HaveOccurred())
-			Expect(notThere).To(BeNil())
-			mgr.TaskStaging(id, nil)
-
-			bytes, err := ts.Get(id.GetValue())
-			Expect(err).NotTo(HaveOccurred())
-			Expect(bytes).NotTo(BeNil())
-
-			actual := mesos.TaskInfo{}
-			proto.Unmarshal(bytes, &actual)
-			Expect(actual).To(Equal(task))
-		})
-
-		It("shouldn't add to the persistence store when the item isn't in the deploying store for staging", func() {
-			offer := createOffer("offer id", 1.0, 64.0)
-			component := testComponent("component name", 1.0, 64.0)
-			scheduled := scheduledComponent("app name", &component)
-			task := BuildTaskInfo("task id", &offer, &scheduled)
-			id := task.GetTaskId()
+		It("should remove persisted items from the store for staging", func() {
+			id, _ := setupCallbackTestData(ts)
 
 			mgr.TaskStaging(id, nil)
-
-			notThere, err := ts.Get(id.GetValue())
-			Expect(err).NotTo(HaveOccurred())
-			Expect(notThere).To(BeNil())
-
+			actual, _ := ts.Get(id.GetValue())
+			o.Expect(actual).To(o.BeNil())
 		})
 
-		It("should add to the persistence store if it exists in the deploying store for starting", func() {
-			offer := createOffer("offer id", 1.0, 64.0)
-			component := testComponent("component name", 1.0, 64.0)
-			scheduled := scheduledComponent("app name", &component)
-			task := BuildTaskInfo("task id", &offer, &scheduled)
-			id := task.GetTaskId()
-			cr := &task
-			de[id.GetValue()] = cr
-
-			notThere, err := ts.Get(id.GetValue())
-			Expect(err).NotTo(HaveOccurred())
-			Expect(notThere).To(BeNil())
-			mgr.TaskStarting(id, nil)
-
-			bytes, err := ts.Get(id.GetValue())
-			Expect(err).NotTo(HaveOccurred())
-			Expect(bytes).NotTo(BeNil())
-
-			actual := mesos.TaskInfo{}
-			proto.Unmarshal(bytes, &actual)
-			Expect(actual).To(Equal(task))
-		})
-
-		It("shouldn't add to the persistence store when the item isn't in the deploying store for starting", func() {
-			offer := createOffer("offer id", 1.0, 64.0)
-			component := testComponent("component name", 1.0, 64.0)
-			scheduled := scheduledComponent("app name", &component)
-			task := BuildTaskInfo("task id", &offer, &scheduled)
-			id := task.GetTaskId()
+		It("should remove persisted items from the store for starting", func() {
+			id, _ := setupCallbackTestData(ts)
 
 			mgr.TaskStarting(id, nil)
 
-			notThere, err := ts.Get(id.GetValue())
-			Expect(err).NotTo(HaveOccurred())
-			Expect(notThere).To(BeNil())
+			actual, _ := ts.Get(id.GetValue())
+			o.Expect(actual).To(o.BeNil())
 
 		})
 	})

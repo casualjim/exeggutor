@@ -66,8 +66,10 @@ func (t *DefaultTaskStore) Get(key string) (*protocol.DeployedAppComponent, erro
 
 // Save saves a deployed app component with the specified id
 func (t *DefaultTaskStore) Save(value *protocol.DeployedAppComponent) error {
+	log.Debug("Saving %+v to the task store", value)
 	ser, err := writeBytes(value)
 	if err != nil {
+		log.Error("Couldn't serialize deployed app component %+v, because %+v", value, err)
 		return err
 	}
 	return t.store.Set(value.TaskId.GetValue(), ser)

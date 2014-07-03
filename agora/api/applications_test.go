@@ -9,13 +9,14 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/op/go-logging"
+	"github.com/reverb/exeggutor/agora/api/model"
 	"github.com/reverb/exeggutor/store"
 )
 
-func testApp(name, component string, context *APIContext) App {
-	app := App{
+func testApp(name, component string, context *APIContext) model.App {
+	app := model.App{
 		Name: name,
-		Components: map[string]AppComponent{component: AppComponent{
+		Components: map[string]model.AppComponent{component: model.AppComponent{
 			Name:          component,
 			Cpus:          1,
 			Mem:           1,
@@ -68,7 +69,7 @@ var _ = Describe("ApplicationsApi", func() {
 		})
 
 		It("returns a list of applications", func() {
-			expected := []App{
+			expected := []model.App{
 				testApp("bifrost-service", "bifrost-service", context),
 				testApp("veggr-service", "veggr-service", context),
 			}
@@ -83,7 +84,7 @@ var _ = Describe("ApplicationsApi", func() {
 			Expect(response.Code).To(Equal(200))
 			bodyBytes := response.Body.Bytes()
 
-			var apps []App
+			var apps []model.App
 			err := json.Unmarshal(bodyBytes, &apps)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(apps).To(HaveLen(2))
@@ -102,7 +103,7 @@ var _ = Describe("ApplicationsApi", func() {
 
 			Expect(response.Code).To(Equal(200))
 
-			var app App
+			var app model.App
 			err := json.Unmarshal(response.Body.Bytes(), &app)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(app).To(Equal(expected))
@@ -113,7 +114,7 @@ var _ = Describe("ApplicationsApi", func() {
 			server.Get("/applications/" + expected.Name)
 
 			Expect(response.Code).To(Equal(404))
-			Expect(response.Body.Bytes()).To(MatchJSON(fmt.Sprintf(`{"message":"Couldn't find %s for key '%s'."}`, "App", expected.Name)))
+			Expect(response.Body.Bytes()).To(MatchJSON(fmt.Sprintf(`{"message":"Couldn't find %s for key '%s'.", "type":"error"}`, "App", expected.Name)))
 		})
 
 	})
@@ -125,14 +126,14 @@ var _ = Describe("ApplicationsApi", func() {
 			server.Post("/applications", expected)
 			Expect(response.Code).To(Equal(200))
 			bodyBytes := response.Body.Bytes()
-			var actual App
+			var actual model.App
 			err := json.Unmarshal(bodyBytes, &actual)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(actual).To(Equal(expected))
 		})
 
 		It("returns 422 when the app is invalid ", func() {
-			expected := App{}
+			expected := model.App{}
 			server.Post("/applications", expected)
 			Expect(response.Code).To(Equal(422))
 		})
@@ -148,14 +149,14 @@ var _ = Describe("ApplicationsApi", func() {
 			Expect(response.Code).To(Equal(200))
 
 			bodyBytes := response.Body.Bytes()
-			var actual App
+			var actual model.App
 			err := json.Unmarshal(bodyBytes, &actual)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(actual).To(Equal(expected))
 		})
 
 		It("returns 422 when the app is invalid ", func() {
-			expected := App{Name: "blah-service"}
+			expected := model.App{Name: "blah-service"}
 			expectedJSON, _ := json.Marshal(expected)
 			controller.AppStore = store.NewInMemoryStore(map[string][]byte{expected.Name: expectedJSON})
 			server.Put("/applications/"+expected.Name, expected)

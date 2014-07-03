@@ -124,6 +124,7 @@ func (t *DefaultTaskManager) buildTaskInfo(offer mesos.Offer, scheduled *protoco
 }
 
 func (t *DefaultTaskManager) fitsInOffer(offer mesos.Offer, component *protocol.ScheduledApp) bool {
+	log.Debug("Checking that %+v fits in %+v", offer, component)
 	var availCpus float64
 	var availMem float64
 	var maxPortsLen uint64
@@ -148,9 +149,13 @@ func (t *DefaultTaskManager) fitsInOffer(offer mesos.Offer, component *protocol.
 
 	comp := component.App
 
-	return availCpus >= float64(comp.GetCpus()) && // has enough cpu
-		availMem >= float64(comp.GetMem()) && // has enough memory
-		int(maxPortsLen) >= len(comp.GetPorts()) // has enough consecutive free ports
+	hasEnoughCPU := availCpus >= float64(comp.GetCpus())
+	hasEnoughMem := availMem >= float64(comp.GetMem())
+	hasEnoughPorts := int(maxPortsLen) >= len(comp.GetPorts())
+	log.Debug("the offer\ncpu: %t,\nmem: %t,\nports: %t", hasEnoughCPU, hasEnoughMem, hasEnoughPorts)
+	return hasEnoughCPU &&
+		hasEnoughMem &&
+		hasEnoughPorts
 }
 
 // FulfillOffer tries to fullfil an offer with the biggest and oldest enqueued thing it can find.
@@ -174,12 +179,11 @@ func (t *DefaultTaskManager) FulfillOffer(offer mesos.Offer) []mesos.TaskInfo {
 
 	task := t.buildTaskInfo(offer, item)
 	allQueued := []mesos.TaskInfo{task}
-	status := protocol.AppStatus_DEPLOYING
 	deploying := &protocol.DeployedAppComponent{
 		AppName:   item.AppName,
 		Component: item.App,
 		TaskId:    task.GetTaskId(),
-		Status:    &status,
+		Status:    protocol.AppStatus_DEPLOYING.Enum(),
 		Slave:     task.GetSlaveId(),
 	}
 	t.taskStore.Save(deploying)
@@ -193,7 +197,7 @@ func (t *DefaultTaskManager) updateStatus(taskID *mesos.TaskID, status protocol.
 	if err != nil {
 		return err
 	}
-	deploying.Status = &status
+	deploying.Status = status.Enum()
 	if err := t.taskStore.Save(deploying); err != nil {
 		return err
 	}

@@ -4,7 +4,6 @@ package tasks
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
 	"github.com/reverb/exeggutor/protocol"
 )
 
@@ -27,19 +26,19 @@ var _ = Describe("A DefaultTaskQueue", func() {
 	Context("when behaving as a queue", func() {
 
 		It("should allow putting things onto the queue", func() {
-			component := testComponent("comp-tq-1", 1.0, 64.0)
-			scheduled := scheduledComponent("app-tq-1", &component)
+			component := testComponent("app-tq-1", "comp-tq-1", 1.0, 64.0)
+			scheduled := scheduledComponent(&component)
 			tq.Enqueue(&scheduled)
 		})
 
 		It("should allow popping things of the queue", func() {
-			component := testComponent("comp-tq-1", 1.0, 64.0)
-			scheduled := scheduledComponent("app-tq-1", &component)
+			component := testComponent("app-tq-1", "comp-tq-1", 1.0, 64.0)
+			scheduled := scheduledComponent(&component)
 			cr := &scheduled
 			tq.Enqueue(cr)
 
-			component2 := testComponent("comp-tq-2", 1.0, 64.0)
-			scheduled2 := scheduledComponent("app-tq-2", &component2)
+			component2 := testComponent("app-tq-2", "comp-tq-2", 1.0, 64.0)
+			scheduled2 := scheduledComponent(&component2)
 			cr2 := &scheduled2
 			tq.Enqueue(cr2)
 
@@ -52,17 +51,17 @@ var _ = Describe("A DefaultTaskQueue", func() {
 		})
 
 		It("should allow picking the first thing that matches a predicate for dequeue", func() {
-			component := testComponent("comp-tq-1", 1.0, 64.0)
-			scheduled := scheduledComponent("app-tq-1", &component)
+			component := testComponent("app-tq-1", "comp-tq-1", 1.0, 64.0)
+			scheduled := scheduledComponent(&component)
 			cr := &scheduled
 			tq.Enqueue(cr)
 
-			component2 := testComponent("comp-tq-2", 1.0, 64.0)
-			scheduled2 := scheduledComponent("app-tq-2", &component2)
+			component2 := testComponent("app-tq-2", "comp-tq-2", 1.0, 64.0)
+			scheduled2 := scheduledComponent(&component2)
 			cr2 := &scheduled2
 			tq.Enqueue(cr2)
 
-			item, err := tq.DequeueFirst(func(item *protocol.ScheduledAppComponent) bool {
+			item, err := tq.DequeueFirst(func(item *protocol.ScheduledApp) bool {
 				return item.GetAppName() == "app-tq-2"
 			})
 
@@ -76,18 +75,18 @@ var _ = Describe("A DefaultTaskQueue", func() {
 	Context("when being a priority queue", func() {
 
 		It("should take the thing with the largest cpu needs first", func() {
-			component := testComponent("comp-tq-1", 1.0, 64.0)
-			scheduled := scheduledComponent("app-tq-1", &component)
+			component := testComponent("app-tq-1", "comp-tq-1", 1.0, 64.0)
+			scheduled := scheduledComponent(&component)
 			cr := &scheduled
 			tq.Enqueue(cr)
 
-			component2 := testComponent("comp-tq-2", 1.0, 64.0)
-			scheduled2 := scheduledComponent("app-tq-2", &component2)
+			component2 := testComponent("app-tq-2", "comp-tq-2", 1.0, 64.0)
+			scheduled2 := scheduledComponent(&component2)
 			cr2 := &scheduled2
 			tq.Enqueue(cr2)
 
-			component3 := testComponent("comp-tq-3", 1.5, 64.0)
-			scheduled3 := scheduledComponent("app-tq-3", &component3)
+			component3 := testComponent("app-tq-3", "comp-tq-3", 1.5, 64.0)
+			scheduled3 := scheduledComponent(&component3)
 			cr3 := &scheduled3
 			tq.Enqueue(cr3)
 
@@ -99,18 +98,18 @@ var _ = Describe("A DefaultTaskQueue", func() {
 		})
 
 		It("should take the thing with the largest memory needs second", func() {
-			component := testComponent("comp-tq-1", 1.0, 64.0)
-			scheduled := scheduledComponent("app-tq-1", &component)
+			component := testComponent("app-tq-1", "comp-tq-1", 1.0, 64.0)
+			scheduled := scheduledComponent(&component)
 			cr := &scheduled
 			tq.Enqueue(cr)
 
-			component2 := testComponent("comp-tq-2", 1.0, 128.0)
-			scheduled2 := scheduledComponent("app-tq-2", &component2)
+			component2 := testComponent("app-tq-2", "comp-tq-2", 1.0, 128.0)
+			scheduled2 := scheduledComponent(&component2)
 			cr2 := &scheduled2
 			tq.Enqueue(cr2)
 
-			component3 := testComponent("comp-tq-3", 0.5, 64.0)
-			scheduled3 := scheduledComponent("app-tq-3", &component3)
+			component3 := testComponent("app-tq-3", "comp-tq-3", 0.5, 64.0)
+			scheduled3 := scheduledComponent(&component3)
 			cr3 := &scheduled3
 			tq.Enqueue(cr3)
 
@@ -122,18 +121,18 @@ var _ = Describe("A DefaultTaskQueue", func() {
 		})
 
 		It("should take the least recently enqueued as third criteria", func() {
-			component := testComponent("comp-tq-1", 1.0, 64.0)
-			scheduled := scheduledComponent("app-tq-1", &component)
+			component := testComponent("app-tq-1", "comp-tq-1", 1.0, 64.0)
+			scheduled := scheduledComponent(&component)
 			cr := &scheduled
 			tq.Enqueue(cr)
 
-			component2 := testComponent("comp-tq-2", 1.0, 64.0)
-			scheduled2 := scheduledComponent("app-tq-2", &component2)
+			component2 := testComponent("app-tq-2", "comp-tq-2", 1.0, 64.0)
+			scheduled2 := scheduledComponent(&component2)
 			cr2 := &scheduled2
 			tq.Enqueue(cr2)
 
-			component3 := testComponent("comp-tq-3", 1.0, 64.0)
-			scheduled3 := scheduledComponent("app-tq-3", &component3)
+			component3 := testComponent("app-tq-3", "comp-tq-3", 1.0, 64.0)
+			scheduled3 := scheduledComponent(&component3)
 			cr3 := &scheduled3
 			tq.Enqueue(cr3)
 
