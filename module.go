@@ -5,3 +5,8 @@ type Module interface {
 	Start() error
 	Stop() error
 }
+
+// IDGenerator an abstraction for a pluggable id generator
+type IDGenerator interface {
+	Next() (string, error)
+}

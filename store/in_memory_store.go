@@ -72,6 +72,17 @@ func (i InMemoryStore) ForEach(iterator func(*KVData)) error {
 	return nil
 }
 
+// Find finds the first item in the store that matches the predicate
+func (i InMemoryStore) Find(predicate func(*KVData) bool) (*KVData, error) {
+	for k, v := range i.data {
+		kv := &KVData{Key: k, Value: v}
+		if predicate(kv) {
+			return kv, nil
+		}
+	}
+	return nil, nil
+}
+
 // Contains returns true if the key exists in the store
 func (i InMemoryStore) Contains(key string) (bool, error) {
 	return len(i.data[key]) > 0, nil

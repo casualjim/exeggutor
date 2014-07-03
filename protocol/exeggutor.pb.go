@@ -289,7 +289,7 @@ type DeployedAppComponent struct {
 	// the application component that is deployed
 	Component *Application `protobuf:"bytes,2,req,name=component" json:"component,omitempty"`
 	// the task id that represents this component in the cluster
-	Task *mesos.TaskInfo `protobuf:"bytes,3,req,name=task" json:"task,omitempty"`
+	TaskId *mesos.TaskID `protobuf:"bytes,3,req,name=task_id" json:"task_id,omitempty"`
 	// the status this deployed application is in
 	Status *AppStatus `protobuf:"varint,4,req,name=status,enum=protocol.AppStatus,def=1" json:"status,omitempty"`
 	// the slave id to which this app is deployed
@@ -317,9 +317,9 @@ func (m *DeployedAppComponent) GetComponent() *Application {
 	return nil
 }
 
-func (m *DeployedAppComponent) GetTask() *mesos.TaskInfo {
+func (m *DeployedAppComponent) GetTaskId() *mesos.TaskID {
 	if m != nil {
-		return m.Task
+		return m.TaskId
 	}
 	return nil
 }

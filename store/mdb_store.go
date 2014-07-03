@@ -13,6 +13,9 @@ const (
 	defaultSize  = 0
 )
 
+// ErrNotFound The error returned when the item can't be found
+var ErrNotFound = fmt.Errorf("not found")
+
 // MdbStore represents a store backed by LMDB
 type MdbStore struct {
 	env     *mdb.Env
@@ -58,7 +61,7 @@ func (i MdbStore) Get(key string) ([]byte, error) {
 
 	val, err := tx.Get(dbis[0], []byte(key))
 	if err == mdb.NotFound {
-		return nil, fmt.Errorf("not found")
+		return nil, ErrNotFound
 	} else if err != nil {
 		return nil, err
 	}
@@ -137,6 +140,11 @@ func (i MdbStore) ForEach(iterator func(*KVData)) error {
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if err := cursor.Close(); err != nil {
+			log.Println("Couldn't close cursor because:", err)
+		}
+	}()
 
 	for {
 		key, value, err := cursor.Get(nil, mdb.NEXT)
@@ -148,10 +156,42 @@ func (i MdbStore) ForEach(iterator func(*KVData)) error {
 		}
 		iterator(&KVData{Key: string(key), Value: value})
 	}
-	if err := cursor.Close(); err != nil {
-		log.Println("Couldn't close cursor because:", err)
-	}
 	return nil
+}
+
+// Find finds the first item in the store that matches the predicate
+func (i MdbStore) Find(predicate func(*KVData) bool) (*KVData, error) {
+	tx, dbis, err := i.startTxn(true)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Abort()
+
+	cursor, err := tx.CursorOpen(dbis[0])
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err := cursor.Close(); err != nil {
+			log.Println("Couldn't close cursor because:", err)
+		}
+	}()
+
+	for {
+		key, value, err := cursor.Get(nil, mdb.NEXT)
+		if err == mdb.NotFound { // we've reached the end :)
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		kv := &KVData{Key: string(key), Value: value}
+		if predicate(kv) {
+			return kv, nil
+		}
+	}
+
+	return nil, nil
 }
 
 // Contains returns true if the key exists in the store

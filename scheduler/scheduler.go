@@ -64,17 +64,44 @@ func (fw *Framework) SubmitApp(app []protocol.Application) error {
 
 // KillApp stops all the components of an application
 func (fw *Framework) KillApp(app string) error {
-	return nil
+	taskIds, err := fw.taskManager.FindTasksForApp(app)
+	if err != nil {
+		return err
+	}
+	for _, taskID := range taskIds {
+		err2 := fw.driver.KillTask(taskID)
+		if err2 != nil {
+			err = err2
+		}
+
+	}
+	return err
 }
 
 // KillComponent stops a single component
 func (fw *Framework) KillComponent(app, component string) error {
-	return nil
+	taskIds, err := fw.taskManager.FindTasksForComponent(app, component)
+	if err != nil {
+		return err
+	}
+	for _, taskID := range taskIds {
+		err2 := fw.driver.KillTask(taskID)
+		if err2 != nil {
+			err = err2
+		}
+
+	}
+	return err
 }
 
 // KillComponentOnSlave stop s a single component instance on a particular slave
-func (fw *Framework) KillComponentOnSlave(app, component, slaveID string) error {
-	return nil
+func (fw *Framework) KillComponentOnSlave(tID string) error {
+	taskID, err := fw.taskManager.FindTaskForComponent(tID)
+	if err != nil {
+		return err
+	}
+	err = fw.driver.KillTask(taskID)
+	return err
 }
 
 // ID gets the id of the framework is one is known for this framework at this stage.

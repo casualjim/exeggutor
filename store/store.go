@@ -19,6 +19,7 @@ type KVStore interface {
 	ForEachKey(iterator func(string)) error
 	ForEachValue(iterator func([]byte)) error
 	ForEach(iterator func(*KVData)) error
+	Find(predicate func(*KVData) bool) (*KVData, error)
 	Contains(key string) (bool, error)
 	Start() error
 	Stop() error

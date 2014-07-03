@@ -16,44 +16,44 @@
 		},
 		{
 			"ImportPath": "github.com/astaxie/beego/validation",
-			"Comment": "v1.3.0-1-gaf4f153",
-			"Rev": "af4f153830ed90898ea1c3ff8d5790c243ecbe76"
+			"Comment": "v1.3.0-24-g14dee37",
+			"Rev": "14dee37a2159ee9db1770e79ab23651c59797ebc"
 		},
 		{
 			"ImportPath": "github.com/codegangsta/negroni",
-			"Comment": "v0.1-9-gfdad03a",
-			"Rev": "fdad03a1937d0406f95433aac2ccd06d682e9dad"
+			"Comment": "v0.1-16-ga806ce7",
+			"Rev": "a806ce72c275b52932b38eb28fa394773f0fac66"
 		},
 		{
 			"ImportPath": "github.com/imdario/mergo",
-			"Comment": "0.1.2",
-			"Rev": "c5d7f4f7b6313ef62a4a9c913b8085e1982c8dfb"
+			"Comment": "0.1.3",
+			"Rev": "8cd7902f25c1ab8342cb78f8b56ff9692374b8f0"
 		},
 		{
 			"ImportPath": "github.com/jessevdk/go-flags",
-			"Comment": "v1-193-gd9d88f0",
-			"Rev": "d9d88f0ec542ae8f8dc041b2ec831b71e7c55558"
+			"Comment": "v1-200-g7047cf7",
+			"Rev": "7047cf7a8dc6f41e53365420ab62d415055232c6"
 		},
 		{
 			"ImportPath": "github.com/julienschmidt/httprouter",
-			"Rev": "ca3fec50c3d5ffe644ecd926c484baeb8af09f2e"
+			"Rev": "c5247d1e3f4859f0ad3ec04311a872702fb86209"
 		},
 		{
 			"ImportPath": "github.com/onsi/ginkgo",
-			"Comment": "v1.0.0-16-g12446bb",
-			"Rev": "12446bbcc74950944c897e32ea99cc8d058f9c92"
+			"Comment": "v1.0.0-17-gd3d2576",
+			"Rev": "d3d25767b7af0efa7b12a900d0f4ac5477ed9fa1"
 		},
 		{
 			"ImportPath": "github.com/onsi/gomega",
-			"Rev": "036273e6f643552b16fe7a6464afd2ae0324992e"
+			"Rev": "0d06fd5dfbad573535d36c7ce971541d3b0a1f20"
 		},
 		{
 			"ImportPath": "github.com/op/go-logging",
-			"Rev": "a501b20b448435cb5117a49fbfda7ff64adeb2cd"
+			"Rev": "c1b91128b40ead0e98dbc63cde57c0541feaa6c1"
 		},
 		{
 			"ImportPath": "github.com/rcrowley/go-metrics",
-			"Rev": "6ffbdf30ba7072d9f9e2afe57ad651a75a544a83"
+			"Rev": "3be59ceb5538550555459fb77d0efe0e218cdfc7"
 		},
 		{
 			"ImportPath": "github.com/reverb/go-mesos/mesos",
@@ -74,7 +74,7 @@
 		},
 		{
 			"ImportPath": "gopkg.in/check.v1",
-			"Rev": "871360013c92e1c715c2de6d06b54899468a8a2d"
+			"Rev": "5586b28e002e7fc07a078ab36dbb684990376c59"
 		}
 	]
 }

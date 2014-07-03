@@ -29,7 +29,7 @@ type TaskManager interface {
 
 	FindTasksForApp(name string) ([]*mesos.TaskID, error)
 	FindTasksForComponent(app, component string) ([]*mesos.TaskID, error)
-	FindTaskForComponent(app, component, task string) (*mesos.TaskID, error)
+	FindTaskForComponent(task string) (*mesos.TaskID, error)
 
 	//RunningApps() []*protocol.Application
 	// Schedules

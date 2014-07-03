@@ -1,11 +1,8 @@
 package tasks
 
 import (
-	"code.google.com/p/goprotobuf/proto"
 	"github.com/reverb/exeggutor"
 	"github.com/reverb/exeggutor/protocol"
-	"github.com/reverb/exeggutor/queue"
-	"github.com/reverb/exeggutor/store"
 	"github.com/reverb/go-mesos/mesos"
 	"github.com/reverb/go-utils/flake"
 )
@@ -17,16 +14,15 @@ import (
 // necessary application components are always alive.
 type DefaultTaskManager struct {
 	queue     TaskQueue
-	taskStore store.KVStore
+	taskStore TaskStore
 	config    *exeggutor.Config
-	flake     queue.IDGenerator
-	deploying map[string]*mesos.TaskInfo
+	flake     exeggutor.IDGenerator
 }
 
 // NewDefaultTaskManager creates a new instance of a task manager with the values
 // from the provided config.
 func NewDefaultTaskManager(config *exeggutor.Config) (*DefaultTaskManager, error) {
-	store, err := store.NewMdbStore(config.DataDirectory + "/tasks")
+	store, err := NewTaskStore(config)
 	if err != nil {
 		return nil, err
 	}
@@ -37,18 +33,16 @@ func NewDefaultTaskManager(config *exeggutor.Config) (*DefaultTaskManager, error
 		taskStore: store,
 		config:    config,
 		flake:     flake.NewFlake(),
-		deploying: make(map[string]*mesos.TaskInfo),
 	}, nil
 }
 
 // NewCustomDefaultTaskManager creates a new instance of a task manager with all the internal components injected
-func NewCustomDefaultTaskManager(q TaskQueue, ts store.KVStore, config *exeggutor.Config, deploying map[string]*mesos.TaskInfo) (*DefaultTaskManager, error) {
+func NewCustomDefaultTaskManager(q TaskQueue, ts TaskStore, config *exeggutor.Config) (*DefaultTaskManager, error) {
 	return &DefaultTaskManager{
 		queue:     q,
 		taskStore: ts,
 		config:    config,
 		flake:     flake.NewFlake(),
-		deploying: deploying,
 	}, nil
 }
 
@@ -103,17 +97,25 @@ func (t *DefaultTaskManager) SubmitApp(app []protocol.Application) error {
 
 // FindTasksForApp finds all the tasks for the specified application name
 func (t *DefaultTaskManager) FindTasksForApp(name string) ([]*mesos.TaskID, error) {
-	return nil, nil
+	return t.taskStore.FilterToTaskIds(func(item *protocol.DeployedAppComponent) bool {
+		return item.GetAppName() == name
+	})
 }
 
 // FindTasksForComponent finds all the deployed tasks for the specified component
 func (t *DefaultTaskManager) FindTasksForComponent(app, component string) ([]*mesos.TaskID, error) {
-	return nil, nil
+	return t.taskStore.FilterToTaskIds(func(item *protocol.DeployedAppComponent) bool {
+		return item.GetAppName() == app && item.Component != nil && item.Component.GetName() == component
+	})
 }
 
-// FindTaskForComponent finds the task for this
-func (t *DefaultTaskManager) FindTaskForComponent(app, component, task string) (*mesos.TaskID, error) {
-	return nil, nil
+// FindTaskForComponent finds the task for the specified task (single instance)
+func (t *DefaultTaskManager) FindTaskForComponent(task string) (*mesos.TaskID, error) {
+	res, err := t.taskStore.Get(task)
+	if err != nil || res == nil {
+		return nil, err
+	}
+	return res.TaskId, nil
 }
 
 func (t *DefaultTaskManager) buildTaskInfo(offer mesos.Offer, scheduled *protocol.ScheduledApp) mesos.TaskInfo {
@@ -172,30 +174,34 @@ func (t *DefaultTaskManager) FulfillOffer(offer mesos.Offer) []mesos.TaskInfo {
 
 	task := t.buildTaskInfo(offer, item)
 	allQueued := []mesos.TaskInfo{task}
-	t.deploying[task.GetTaskId().GetValue()] = &task
+	status := protocol.AppStatus_DEPLOYING
+	deploying := &protocol.DeployedAppComponent{
+		AppName:   item.AppName,
+		Component: item.App,
+		TaskId:    task.GetTaskId(),
+		Status:    &status,
+		Slave:     task.GetSlaveId(),
+	}
+	t.taskStore.Save(deploying)
+
 	log.Debug("fullfilling offer with %+v", task)
 	return allQueued
 }
 
-func (t *DefaultTaskManager) moveTaskToStore(taskID *mesos.TaskID) error {
-	task, ok := t.deploying[taskID.GetValue()]
-	if !ok {
-		log.Warning("Couldn't find task with id: " + taskID.GetValue())
-		return nil
-	}
-	bytes, err := proto.Marshal(task)
+func (t *DefaultTaskManager) updateStatus(taskID *mesos.TaskID, status protocol.AppStatus) error {
+	deploying, err := t.taskStore.Get(taskID.GetValue())
 	if err != nil {
 		return err
 	}
-	if err := t.taskStore.Set(task.GetTaskId().GetValue(), bytes); err != nil {
+	deploying.Status = &status
+	if err := t.taskStore.Save(deploying); err != nil {
 		return err
 	}
-	delete(t.deploying, taskID.GetValue())
 	return nil
 }
 
 func (t *DefaultTaskManager) forgetTask(taskID *mesos.TaskID) {
-	delete(t.deploying, taskID.GetValue())
+	// delete(t.deploying, taskID.GetValue())
 	err := t.taskStore.Delete(taskID.GetValue())
 	if err != nil {
 		log.Error("%v", err)
@@ -229,7 +235,7 @@ func (t *DefaultTaskManager) TaskLost(taskID *mesos.TaskID, slaveID *mesos.Slave
 // TaskRunning a callback for when a task enters the running state
 func (t *DefaultTaskManager) TaskRunning(taskID *mesos.TaskID, slaveID *mesos.SlaveID) {
 	// All is well put this task in the running state in the UI
-	err := t.moveTaskToStore(taskID)
+	err := t.updateStatus(taskID, protocol.AppStatus_STARTED)
 	if err != nil {
 		log.Error("%v", err)
 	}

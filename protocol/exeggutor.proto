@@ -97,7 +97,7 @@ message DeployedAppComponent {
   /* the application component that is deployed */
   required Application component = 2;
   /* the task id that represents this component in the cluster */
-  required mesos.TaskInfo task = 3;
+  required mesos.TaskID task_id = 3;
   /* the status this deployed application is in */
   required AppStatus status = 4 [default = ABSENT ];
 
