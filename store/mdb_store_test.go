@@ -1,52 +1,37 @@
 package store
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
+	"testing"
 
-	. "github.com/onsi/ginkgo"
-	// . "github.com/onsi/gomega"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
-var _ = Describe("MdbStore", func() {
+func TestMdbStore(t *testing.T) {
 
-	var (
-		context StoreExampleContext = StoreExampleContext{}
-		store   KVStore
-		tempDir string
-	)
+	Convey("MdbStore", t, func() {
 
-	BeforeEach(func() {
 		// Create a test dir
-		dir, err := ioutil.TempDir("", "agora-store")
-		if err != nil {
-			Fail(fmt.Sprintf("err: %v ", err))
-		}
-		tempDir = dir
+		tempDir, err := ioutil.TempDir("", "agora-store")
+		So(err, ShouldBeNil)
 
-		st, err := NewMdbStore(dir)
-		st.Start()
-		if err != nil {
-			Fail(fmt.Sprintf("err: %v ", err))
-		}
+		store, err := NewMdbStore(tempDir)
+		So(err, ShouldBeNil)
+		store.Start()
 
-		ct := DefaultExampleContext()
-		for k, v := range ct.Backing {
-			st.Set(k, v)
+		context := DefaultExampleContext()
+		for k, v := range context.Backing {
+			store.Set(k, v)
 		}
-		store = st
 		context.Store = store
-		context.Backing = ct.Backing
-		context.Keys = ct.Keys
-		context.Values = ct.Values
+
+		Reset(func() {
+			store.Stop()
+			os.RemoveAll(tempDir)
+		})
+
+		SharedStoreBehavior(&context)
+
 	})
-
-	AfterEach(func() {
-		store.Stop()
-		os.RemoveAll(tempDir)
-	})
-
-	SharedStoreBehavior(&context)
-
-})
+}

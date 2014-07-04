@@ -28,7 +28,7 @@ setup:
 	@godep restore
 
 test: 
-	@ginkgo -r
+	@go test -v ./...
 
 dist:
 

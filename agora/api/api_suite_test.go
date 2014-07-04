@@ -3,19 +3,12 @@ package api
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 
 	"github.com/julienschmidt/httprouter"
-	. "github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/config"
-	"github.com/onsi/ginkgo/reporters"
-	. "github.com/onsi/gomega"
 	"github.com/reverb/exeggutor"
-
-	"testing"
 )
 
 var (
@@ -38,13 +31,6 @@ func testAppConfig() *exeggutor.Config {
 		Interface:       "0.0.0.0",
 		Mode:            "test",
 	}
-}
-
-func TestState(t *testing.T) {
-	RegisterFailHandler(Fail)
-	pth := fmt.Sprintf("../../test-reports/junit_executor_agora_api_%d.xml", config.GinkgoConfig.ParallelNode)
-	junitReporter := reporters.NewJUnitReporter(pth)
-	RunSpecsWithDefaultAndCustomReporters(t, "Agora API Test Suite", []Reporter{junitReporter})
 }
 
 type testHTTP struct {

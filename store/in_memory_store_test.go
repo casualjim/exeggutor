@@ -1,30 +1,24 @@
 package store
 
 import (
-	. "github.com/onsi/ginkgo"
-	// . "github.com/onsi/gomega"
+	"testing"
+
+	. "github.com/smartystreets/goconvey/convey"
 )
 
-var _ = Describe("InMemoryStore", func() {
+func TestInMemoryStore(t *testing.T) {
 
-	var (
-		context StoreExampleContext = StoreExampleContext{}
-		store   KVStore
-	)
+	Convey("InMemoryStore", t, func() {
 
-	BeforeEach(func() {
-		ct := DefaultExampleContext()
-		store = NewInMemoryStore(ct.Backing)
+		context := DefaultExampleContext()
+		store := NewInMemoryStore(context.Backing)
 		context.Store = store
-		context.Backing = ct.Backing
-		context.Keys = ct.Keys
-		context.Values = ct.Values
+
+		Reset(func() {
+			store.Stop()
+		})
+
+		SharedStoreBehavior(&context)
+
 	})
-
-	AfterEach(func() {
-		store.Stop()
-	})
-
-	SharedStoreBehavior(&context)
-
-})
+}

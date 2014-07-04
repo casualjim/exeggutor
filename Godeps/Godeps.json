@@ -30,6 +30,10 @@
 			"Rev": "8cd7902f25c1ab8342cb78f8b56ff9692374b8f0"
 		},
 		{
+			"ImportPath": "github.com/jacobsa/oglematchers",
+			"Rev": "4fc24f97b5b74022c2a3f4ca7eed57ca29083d3e"
+		},
+		{
 			"ImportPath": "github.com/jessevdk/go-flags",
 			"Comment": "v1-200-g7047cf7",
 			"Rev": "7047cf7a8dc6f41e53365420ab62d415055232c6"
@@ -62,15 +66,20 @@
 		},
 		{
 			"ImportPath": "github.com/reverb/go-utils/flake",
-			"Rev": "315dd0b52decb1ec4ec28fccc209737f9492aeb2"
+			"Rev": "dd521a3cd945c3aafa04fdb9b4f0162b63587d5f"
 		},
 		{
 			"ImportPath": "github.com/reverb/go-utils/rvb_zk",
-			"Rev": "315dd0b52decb1ec4ec28fccc209737f9492aeb2"
+			"Rev": "dd521a3cd945c3aafa04fdb9b4f0162b63587d5f"
 		},
 		{
 			"ImportPath": "github.com/samuel/go-zookeeper/zk",
 			"Rev": "041700315ab94d5f506317d8798adc9a6674c547"
+		},
+		{
+			"ImportPath": "github.com/smartystreets/goconvey/convey",
+			"Comment": "1.5.0-240-g6e8b6a6",
+			"Rev": "6e8b6a6845c5dc7738d519162c9a9ff5c9cd5f48"
 		},
 		{
 			"ImportPath": "gopkg.in/check.v1",

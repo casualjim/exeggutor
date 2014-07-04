@@ -1,24 +1,18 @@
 package store
 
 import (
-	"fmt"
 	"sort"
 	"strconv"
 
-	. "github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/config"
-	"github.com/onsi/ginkgo/reporters"
-	. "github.com/onsi/gomega"
-
-	"testing"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
-func TestState(t *testing.T) {
-	RegisterFailHandler(Fail)
-	pth := fmt.Sprintf("../test-reports/junit_exeggutor_store_%d.xml", config.GinkgoConfig.ParallelNode)
-	junitReporter := reporters.NewJUnitReporter(pth)
-	RunSpecsWithDefaultAndCustomReporters(t, "Exeggutor Store Test Suite", []Reporter{junitReporter})
-}
+// func TestState(t *testing.T) {
+// 	RegisterFailHandler(Fail)
+// 	pth := fmt.Sprintf("../test-reports/junit_exeggutor_store_%d.xml", config.GinkgoConfig.ParallelNode)
+// 	junitReporter := reporters.NewJUnitReporter(pth)
+// 	RunSpecsWithDefaultAndCustomReporters(t, "Exeggutor Store Test Suite", []Reporter{junitReporter})
+// }
 
 type StoreExampleContext struct {
 	Backing map[string][]byte
@@ -60,40 +54,41 @@ func DefaultExampleContext() StoreExampleContext {
 }
 
 func SharedStoreBehavior(context *StoreExampleContext) {
-	It("should get a value in the store", func() {
+	Convey("should get a value in the store", func() {
 		store := context.Store
 		actual, _ := store.Get("key1")
-		Ω(actual).Should(Equal([]byte("value1")))
+		So(actual, ShouldResemble, []byte("value1"))
 	})
 
-	It("should set a value in the store", func() {
+	Convey("should set a value in the store", func() {
 		store := context.Store
 		expected := []byte("new value")
 		store.Set("key1", expected)
 		actual, _ := store.Get("key1")
-		Ω(actual).Should(Equal(expected))
+		So(actual, ShouldResemble, expected)
 	})
 
-	It("should delete a key from the store", func() {
+	Convey("should delete a key from the store", func() {
 		store := context.Store
 		store.Delete("key1")
 		actual, _ := store.Get("key1")
-		Ω(actual).Should(HaveLen(0))
+		So(actual, ShouldBeEmpty)
 	})
 
-	It("should get the size of the store", func() {
-		Ω(context.Store.Size()).Should(Equal(len(context.Backing)))
+	Convey("should get the size of the store", func() {
+		ln, _ := context.Store.Size()
+		So(ln, ShouldEqual, len(context.Backing))
 	})
 
-	It("should get the keys from the store", func() {
+	Convey("should get the keys from the store", func() {
 		expected := context.Keys
 		actual, _ := context.Store.Keys()
 		sort.Strings(actual)
 		sort.Strings(expected)
-		Ω(actual).Should(Equal(expected))
+		So(actual, ShouldResemble, expected)
 	})
 
-	It("should iterate over the keys", func() {
+	Convey("should iterate over the keys", func() {
 		store := context.Store
 		expected := context.Keys
 		store.ForEachKey(func(key string) {
@@ -103,10 +98,10 @@ func SharedStoreBehavior(context *StoreExampleContext) {
 				}
 			}
 		})
-		Ω(expected).Should(BeEmpty())
+		So(expected, ShouldBeEmpty)
 	})
 
-	It("should iterate over the values", func() {
+	Convey("should iterate over the values", func() {
 		store := context.Store
 		expected := context.Values
 		store.ForEachValue(func(value []byte) {
@@ -117,10 +112,10 @@ func SharedStoreBehavior(context *StoreExampleContext) {
 				}
 			}
 		})
-		Ω(expected).Should(BeEmpty())
+		So(expected, ShouldBeEmpty)
 	})
 
-	It("should iterator over the key value pairs", func() {
+	Convey("should iterate over the key value pairs", func() {
 		backing, store := context.Backing, context.Store
 		expected := make(map[string][]byte, len(backing))
 		for k, v := range backing {
@@ -131,14 +126,27 @@ func SharedStoreBehavior(context *StoreExampleContext) {
 				delete(expected, kv.Key)
 			}
 		})
-		Ω(expected).Should(BeEmpty())
+		So(expected, ShouldBeEmpty)
 	})
 
-	It("should say an item exists if it does", func() {
-		Ω(context.Store.Contains("key1")).Should(BeTrue())
+	Convey("should find the first item that matches", func() {
+		_, store := context.Backing, context.Store
+		expected := &KVData{Key: "key10", Value: []byte("value10")}
+		actual, err := store.Find(func(item *KVData) bool { return string(item.Value) == "value10" })
+		So(err, ShouldBeNil)
+		So(actual.Key, ShouldEqual, expected.Key)
+		So(actual.Value, ShouldResemble, expected.Value)
 	})
 
-	It("should say an item does not exist if it doesnt", func() {
-		Ω(context.Store.Contains("key")).Should(BeFalse())
+	Convey("should say an item exists if it does", func() {
+		res, err := context.Store.Contains("key1")
+		So(err, ShouldBeNil)
+		So(res, ShouldBeTrue)
+	})
+
+	Convey("should say an item does not exist if it doesnt", func() {
+		res, err := context.Store.Contains("key")
+		So(err, ShouldBeNil)
+		So(res, ShouldBeFalse)
 	})
 }

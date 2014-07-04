@@ -178,7 +178,6 @@ func (t *DefaultTaskManager) FulfillOffer(offer mesos.Offer) []mesos.TaskInfo {
 	}
 
 	task := t.buildTaskInfo(offer, item)
-	allQueued := []mesos.TaskInfo{task}
 	deploying := &protocol.DeployedAppComponent{
 		AppName:   item.AppName,
 		Component: item.App,
@@ -186,10 +185,12 @@ func (t *DefaultTaskManager) FulfillOffer(offer mesos.Offer) []mesos.TaskInfo {
 		Status:    protocol.AppStatus_DEPLOYING.Enum(),
 		Slave:     task.GetSlaveId(),
 	}
-	t.taskStore.Save(deploying)
-
+	err = t.taskStore.Save(deploying)
+	if err != nil {
+		return []mesos.TaskInfo{}
+	}
 	log.Debug("fullfilling offer with %+v", task)
-	return allQueued
+	return []mesos.TaskInfo{task}
 }
 
 func (t *DefaultTaskManager) updateStatus(taskID *mesos.TaskID, status protocol.AppStatus) error {
