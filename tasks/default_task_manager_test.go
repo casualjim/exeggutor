@@ -14,6 +14,22 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
+func createFilterData(ts store.KVStore) []protocol.DeployedAppComponent {
+	app1 := buildStoreTestData2(1, 1, 1)
+	app2 := buildStoreTestData2(1, 2, 3)
+	app3 := buildStoreTestData2(1, 3, 2)
+	app4 := buildStoreTestData2(2, 1, 2)
+	app5 := buildStoreTestData2(3, 1, 3)
+	app6 := buildStoreTestData2(2, 1, 3)
+	saveStoreTestData(ts, &app1)
+	saveStoreTestData(ts, &app2)
+	saveStoreTestData(ts, &app3)
+	saveStoreTestData(ts, &app4)
+	saveStoreTestData(ts, &app5)
+	saveStoreTestData(ts, &app6)
+	return []protocol.DeployedAppComponent{app1, app2, app3, app4, app5, app6}
+}
+
 func setupCallbackTestData(ts store.KVStore) (*mesos.TaskID, protocol.DeployedAppComponent) {
 	offer := createOffer("offer id", 1.0, 64.0)
 	component := testComponent("app name", "component name", 1.0, 64.0)
@@ -187,16 +203,31 @@ func TestTaskManager(t *testing.T) {
 			})
 		})
 
-		// Convey("when finding deployed apps", func() {
-		// 	PConvey("should find all components for a specified app", func() {
+		Convey("when finding deployed apps", func() {
+			Convey("should find all components for a specified app", func() {
+				apps := createFilterData(ts)
+				expected := []*mesos.TaskID{apps[0].TaskId, apps[1].TaskId, apps[2].TaskId}
 
-		// 	})
-		// 	PConvey("should find all instances of a component for a specified app", func() {
+				actual, err := mgr.FindTasksForApp(apps[0].GetAppName())
+				So(err, ShouldBeNil)
+				So(actual, ShouldHaveTheSameElementsAs, expected)
+			})
+			Convey("should find all instances of a component for a specified app", func() {
+				apps := createFilterData(ts)
+				expected := []*mesos.TaskID{apps[3].TaskId, apps[5].TaskId}
 
-		// 	})
-		// 	PConvey("should find a specific component instance", func() {
+				actual, err := mgr.FindTasksForComponent(apps[3].GetAppName(), apps[3].Component.GetName())
+				So(err, ShouldBeNil)
+				So(actual, ShouldHaveTheSameElementsAs, expected)
+			})
+			Convey("should find a specific component instance", func() {
+				apps := createFilterData(ts)
+				expected := apps[4].TaskId
 
-		// 	})
-		// })
+				actual, err := mgr.FindTaskForComponent(apps[4].TaskId.GetValue())
+				So(err, ShouldBeNil)
+				So(actual, ShouldResemble, expected)
+			})
+		})
 	})
 }

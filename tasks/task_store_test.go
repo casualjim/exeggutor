@@ -33,6 +33,13 @@ func buildStoreTestData(index int) protocol.DeployedAppComponent {
 	task := BuildTaskInfo("task-app-id-"+strconv.Itoa(index), &offer, &scheduled)
 	return deployedApp(&component, &task)
 }
+func buildStoreTestData2(app, componentID, taskID int) protocol.DeployedAppComponent {
+	component := testComponent("app-store-"+strconv.Itoa(app), "app-"+strconv.Itoa(componentID), 1, 64)
+	scheduled := scheduledComponent(&component)
+	offer := createOffer("slave-"+strconv.Itoa(taskID), 8, 1024)
+	task := BuildTaskInfo("task-app-"+strconv.Itoa(app)+"-"+strconv.Itoa(componentID)+"-id-"+strconv.Itoa(taskID), &offer, &scheduled)
+	return deployedApp(&component, &task)
+}
 
 func saveStoreTestData(backing store.KVStore, deployed *protocol.DeployedAppComponent) {
 
