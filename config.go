@@ -1,5 +1,7 @@
 package exeggutor
 
+import "github.com/antage/eventsource"
+
 // Config the main configuration object to use in the application
 type Config struct {
 	ZookeeperURL    string          `json:"zookeeper,omitempty" long:"zk" description:"The uri for zookeeper in the form of zk://localhost:2181/root"`
@@ -14,6 +16,7 @@ type Config struct {
 	Mode            string          `json:"mode,omitempty" long:"mode" description:"The mode in which to run this application (dev, prod, stage, jenkins)" default:"development"`
 	FrameworkInfo   FrameworkConfig `json:"framework,omitempty"`
 	DockerIndex     string          `json:"dockerIndex,omitempty" long:"docker_index" description:"The docker index this application should use for pulling docker images" default:""`
+	EventSource     *eventsource.EventSource
 }
 
 // FrameworkConfig framework config contains configuration specific to mesos.

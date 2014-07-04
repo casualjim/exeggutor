@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/antage/eventsource"
 	"github.com/codegangsta/negroni"
 	"github.com/imdario/mergo"
 	"github.com/jessevdk/go-flags"
@@ -38,6 +39,8 @@ func init() {
 
 func main() {
 
+	es := eventsource.New(nil, nil)
+	config.EventSource = &es
 	mgr, err := tasks.NewDefaultTaskManager(&config)
 	if err != nil {
 		log.Fatalf("Couldn't initialize the task manager because:%v", err)
@@ -72,14 +75,16 @@ func main() {
 	router.PUT("/api/applications/:name", applicationsController.Save)
 	router.DELETE("/api/applications/:name", applicationsController.Delete)
 	router.POST("/api/applications/:name/deploy", applicationsController.Deploy)
-
 	router.GET("/api/mesos/fwid", mesosController.ShowFrameworkID)
 
+	log.Info("serving static files from: %v", config.StaticFiles)
 	staticFS := http.Dir(config.StaticFiles)
 
 	router.NotFound = http.FileServer(staticFS).ServeHTTP
 
 	n := negroni.New()
+
+	n.Use(middlewares.NewEventSource(es))
 	n.Use(middlewares.NewJSONOnlyAPI())
 	n.Use(middlewares.NewRecovery())
 	n.Use(middlewares.NewLogger())
@@ -88,6 +93,7 @@ func main() {
 
 	trapExit(func() {
 		mgr.Stop()
+		es.Close()
 		framework.Stop()
 		appStore.Stop()
 	})

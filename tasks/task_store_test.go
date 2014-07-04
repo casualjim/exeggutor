@@ -2,17 +2,15 @@
 package tasks
 
 import (
-	"fmt"
-	"reflect"
 	"strconv"
 	"testing"
 
 	"code.google.com/p/goprotobuf/proto"
 
-	o "github.com/onsi/gomega"
 	"github.com/reverb/exeggutor/protocol"
 	"github.com/reverb/exeggutor/store"
 	"github.com/reverb/go-mesos/mesos"
+	. "github.com/reverb/go-utils/convey/matchers"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -53,76 +51,6 @@ func createStoreTestData(backing store.KVStore) (*mesos.TaskID, protocol.Deploye
 	deployed := buildStoreTestData(1)
 	saveStoreTestData(backing, &deployed)
 	return deployed.TaskId, deployed
-}
-
-const (
-	success                             = ""
-	needExactValues                     = "This assertion requires exactly %d comparison values (you provided %d)."
-	shouldHaveProvidedCollectionMembers = "This assertion requires at least 1 comparison value (you provided 0)."
-	shouldHaveBeenAValidCollection      = "You must provide a valid container (was %v)!"
-	shouldHaveContained                 = "Expected the container (%v) to contain: '%v' (but it didn't)!"
-)
-
-func need(needed int, expected []interface{}) string {
-	if len(expected) != needed {
-		return fmt.Sprintf(needExactValues, needed, len(expected))
-	}
-	return success
-}
-
-func atLeast(minimum int, expected []interface{}) string {
-	if len(expected) < 1 {
-		return shouldHaveProvidedCollectionMembers
-	}
-	return success
-}
-
-func ShouldBeEquivalent(actual interface{}, expected ...interface{}) string {
-	if fail := need(1, expected); fail != success {
-		return fail
-	}
-
-	success, err := o.BeEquivalentTo(expected[0]).Match(actual)
-	if err != nil {
-		return err.Error()
-	}
-	if !success {
-		return fmt.Sprintf("The collection %v did not match %v", expected[0], actual)
-	}
-	return ""
-
-}
-
-func ShouldHaveTheSameElementsAs(actual interface{}, expected ...interface{}) string {
-	if fail := need(1, expected); fail != success {
-		return fail
-	}
-
-	v1 := reflect.ValueOf(actual)
-	if v1.Kind() != reflect.Slice && v1.Kind() != reflect.Array {
-		return fmt.Sprintf(shouldHaveBeenAValidCollection, v1.Kind())
-	}
-	v2 := reflect.ValueOf(expected[0])
-	if v2.Kind() != reflect.Slice && v2.Kind() != reflect.Array {
-		return fmt.Sprintf(shouldHaveBeenAValidCollection, v2.Kind())
-	}
-
-	if v1.Len() != v2.Len() {
-		return fmt.Sprintf("Expected actual to have %v items but it only has %v items", v1.Len(), v2.Len())
-	}
-	for i := 0; i < v2.Len(); i++ {
-		found := false
-		for j := 0; j < v1.Len(); j++ {
-			if reflect.DeepEqual(v2.Index(i).Interface(), v1.Index(j).Interface()) {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return fmt.Sprintf(shouldHaveContained, actual, v2.Index(i).Interface())
-		}
-	}
-	return ""
 }
 
 func TestTaskStore(t *testing.T) {

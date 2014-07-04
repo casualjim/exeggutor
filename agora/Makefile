@@ -6,7 +6,7 @@ DOCKER ?= docker
 all: run-forever
 
 build-frontend:
-	-@cd static; grunt build 
+	-@cd static; grunt compile
 
 build-binary:
 	$(shell GOOS=darwin $(GO) build -o $(shell basename $(CURDIR)))
@@ -24,7 +24,7 @@ docker: build-linux build-frontend
 dist: build-binary build-frontend
 	mkdir -p dist
 	mv agora dist
-	mv static/build dist/static
+	mv static/bin dist/static
 	tar -czf agora.tar.gz agora
 	rm -rf agora
 

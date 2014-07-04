@@ -73,7 +73,6 @@ func (fw *Framework) KillApp(app string) error {
 		if err2 != nil {
 			err = err2
 		}
-
 	}
 	return err
 }

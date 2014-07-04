@@ -212,6 +212,7 @@ func TestTaskManager(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(actual, ShouldHaveTheSameElementsAs, expected)
 			})
+
 			Convey("should find all instances of a component for a specified app", func() {
 				apps := createFilterData(ts)
 				expected := []*mesos.TaskID{apps[3].TaskId, apps[5].TaskId}
@@ -220,6 +221,7 @@ func TestTaskManager(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(actual, ShouldHaveTheSameElementsAs, expected)
 			})
+
 			Convey("should find a specific component instance", func() {
 				apps := createFilterData(ts)
 				expected := apps[4].TaskId

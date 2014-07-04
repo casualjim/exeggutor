@@ -35,10 +35,10 @@
             <label for="appName" class="col-sm-12 control-label">Name:</label>
             <div  class="col-sm-12">
               <input id="appName" name="appName" class="form-control" type="text" ng-model="currentApp.name"  ng-minlength="3" ng-maxlength="50" ng-pattern="/^[\w\d-_]+$/" placeholder="Application Name" required ng-model-options="{ debounce: 250 }" agora-autosave="update(currentApp)" agora-form="currentAppForm"/>
-              <div class="text-danger bg-danger" ng-show="currentAppForm.appName.$error.required">Application name is required</div>
-              <div class="text-danger bg-danger" ng-show="currentAppForm.appName.$error.minlength">Application name needs to be 3 chars or longer</div>
-              <div class="text-danger bg-danger" ng-show="currentAppForm.appName.$error.maxlength">Application name needs to 50 chars or less</div>
-              <div class="text-danger bg-danger" ng-show="currentAppForm.appName.$error.pattern">Application name can only contain letters, digits - and _</div>
+              <div class="text-danger" ng-show="currentAppForm.appName.$error.required">Application name is required</div>
+              <div class="text-danger" ng-show="currentAppForm.appName.$error.minlength">Application name needs to be 3 chars or longer</div>
+              <div class="text-danger" ng-show="currentAppForm.appName.$error.maxlength">Application name needs to 50 chars or less</div>
+              <div class="text-danger" ng-show="currentAppForm.appName.$error.pattern">Application name can only contain letters, digits - and _</div>
               <span class="help-block">The name of the application</span>
             </div>
           </div>
@@ -76,10 +76,10 @@
                           <label for="compName" class="col-sm-2 control-label">Name:</label>
                           <div  class="col-sm-10">
                             <input id="compName" name="compName" class="form-control" type="text" ng-model="currentComponent.name" placeholder="Component Name" required  ng-minlength="3" ng-maxlength="50" ng-pattern="/^[\w\d-_]+$/" agora-autosave="saveCurrentComponent()" agora-form="componentForm"/>
-                            <div class="text-danger bg-danger" ng-show="componentForm.compName.$error.required">Component name is required</div>
-                            <div class="text-danger bg-danger" ng-show="componentForm.compName.$error.minlength">Component name needs to be 3 chars or longer</div>
-                            <div class="text-danger bg-danger" ng-show="componentForm.compName.$error.maxlength">Component name needs to 50 chars or less</div>
-                            <div class="text-danger bg-danger" ng-show="componentForm.compName.$error.pattern">Component name can only contain letters, digits - and _</div>
+                            <div class="text-danger" ng-show="componentForm.compName.$error.required">Component name is required</div>
+                            <div class="text-danger" ng-show="componentForm.compName.$error.minlength">Component name needs to be 3 chars or longer</div>
+                            <div class="text-danger" ng-show="componentForm.compName.$error.maxlength">Component name needs to 50 chars or less</div>
+                            <div class="text-danger" ng-show="componentForm.compName.$error.pattern">Component name can only contain letters, digits - and _</div>
                             <span class="help-block">The name of the component, if you only have one this is probably the same as the application name</span>
                           </div>
                         </div>
@@ -87,8 +87,8 @@
                           <label for="compVersion" class="col-sm-2 control-label">Version:</label>
                           <div  class="col-sm-10">
                             <input id="compVersion" name="compVersion" class="form-control" type="text" ng-model="currentComponent.version" placeholder="0.0.1" required ng-pattern="/^\d+\.\d+\.\d+$/" agora-autosave="saveCurrentComponent()" agora-form="componentForm"/>
-                            <div class="text-danger bg-danger" ng-show="componentForm.compVersion.$error.required">Version is required</div>
-                            <div class="text-danger bg-danger" ng-show="componentForm.compVersion.$error.pattern">Version must be of the form 0.0.0</div>
+                            <div class="text-danger" ng-show="componentForm.compVersion.$error.required">Version is required</div>
+                            <div class="text-danger" ng-show="componentForm.compVersion.$error.pattern">Version must be of the form 0.0.0</div>
                             <span class="help-block">The version of this component</span>
                           </div>
                         </div>
@@ -96,7 +96,7 @@
                           <label for="compType" class="col-sm-2 control-label">Type:</label>
                           <div  class="col-sm-10">
                             <select id="compType" name="compType" class="from-control" ng-model="currentComponent.component_type" ng-options="key as value for (key, value) in componentTypes" required agora-autosave="saveCurrentComponent()" agora-form="componentForm"><option value="">- Choose one -</option></select>
-                            <div class="text-danger bg-danger" ng-show="componentForm.compType.$error.required">Component type is required</div>
+                            <div class="text-danger" ng-show="componentForm.compType.$error.required">Component type is required</div>
                             <span class="help-block">The type of this component (service, task, cron, spark)</span>
                           </div>
                         </div>
@@ -104,7 +104,7 @@
                           <label for="compDist" class="col-sm-2 control-label">Distribution:</label>
                           <div  class="col-sm-10">
                             <select id="compDist" name="compDist" class="from-control" ng-model="currentComponent.distribution" ng-options="key as value for (key, value) in distributions" required agora-autosave="saveCurrentComponent()" agora-form="componentForm"><option value="">- Choose one -</option></select>
-                            <div class="text-danger bg-danger" ng-show="componentForm.compDist.$error.required">Component type is required</div>
+                            <div class="text-danger" ng-show="componentForm.compDist.$error.required">Component type is required</div>
                             <span class="help-block">the type of distribution this component uses (package, docker, script, fat_jar)</span>
                           </div>
                         </div>
@@ -115,7 +115,7 @@
                         <label for="compCpus" class="col-sm-2 control-label">CPUS:</label>
                         <div  class="col-sm-10">
                           <input id="compCpus" name="compCpus" class="form-control" type="number" ng-model="currentComponent.cpus" placeholder="Component CPUS" required agora-autosave="saveCurrentComponent()" agora-form="requirementsForm"/>
-                          <div class="text-danger bg-danger" ng-show="requirementsForm.compCpus.$error.required">Component cpus is required</div>
+                          <div class="text-danger" ng-show="requirementsForm.compCpus.$error.required">Component cpus is required</div>
                           <span class="help-block">The number of cpu cores</span>
                         </div>
                       </div>
@@ -123,7 +123,7 @@
                         <label for="compMem" class="col-sm-2 control-label">Memory:</label>
                         <div  class="col-sm-10">
                           <input id="compMem" name="compMem" class="form-control" type="number" ng-model="currentComponent.mem" placeholder="Component Mem" required agora-autosave="saveCurrentComponent()" agora-form="requirementsForm"/>
-                          <div class="text-danger bg-danger" ng-show="requirementsForm.compMem.$error.required">Component memory is required</div>
+                          <div class="text-danger" ng-show="requirementsForm.compMem.$error.required">Component memory is required</div>
                           <span class="help-block">The amount of memory this app requires at minimum</span>
                         </div>
                       </div>
@@ -131,7 +131,7 @@
                         <label for="compDisk" class="col-sm-2 control-label">Disk Space:</label>
                         <div  class="col-sm-10">
                           <input id="compDisk" name="compDisk" class="form-control" type="number" ng-model="currentComponent.disk_space" placeholder="Component Disk Space" required agora-autosave="saveCurrentComponent()" agora-form="requirementsForm" value="0"/>
-                          <div class="text-danger bg-danger" ng-show="requirementsForm.compDisk.$error.required">Component name is required</div>
+                          <div class="text-danger" ng-show="requirementsForm.compDisk.$error.required">Component name is required</div>
                           <span class="help-block">The amount of disk space this app requires at minimum in its working directories (the diskspace to install does not matter)</span>
                         </div>
                       </div>
@@ -166,11 +166,11 @@
                             <tr ng-form="currentEnvVarForm">
                               <td ng-class="{'has-error':currentEnvVarForm.key.$invalid, 'has-success':currentEnvVarForm.key.$valid}">
                                 <input name="key" class="form-control" type="text"  ng-model="newEnvVar.key" required />
-                                <div class="text-danger bg-danger" ng-show="currentEnvVarForm.key.$error.required">Key is required</div>
+                                <div class="text-danger" ng-show="currentEnvVarForm.key.$error.required">Key is required</div>
                               </td>
                               <td ng-class="{'has-error':currentEnvVarForm.value.$invalid, 'has-success':currentEnvVarForm.value.$valid}">
                                 <input name="value" class="form-control" type="text"  ng-model="newEnvVar.value" required />
-                                <div class="text-danger bg-danger" ng-show="currentEnvVarForm.value.$error.required">Value is required</div>
+                                <div class="text-danger" ng-show="currentEnvVarForm.value.$error.required">Value is required</div>
                               </td>
                               <td>
                                 <a class="pointable" ng-show="currentEnvVarForm.$valid" ng-click="addEnvVar()"><i class="fa fa-floppy-o"></i></a>
@@ -204,13 +204,13 @@
                             <tr ng-form="currentPortMappingForm">
                               <td ng-class="{'has-error':currentPortMappingForm.scheme.$invalid, 'has-success':currentPortMappingForm.scheme.$valid}">
                                 <input name="scheme" class="form-control input-sm" type="text" ng-model="newPortMapping.scheme" required />
-                                <div class="text-danger bg-danger" ng-show="currentPortMappingForm.scheme.$error.required">Scheme is required</div>
+                                <div class="text-danger" ng-show="currentPortMappingForm.scheme.$error.required">Scheme is required</div>
                               </td>
                               <td ng-class="{'has-error':currentPortMappingForm.port.$invalid, 'has-success':currentPortMappingForm.port.$valid}">
                                 <input class="form-control input-sm" name="port" type="number" min="1" max="65364" ng-model="newPortMapping.port" required />
-                                <div class="text-danger bg-danger" ng-show="currentPortMappingForm.port.$error.required">A numeric port is required</div>
-                                <div class="text-danger bg-danger" ng-show="currentPortMappingForm.port.$error.min">Port must be larger than 1</div>
-                                <div class="text-danger bg-danger" ng-show="currentPortMappingForm.port.$error.max">Port must be smaller than 65365</div>
+                                <div class="text-danger" ng-show="currentPortMappingForm.port.$error.required">A numeric port is required</div>
+                                <div class="text-danger" ng-show="currentPortMappingForm.port.$error.min">Port must be larger than 1</div>
+                                <div class="text-danger" ng-show="currentPortMappingForm.port.$error.max">Port must be smaller than 65365</div>
                               </td>
                               <td>
                                 <a class="pointable" ng-show="currentPortMappingForm.$valid" ng-click="addPortMapping()"><i class="fa fa-floppy-o"></i></a>

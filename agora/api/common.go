@@ -16,14 +16,14 @@ const (
 	JSONContentType = "application/json;charset=utf-8"
 )
 
+var log = logging.MustGetLogger("agora.api")
+
 // APIContext the most generic context for this api
 type APIContext struct {
 	Framework *scheduler.Framework
 	Config    *exeggutor.Config
 	AppStore  store.KVStore
 }
-
-var log = logging.MustGetLogger("agora.api")
 
 func renderJSON(rw http.ResponseWriter, data interface{}) {
 	enc := json.NewEncoder(rw)
