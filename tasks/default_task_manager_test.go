@@ -8,42 +8,25 @@ import (
 
 	"code.google.com/p/goprotobuf/proto"
 	"github.com/op/go-logging"
+	"github.com/reverb/exeggutor"
 	"github.com/reverb/exeggutor/protocol"
 	"github.com/reverb/exeggutor/store"
+	"github.com/reverb/exeggutor/tasks/builders"
+	task_queue "github.com/reverb/exeggutor/tasks/queue"
+	task_store "github.com/reverb/exeggutor/tasks/store"
+	. "github.com/reverb/exeggutor/tasks/test_utils"
 	"github.com/reverb/go-mesos/mesos"
 	. "github.com/reverb/go-utils/convey/matchers"
+	"github.com/reverb/go-utils/flake"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func createFilterData(ts store.KVStore) []protocol.DeployedAppComponent {
-	app1 := buildStoreTestData2(1, 1, 1)
-	app2 := buildStoreTestData2(1, 2, 3)
-	app3 := buildStoreTestData2(1, 3, 2)
-	app4 := buildStoreTestData2(2, 1, 2)
-	app5 := buildStoreTestData2(3, 1, 3)
-	app6 := buildStoreTestData2(2, 1, 3)
-	saveStoreTestData(ts, &app1)
-	saveStoreTestData(ts, &app2)
-	saveStoreTestData(ts, &app3)
-	saveStoreTestData(ts, &app4)
-	saveStoreTestData(ts, &app5)
-	saveStoreTestData(ts, &app6)
-	return []protocol.DeployedAppComponent{app1, app2, app3, app4, app5, app6}
+type constantPortPicker struct {
+	Port int
 }
 
-func setupCallbackTestData(ts store.KVStore) (*mesos.TaskID, protocol.DeployedAppComponent) {
-	offer := createOffer("offer id", 1.0, 64.0)
-	component := testComponent("app name", "component name", 1.0, 64.0)
-	cr := &component
-	scheduled := scheduledComponent(cr)
-	task := BuildTaskInfo("task id", &offer, &scheduled)
-	tr := &task
-	id := task.GetTaskId()
-	deployed := deployedApp(cr, tr)
-	bytes, _ := proto.Marshal(&deployed)
-	ts.Set(id.GetValue(), bytes)
-
-	return id, deployed
+func (p *constantPortPicker) GetPorts(offer *mesos.Offer, count int) ([]builders.PortRange, []int32) {
+	return builders.PortRangeFor(p.Port)
 }
 
 func TestTaskManager(t *testing.T) {
@@ -52,12 +35,23 @@ func TestTaskManager(t *testing.T) {
 	logging.SetBackend(logBackend)
 	logging.SetLevel(logging.ERROR, "")
 
+	context := &exeggutor.AppContext{
+		Config: &exeggutor.Config{
+			Mode:        "test",
+			DockerIndex: "dev-docker.helloreverb.com",
+		},
+		IDGenerator: flake.NewFlake(),
+	}
+
 	Convey("TaskManager", t, func() {
-		q := &prioQueue{}
-		tq := NewTaskQueueWithprioQueue(q)
+		builder := builders.New(context.Config)
+		builder.PortPicker = &constantPortPicker{Port: 8000}
+
+		q := &task_queue.PrioQueue{}
+		tq := task_queue.NewTaskQueueWithPrioQueue(q)
 		tq.Start()
 		ts := store.NewEmptyInMemoryStore()
-		mgr, _ := NewCustomDefaultTaskManager(tq, &DefaultTaskStore{ts}, nil)
+		mgr, _ := NewCustomDefaultTaskManager(tq, task_store.NewWithStore(ts), context, builder)
 		mgr.Start()
 
 		Reset(func() {
@@ -67,20 +61,20 @@ func TestTaskManager(t *testing.T) {
 
 		Convey("when enqueueing app manifests", func() {
 			Convey("should enqueue an application manifest", func() {
-				expected := testComponent("test-service-1", "test-service-1", 1.0, 256.0)
+				expected := TestComponent("test-service-1", "test-service-1", 1.0, 256.0)
 				err := mgr.SubmitApp([]protocol.Application{expected})
 
 				So(err, ShouldBeNil)
 				So(q.Len(), ShouldEqual, 1)
-				scheduled := scheduledComponent(&expected)
+				scheduled := ScheduledComponent(&expected)
 				actual := (*q)[0]
 				actual.Since = proto.Int64(5)
 				So(actual, ShouldResemble, &scheduled)
 			})
 
 			Convey("should enqueue all the components in a manifest", func() {
-				expected := testComponent("test-service-1", "test-service-1", 1.0, 256.0)
-				comp := testComponent("test-service-1", "component-2", 1.0, 256.0)
+				expected := TestComponent("test-service-1", "test-service-1", 1.0, 256.0)
+				comp := TestComponent("test-service-1", "component-2", 1.0, 256.0)
 				app := []protocol.Application{expected, comp}
 				err := mgr.SubmitApp(app)
 
@@ -94,7 +88,7 @@ func TestTaskManager(t *testing.T) {
 				}
 				var expectedComponents []*protocol.ScheduledApp
 				for i, comp := range app {
-					s := scheduledComponent(&comp)
+					s := ScheduledComponent(&comp)
 					scheduled := &s
 					scheduled.Since = proto.Int64(5)
 					scheduled.Position = proto.Int(i)
@@ -108,32 +102,32 @@ func TestTaskManager(t *testing.T) {
 		Convey("when fullfilling offers", func() {
 
 			Convey("should return an empty array when there are no apps queued", func() {
-				offer := createOffer("offer-id-big", 5.0, 1024.0)
+				offer := CreateOffer("offer-id-big", 5.0, 1024.0)
 				res := mgr.FulfillOffer(offer)
 				So(res, ShouldBeEmpty)
 			})
 
 			Convey("should fullfill an offer when there is an app queued that can statisfy it", func() {
-				component := testComponent("test-service-yada", "test-service-yada", 1.0, 256.0)
-				expectedCommand := BuildMesosCommand("", &component)
-				expectedResources := BuildResources(&component, []portRange{})
+				component := TestComponent("test-service-yada", "test-service-yada", 1.0, 256.0)
+				prange, p := builders.PortRangeFor(8000)
+				expectedCommand := builder.BuildMesosCommand("", &component, p)
+				expectedResources := builder.BuildResources(&component, prange)
 				mgr.SubmitApp([]protocol.Application{component})
-				offer := createOffer("offer-id-1", 5.0, 1024.0)
+				offer := CreateOffer("offer-id-1", 5.0, 1024.0)
 				reply := mgr.FulfillOffer(offer)
 
 				So(reply, ShouldNotBeEmpty)
 				So(len(reply), ShouldEqual, 1)
 				actual := reply[0]
 				So(actual.Command, ShouldResemble, expectedCommand)
-				So(actual.Resources[0], ShouldResemble, expectedResources[0])
-				So(actual.Resources[1], ShouldResemble, expectedResources[1])
+				So(actual.Resources, ShouldResemble, expectedResources)
 			})
 
 			Convey("should return an empty array when the offer can't be fullfilled", func() {
-				component := testComponent("test-service-yada", "test-service-yada", 5.0, 1024.0)
+				component := TestComponent("test-service-yada", "test-service-yada", 5.0, 1024.0)
 
 				mgr.SubmitApp([]protocol.Application{component})
-				offer := createOffer("offer-id-1", 1.0, 256.0)
+				offer := CreateOffer("offer-id-1", 1.0, 256.0)
 				reply := mgr.FulfillOffer(offer)
 
 				So(reply, ShouldBeEmpty)
@@ -143,28 +137,28 @@ func TestTaskManager(t *testing.T) {
 		Convey("when handling callbacks", func() {
 
 			Convey("should remove persisted items from the persistent store when they fail", func() {
-				id, _ := setupCallbackTestData(ts)
+				id, _ := SetupCallbackTestData(ts, builder)
 				mgr.TaskFailed(id, nil)
 				actual, _ := ts.Get(id.GetValue())
 				So(actual, ShouldBeNil)
 			})
 
 			Convey("should remove persisted items from the persistent store when they finish", func() {
-				id, _ := setupCallbackTestData(ts)
+				id, _ := SetupCallbackTestData(ts, builder)
 				mgr.TaskFinished(id, nil)
 				actual, _ := ts.Get(id.GetValue())
 				So(actual, ShouldBeNil)
 			})
 
 			Convey("should remove persisted items from the persistent store when they are killed", func() {
-				id, _ := setupCallbackTestData(ts)
+				id, _ := SetupCallbackTestData(ts, builder)
 				mgr.TaskKilled(id, nil)
 				actual, _ := ts.Get(id.GetValue())
 				So(actual, ShouldBeNil)
 			})
 
 			Convey("should remove persisted items from the persistent store when they are lost", func() {
-				id, _ := setupCallbackTestData(ts)
+				id, _ := SetupCallbackTestData(ts, builder)
 
 				mgr.TaskLost(id, nil)
 				actual, _ := ts.Get(id.GetValue())
@@ -172,7 +166,7 @@ func TestTaskManager(t *testing.T) {
 			})
 
 			Convey("should add to the persistence store if it exists in the deploying store for running", func() {
-				id, deployed := setupCallbackTestData(ts)
+				id, deployed := SetupCallbackTestData(ts, builder)
 				mgr.TaskRunning(id, nil)
 
 				bytes, err := ts.Get(id.GetValue())
@@ -186,7 +180,7 @@ func TestTaskManager(t *testing.T) {
 			})
 
 			Convey("should remove persisted items from the store for staging", func() {
-				id, _ := setupCallbackTestData(ts)
+				id, _ := SetupCallbackTestData(ts, builder)
 
 				mgr.TaskStaging(id, nil)
 				actual, _ := ts.Get(id.GetValue())
@@ -194,7 +188,7 @@ func TestTaskManager(t *testing.T) {
 			})
 
 			Convey("should remove persisted items from the store for starting", func() {
-				id, _ := setupCallbackTestData(ts)
+				id, _ := SetupCallbackTestData(ts, builder)
 
 				mgr.TaskStarting(id, nil)
 
@@ -206,7 +200,7 @@ func TestTaskManager(t *testing.T) {
 
 		Convey("when finding deployed apps", func() {
 			Convey("should find all components for a specified app", func() {
-				apps := createFilterData(ts)
+				apps := CreateFilterData(ts, builder)
 				expected := []*mesos.TaskID{apps[0].TaskId, apps[1].TaskId, apps[2].TaskId}
 
 				actual, err := mgr.FindTasksForApp(apps[0].GetAppName())
@@ -215,7 +209,7 @@ func TestTaskManager(t *testing.T) {
 			})
 
 			Convey("should find all instances of a component for a specified app", func() {
-				apps := createFilterData(ts)
+				apps := CreateFilterData(ts, builder)
 				expected := []*mesos.TaskID{apps[3].TaskId, apps[5].TaskId}
 
 				actual, err := mgr.FindTasksForComponent(apps[3].GetAppName(), apps[3].Component.GetName())
@@ -224,7 +218,7 @@ func TestTaskManager(t *testing.T) {
 			})
 
 			Convey("should find a specific component instance", func() {
-				apps := createFilterData(ts)
+				apps := CreateFilterData(ts, builder)
 				expected := apps[4].TaskId
 
 				actual, err := mgr.FindTaskForComponent(apps[4].TaskId.GetValue())

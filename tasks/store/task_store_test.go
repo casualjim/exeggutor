@@ -6,17 +6,31 @@ import (
 
 	"code.google.com/p/goprotobuf/proto"
 
+	"github.com/reverb/exeggutor"
 	"github.com/reverb/exeggutor/protocol"
 	"github.com/reverb/exeggutor/store"
-	. "github.com/reverb/exeggutor/tasks"
+	"github.com/reverb/exeggutor/tasks/builders"
+	. "github.com/reverb/exeggutor/tasks/test_utils"
 	"github.com/reverb/go-mesos/mesos"
 	. "github.com/reverb/go-utils/convey/matchers"
+	"github.com/reverb/go-utils/flake"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestTaskStore(t *testing.T) {
 
+	context := &exeggutor.AppContext{
+		Config: &exeggutor.Config{
+			Mode:        "test",
+			DockerIndex: "dev-docker.helloreverb.com",
+		},
+		IDGenerator: flake.NewFlake(),
+	}
+
 	Convey("A DefaultTaskStore", t, func() {
+
+		builder := builders.New(context.Config)
+
 		backing := store.NewEmptyInMemoryStore()
 		taskStore := &DefaultTaskStore{store: backing}
 		err := taskStore.Start()
@@ -27,36 +41,31 @@ func TestTaskStore(t *testing.T) {
 		})
 
 		Convey("should get an item by key", func() {
-			id, deployed := createStoreTestData(backing)
+			id, deployed := CreateStoreTestData(backing, builder)
 			actual, err := taskStore.Get(id.GetValue())
 			So(err, ShouldBeNil)
 			So(actual, ShouldResemble, &deployed)
 		})
 
 		Convey("should save a deployed app", func() {
-			component := testComponent("app-store-1", "app-1", 1, 64)
-			scheduled := scheduledComponent(&component)
-			offer := createOffer("slave-1", 8, 1024)
-			task := BuildTaskInfo("task-app-id-1", &offer, &scheduled)
-			deployed := deployedApp(&component, &task)
-
+			id, deployed := CreateStoreTestData(backing, builder)
 			bytes, _ := proto.Marshal(&deployed)
 
 			err := taskStore.Save(&deployed)
 			So(err, ShouldBeNil)
-			retr, _ := backing.Get(task.TaskId.GetValue())
+			retr, _ := backing.Get(id.GetValue())
 			So(retr, ShouldResemble, bytes)
 		})
 
 		Convey("Should get the size", func() {
-			createStoreTestData(backing)
+			CreateStoreTestData(backing, builder)
 			sz, err := taskStore.Size()
 			So(err, ShouldBeNil)
 			So(sz, ShouldEqual, 1)
 		})
 
 		Convey("should delete an app", func() {
-			id, _ := createStoreTestData(backing)
+			id, _ := CreateStoreTestData(backing, builder)
 			err := taskStore.Delete(id.GetValue())
 			So(err, ShouldBeNil)
 			contains, _ := backing.Contains(id.GetValue())
@@ -64,7 +73,7 @@ func TestTaskStore(t *testing.T) {
 		})
 
 		Convey("should answer contains", func() {
-			id, _ := createStoreTestData(backing)
+			id, _ := CreateStoreTestData(backing, builder)
 			contains, err := taskStore.Contains(id.GetValue())
 
 			So(err, ShouldBeNil)
@@ -77,7 +86,7 @@ func TestTaskStore(t *testing.T) {
 		})
 
 		Convey("should get the keys", func() {
-			apps := createMulti(backing)
+			apps := CreateMulti(backing, builder)
 			ids, err := taskStore.Keys()
 			So(err, ShouldBeNil)
 			So(ids, ShouldHaveTheSameElementsAs, []string{apps[0].TaskId.GetValue(), apps[1].TaskId.GetValue(), apps[2].TaskId.GetValue()})
@@ -85,7 +94,7 @@ func TestTaskStore(t *testing.T) {
 
 		Convey("should iterate over each value", func() {
 			var expected []*protocol.DeployedAppComponent
-			for _, app := range createMulti(backing) {
+			for _, app := range CreateMulti(backing, builder) {
 				expected = append(expected, &app)
 			}
 			var actual []*protocol.DeployedAppComponent
@@ -97,7 +106,7 @@ func TestTaskStore(t *testing.T) {
 		})
 
 		Convey("should filter for task ids", func() {
-			dd := createMulti(backing)
+			dd := CreateMulti(backing, builder)
 			actual, err := taskStore.FilterToTaskIds(func(item *protocol.DeployedAppComponent) bool {
 				return item.GetAppName() == dd[1].GetAppName()
 			})
@@ -106,7 +115,7 @@ func TestTaskStore(t *testing.T) {
 		})
 
 		Convey("should find an app", func() {
-			dd := createMulti(backing)
+			dd := CreateMulti(backing, builder)
 			actual, err := taskStore.Find(func(item *protocol.DeployedAppComponent) bool {
 				return item.GetAppName() == dd[1].GetAppName()
 			})

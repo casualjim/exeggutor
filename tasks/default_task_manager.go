@@ -40,12 +40,12 @@ func NewDefaultTaskManager(context *exeggutor.AppContext) (*DefaultTaskManager, 
 }
 
 // NewCustomDefaultTaskManager creates a new instance of a task manager with all the internal components injected
-func NewCustomDefaultTaskManager(q task_queue.TaskQueue, ts task_store.TaskStore, context *exeggutor.AppContext) (*DefaultTaskManager, error) {
+func NewCustomDefaultTaskManager(q task_queue.TaskQueue, ts task_store.TaskStore, context *exeggutor.AppContext, builder *builders.MesosMessageBuilder) (*DefaultTaskManager, error) {
 	return &DefaultTaskManager{
 		queue:     q,
 		taskStore: ts,
 		context:   context,
-		builder:   builders.New(context.Config),
+		builder:   builder,
 	}, nil
 }
 

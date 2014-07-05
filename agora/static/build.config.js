@@ -72,6 +72,7 @@ module.exports = {
       'vendor/angular-resource/angular-resource.js',
       'vendor/angular-ui-utils/modules/route/route.js',
       'vendor/angular-animate/angular-animate.js',
+      'vendor/angular-reconnecting-websocket/angular-reconnecting-websocket.js',
       'vendor/ngAnimate-animate.css/animate.js',      
     ],
     css: [

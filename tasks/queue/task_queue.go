@@ -36,19 +36,19 @@ type TaskQueue interface {
 // In this implementation the priorty queue favors highest cpu needs over
 // highest memory needs over least recently added to the queue.
 type taskQueue struct {
-	pQueue *prioQueue
+	pQueue *PrioQueue
 	lock   sync.Locker
 }
 
 // New creates a new instance of the default task queue with
 // an empty priority queue as storage
 func New() TaskQueue {
-	return NewTaskQueueWithprioQueue(&prioQueue{})
+	return NewTaskQueueWithPrioQueue(&PrioQueue{})
 }
 
-// NewTaskQueueWithprioQueue creates a new instance of a default task queue
+// NewTaskQueueWithPrioQueue creates a new instance of a default task queue
 // with the provided priority queue as storage (mainly used for testing)
-func NewTaskQueueWithprioQueue(q *prioQueue) TaskQueue {
+func NewTaskQueueWithPrioQueue(q *PrioQueue) TaskQueue {
 	tq := &taskQueue{pQueue: q, lock: &sync.Mutex{}}
 	heap.Init(tq.pQueue)
 	return tq
@@ -106,30 +106,30 @@ func (tq *taskQueue) DequeueFirst(shouldDequeue func(*protocol.ScheduledApp) boo
 	return found, nil
 }
 
-// prioQueue a type to represent the default priority queue
-type prioQueue []*protocol.ScheduledApp
+// PrioQueue a type to represent the default priority queue
+type PrioQueue []*protocol.ScheduledApp
 
 // Len returns the size of this priority queue
-func (pq prioQueue) Len() int {
+func (pq PrioQueue) Len() int {
 	return len(pq)
 }
 
-func (pq prioQueue) byCPU(left, right *protocol.Application) bool {
+func (pq PrioQueue) byCPU(left, right *protocol.Application) bool {
 	return left.GetCpus() > right.GetCpus()
 }
 
-func (pq prioQueue) byMemorySecondary(left, right *protocol.Application) bool {
+func (pq PrioQueue) byMemorySecondary(left, right *protocol.Application) bool {
 	return left.GetCpus() == right.GetCpus() && left.GetMem() > right.GetMem()
 }
 
-func (pq prioQueue) leastRecent(left, right *protocol.ScheduledApp) bool {
+func (pq PrioQueue) leastRecent(left, right *protocol.ScheduledApp) bool {
 	lcomp, rcomp := left.App, right.App
 	return lcomp.GetCpus() == rcomp.GetCpus() && lcomp.GetMem() == rcomp.GetMem() && left.GetSince() < right.GetSince()
 }
 
 // Less returns true when the item at index i
 // is higher on the list than the item at index j
-func (pq prioQueue) Less(i, j int) bool {
+func (pq PrioQueue) Less(i, j int) bool {
 	left, right := pq[i], pq[j]
 	return pq.byCPU(left.App, right.App) ||
 		pq.byMemorySecondary(left.App, right.App) ||
@@ -137,14 +137,14 @@ func (pq prioQueue) Less(i, j int) bool {
 }
 
 // Swap swaps 2 items in the queue from position.
-func (pq prioQueue) Swap(i, j int) {
+func (pq PrioQueue) Swap(i, j int) {
 	pq[i], pq[j] = pq[j], pq[i]
 	pq[i].Position = proto.Int(i)
 	pq[j].Position = proto.Int(j)
 }
 
 // Push pushes a new item onto this queue
-func (pq *prioQueue) Push(x interface{}) {
+func (pq *PrioQueue) Push(x interface{}) {
 	n := len(*pq)
 	item := x.(*protocol.ScheduledApp)
 	item.Position = proto.Int(n)
@@ -153,7 +153,7 @@ func (pq *prioQueue) Push(x interface{}) {
 }
 
 // Pop pops a new item of the queue
-func (pq *prioQueue) Pop() interface{} {
+func (pq *PrioQueue) Pop() interface{} {
 	old := *pq
 	n := len(old)
 	item := old[n-1]

@@ -46,6 +46,12 @@ func New(config *exeggutor.Config) (TaskStore, error) {
 	}, nil
 }
 
+// NewWithStore creates a new instance of a task store with a provided backing store.
+// this is meant for testing, but used in another package so needed to be exported
+func NewWithStore(store store.KVStore) TaskStore {
+	return &DefaultTaskStore{store: store}
+}
+
 // Start starts this store
 func (t *DefaultTaskStore) Start() error {
 	return t.store.Start()

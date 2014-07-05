@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/reverb/exeggutor/protocol"
-	. "github.com/reverb/exeggutor/tasks"
+	. "github.com/reverb/exeggutor/tasks/test_utils"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -13,8 +13,8 @@ func TestTaskQueue(t *testing.T) {
 
 	Convey("A DefaultTaskQueue", t, func() {
 
-		q := &prioQueue{}
-		tq := NewTaskQueueWithprioQueue(q)
+		q := &PrioQueue{}
+		tq := NewTaskQueueWithPrioQueue(q)
 		tq.Start()
 
 		Reset(func() {
@@ -24,20 +24,20 @@ func TestTaskQueue(t *testing.T) {
 		Convey("when behaving as a queue", func() {
 
 			Convey("should allow putting things onto the queue", func() {
-				component := testComponent("app-tq-1", "comp-tq-1", 1.0, 64.0)
-				scheduled := scheduledComponent(&component)
+				component := TestComponent("app-tq-1", "comp-tq-1", 1.0, 64.0)
+				scheduled := ScheduledComponent(&component)
 				err := tq.Enqueue(&scheduled)
 				So(err, ShouldBeNil)
 			})
 
 			Convey("should allow popping things of the queue", func() {
-				component := testComponent("app-tq-1", "comp-tq-1", 1.0, 64.0)
-				scheduled := scheduledComponent(&component)
+				component := TestComponent("app-tq-1", "comp-tq-1", 1.0, 64.0)
+				scheduled := ScheduledComponent(&component)
 				cr := &scheduled
 				tq.Enqueue(cr)
 
-				component2 := testComponent("app-tq-2", "comp-tq-2", 1.0, 64.0)
-				scheduled2 := scheduledComponent(&component2)
+				component2 := TestComponent("app-tq-2", "comp-tq-2", 1.0, 64.0)
+				scheduled2 := ScheduledComponent(&component2)
 				cr2 := &scheduled2
 				tq.Enqueue(cr2)
 
@@ -50,13 +50,13 @@ func TestTaskQueue(t *testing.T) {
 			})
 
 			Convey("should allow picking the first thing that matches a predicate for dequeue", func() {
-				component := testComponent("app-tq-1", "comp-tq-1", 1.0, 64.0)
-				scheduled := scheduledComponent(&component)
+				component := TestComponent("app-tq-1", "comp-tq-1", 1.0, 64.0)
+				scheduled := ScheduledComponent(&component)
 				cr := &scheduled
 				tq.Enqueue(cr)
 
-				component2 := testComponent("app-tq-2", "comp-tq-2", 1.0, 64.0)
-				scheduled2 := scheduledComponent(&component2)
+				component2 := TestComponent("app-tq-2", "comp-tq-2", 1.0, 64.0)
+				scheduled2 := ScheduledComponent(&component2)
 				cr2 := &scheduled2
 				tq.Enqueue(cr2)
 
@@ -74,18 +74,18 @@ func TestTaskQueue(t *testing.T) {
 		Convey("when being a priority queue", func() {
 
 			Convey("should take the thing with the largest cpu needs first", func() {
-				component := testComponent("app-tq-1", "comp-tq-1", 1.0, 64.0)
-				scheduled := scheduledComponent(&component)
+				component := TestComponent("app-tq-1", "comp-tq-1", 1.0, 64.0)
+				scheduled := ScheduledComponent(&component)
 				cr := &scheduled
 				tq.Enqueue(cr)
 
-				component2 := testComponent("app-tq-2", "comp-tq-2", 1.0, 64.0)
-				scheduled2 := scheduledComponent(&component2)
+				component2 := TestComponent("app-tq-2", "comp-tq-2", 1.0, 64.0)
+				scheduled2 := ScheduledComponent(&component2)
 				cr2 := &scheduled2
 				tq.Enqueue(cr2)
 
-				component3 := testComponent("app-tq-3", "comp-tq-3", 1.5, 64.0)
-				scheduled3 := scheduledComponent(&component3)
+				component3 := TestComponent("app-tq-3", "comp-tq-3", 1.5, 64.0)
+				scheduled3 := ScheduledComponent(&component3)
 				cr3 := &scheduled3
 				tq.Enqueue(cr3)
 
@@ -97,18 +97,18 @@ func TestTaskQueue(t *testing.T) {
 			})
 
 			Convey("should take the thing with the largest memory needs second", func() {
-				component := testComponent("app-tq-1", "comp-tq-1", 1.0, 64.0)
-				scheduled := scheduledComponent(&component)
+				component := TestComponent("app-tq-1", "comp-tq-1", 1.0, 64.0)
+				scheduled := ScheduledComponent(&component)
 				cr := &scheduled
 				tq.Enqueue(cr)
 
-				component2 := testComponent("app-tq-2", "comp-tq-2", 1.0, 128.0)
-				scheduled2 := scheduledComponent(&component2)
+				component2 := TestComponent("app-tq-2", "comp-tq-2", 1.0, 128.0)
+				scheduled2 := ScheduledComponent(&component2)
 				cr2 := &scheduled2
 				tq.Enqueue(cr2)
 
-				component3 := testComponent("app-tq-3", "comp-tq-3", 0.5, 64.0)
-				scheduled3 := scheduledComponent(&component3)
+				component3 := TestComponent("app-tq-3", "comp-tq-3", 0.5, 64.0)
+				scheduled3 := ScheduledComponent(&component3)
 				cr3 := &scheduled3
 				tq.Enqueue(cr3)
 
@@ -120,18 +120,18 @@ func TestTaskQueue(t *testing.T) {
 			})
 
 			Convey("should take the least recently enqueued as third criteria", func() {
-				component := testComponent("app-tq-1", "comp-tq-1", 1.0, 64.0)
-				scheduled := scheduledComponent(&component)
+				component := TestComponent("app-tq-1", "comp-tq-1", 1.0, 64.0)
+				scheduled := ScheduledComponent(&component)
 				cr := &scheduled
 				tq.Enqueue(cr)
 
-				component2 := testComponent("app-tq-2", "comp-tq-2", 1.0, 64.0)
-				scheduled2 := scheduledComponent(&component2)
+				component2 := TestComponent("app-tq-2", "comp-tq-2", 1.0, 64.0)
+				scheduled2 := ScheduledComponent(&component2)
 				cr2 := &scheduled2
 				tq.Enqueue(cr2)
 
-				component3 := testComponent("app-tq-3", "comp-tq-3", 1.0, 64.0)
-				scheduled3 := scheduledComponent(&component3)
+				component3 := TestComponent("app-tq-3", "comp-tq-3", 1.0, 64.0)
+				scheduled3 := ScheduledComponent(&component3)
 				cr3 := &scheduled3
 				tq.Enqueue(cr3)
 

@@ -9,7 +9,8 @@
     "angular-ui-router": "~0.2",
     "angular-resource": "~1.2.16",
     "angular-lodash": "~0.1.0",
-    "lodash": "~2.4.1"
+    "lodash": "~2.4.1",
+    "angular-reconnecting-websocket": "~0.1.1"
   },
   "dependencies": {
     "ngAnimate-animate.css": "~0.1.1",
