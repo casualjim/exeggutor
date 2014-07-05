@@ -171,7 +171,7 @@ func (a *ApplicationsController) Deploy(rw http.ResponseWriter, req *http.Reques
 	}
 	log.Debug("Building a manifest from app %+v", app)
 
-	appManifest := applications.New(a.apiContext.Config).ToAppManifest(app)
+	appManifest := applications.New(a.apiContext.Config).ToAppManifest(app, a.apiContext.Config)
 	a.apiContext.Framework.SubmitApp(appManifest)
 
 	rw.WriteHeader(http.StatusAccepted)

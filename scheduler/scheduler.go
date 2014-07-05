@@ -19,7 +19,7 @@ var launched = false
 // Framework is the object that listens to mesos resource offers and
 // and tries to fullfil offers if it has applications queued for submission
 type Framework struct {
-	config *exeggutor.Config
+	context *exeggutor.AppContext
 	// FrameworkIDState the zookeeper backed framework id state for this application
 	id            state.FrameworkIDState
 	ownsFwIDState bool
@@ -32,15 +32,15 @@ type Framework struct {
 }
 
 // NewFramework creates a new instance of Framework with the specified config
-func NewFramework(config *exeggutor.Config, taskManager tasks.TaskManager) *Framework {
+func NewFramework(context *exeggutor.AppContext, taskManager tasks.TaskManager) *Framework {
 	log.Debug("Creating a new instance of a mesos scheduler")
-	return &Framework{config: config, ownsCurator: true, ownsFwIDState: true, taskManager: taskManager}
+	return &Framework{context: context, ownsCurator: true, ownsFwIDState: true, taskManager: taskManager}
 }
 
 // NewCustomFramework creates a new instance of a framework with all the dependencies injected
-func NewCustomFramework(config *exeggutor.Config, fwID state.FrameworkIDState, curator *rvb_zk.Curator) *Framework {
+func NewCustomFramework(context *exeggutor.AppContext, fwID state.FrameworkIDState, curator *rvb_zk.Curator) *Framework {
 	log.Debug("Creating a new custom instance of a mesos scheduler")
-	return &Framework{config: config, id: fwID, Curator: curator}
+	return &Framework{context: context, id: fwID, Curator: curator}
 }
 
 // func NewCustomFrameworkWithScheduler(
@@ -50,8 +50,8 @@ func NewCustomFramework(config *exeggutor.Config, fwID state.FrameworkIDState, c
 
 func (fw *Framework) infoFromConfig() mesos.FrameworkInfo {
 	return mesos.FrameworkInfo{
-		User: proto.String(fw.config.FrameworkInfo.User),
-		Name: proto.String(fw.config.FrameworkInfo.Name),
+		User: proto.String(fw.context.Config.FrameworkInfo.User),
+		Name: proto.String(fw.context.Config.FrameworkInfo.Name),
 		Id:   fw.id.Get(),
 	}
 }
@@ -197,8 +197,8 @@ func (fw *Framework) defaultMesosScheduler() *mesos.Scheduler {
 
 // Start initializes the scheduler and everything it depends on
 func (fw *Framework) Start() error {
-	uri := fw.config.ZookeeperURL
-	master := fw.config.MesosMaster
+	uri := fw.context.Config.ZookeeperURL
+	master := fw.context.Config.MesosMaster
 
 	if fw.ownsCurator {
 		curator, err := rvb_zk.NewCuratorFromURI(uri)

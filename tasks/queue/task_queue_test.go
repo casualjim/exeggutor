@@ -1,10 +1,11 @@
 // Package tasks_test provides ...
-package tasks
+package queue
 
 import (
 	"testing"
 
 	"github.com/reverb/exeggutor/protocol"
+	. "github.com/reverb/exeggutor/tasks"
 	. "github.com/smartystreets/goconvey/convey"
 )
 

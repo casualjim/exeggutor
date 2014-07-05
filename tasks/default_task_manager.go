@@ -3,8 +3,10 @@ package tasks
 import (
 	"github.com/reverb/exeggutor"
 	"github.com/reverb/exeggutor/protocol"
+	"github.com/reverb/exeggutor/tasks/builders"
+	task_queue "github.com/reverb/exeggutor/tasks/queue"
+	task_store "github.com/reverb/exeggutor/tasks/store"
 	"github.com/reverb/go-mesos/mesos"
-	"github.com/reverb/go-utils/flake"
 )
 
 // DefaultTaskManager the task manager accepts application manifests
@@ -13,36 +15,37 @@ import (
 // an SLA enforcement service will be able to make sure the
 // necessary application components are always alive.
 type DefaultTaskManager struct {
-	queue     TaskQueue
-	taskStore TaskStore
-	config    *exeggutor.Config
+	queue     task_queue.TaskQueue
+	taskStore task_store.TaskStore
+	context   *exeggutor.AppContext
 	flake     exeggutor.IDGenerator
+	builder   *builders.MesosMessageBuilder
 }
 
 // NewDefaultTaskManager creates a new instance of a task manager with the values
 // from the provided config.
-func NewDefaultTaskManager(config *exeggutor.Config) (*DefaultTaskManager, error) {
-	store, err := NewTaskStore(config)
+func NewDefaultTaskManager(context *exeggutor.AppContext) (*DefaultTaskManager, error) {
+	store, err := task_store.New(context.Config)
 	if err != nil {
 		return nil, err
 	}
 
-	q := NewTaskQueue()
+	q := task_queue.New()
 	return &DefaultTaskManager{
 		queue:     q,
 		taskStore: store,
-		config:    config,
-		flake:     flake.NewFlake(),
+		context:   context,
+		builder:   builders.New(context.Config),
 	}, nil
 }
 
 // NewCustomDefaultTaskManager creates a new instance of a task manager with all the internal components injected
-func NewCustomDefaultTaskManager(q TaskQueue, ts TaskStore, config *exeggutor.Config) (*DefaultTaskManager, error) {
+func NewCustomDefaultTaskManager(q task_queue.TaskQueue, ts task_store.TaskStore, context *exeggutor.AppContext) (*DefaultTaskManager, error) {
 	return &DefaultTaskManager{
 		queue:     q,
 		taskStore: ts,
-		config:    config,
-		flake:     flake.NewFlake(),
+		context:   context,
+		builder:   builders.New(context.Config),
 	}, nil
 }
 
@@ -95,6 +98,13 @@ func (t *DefaultTaskManager) SubmitApp(app []protocol.Application) error {
 	return nil
 }
 
+// RunningApps finds all the tasks that are currently running
+func (t *DefaultTaskManager) RunningApps(name string) ([]*mesos.TaskID, error) {
+	return t.taskStore.FilterToTaskIds(func(item *protocol.DeployedAppComponent) bool {
+		return item.GetAppName() == name && item.GetStatus() == protocol.AppStatus_STARTED
+	})
+}
+
 // FindTasksForApp finds all the tasks for the specified application name
 func (t *DefaultTaskManager) FindTasksForApp(name string) ([]*mesos.TaskID, error) {
 	return t.taskStore.FilterToTaskIds(func(item *protocol.DeployedAppComponent) bool {
@@ -119,8 +129,8 @@ func (t *DefaultTaskManager) FindTaskForComponent(task string) (*mesos.TaskID, e
 }
 
 func (t *DefaultTaskManager) buildTaskInfo(offer mesos.Offer, scheduled *protocol.ScheduledApp) mesos.TaskInfo {
-	taskID, _ := t.flake.Next()
-	return BuildTaskInfo(taskID, &offer, scheduled)
+	taskID, _ := t.context.IDGenerator.Next()
+	return t.builder.BuildTaskInfo(taskID, &offer, scheduled)
 }
 
 func (t *DefaultTaskManager) fitsInOffer(offer mesos.Offer, component *protocol.ScheduledApp) bool {

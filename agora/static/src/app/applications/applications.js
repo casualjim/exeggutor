@@ -27,7 +27,6 @@ angular.module( 'agora.applications', [
 .controller( 'ApplicationsCtrl', function ApplicationsCtrl( $scope, $animate, Application ) {
 
   $scope.distributions = {
-    "package": "Package (RPM/DEB)",
     "docker": "Docker container",
     "script": "Single binary",
     "fat_jar": "Fat Jar/War"

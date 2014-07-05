@@ -1,6 +1,7 @@
 package applications
 
 import (
+	"fmt"
 	"strings"
 
 	"code.google.com/p/goprotobuf/proto"
@@ -21,7 +22,7 @@ func New(config *exeggutor.Config) *ApplicationsConverter {
 }
 
 // ToAppManifest convert the provided app to a protobuf application manifest
-func (a *ApplicationsConverter) ToAppManifest(app *model.App) []protocol.Application {
+func (a *ApplicationsConverter) ToAppManifest(app *model.App, config *exeggutor.Config) []protocol.Application {
 	var cmps []protocol.Application
 	for _, comp := range app.Components {
 
@@ -43,13 +44,20 @@ func (a *ApplicationsConverter) ToAppManifest(app *model.App) []protocol.Applica
 
 		dist := protocol.Distribution(protocol.Distribution_value[strings.ToUpper(comp.Distribution)])
 		compType := protocol.ComponentType(protocol.ComponentType_value[strings.ToUpper(comp.ComponentType)])
+		var distURL string
+		switch dist {
+		case protocol.Distribution_DOCKER:
+			distURL = fmt.Sprintf("docker://%s/%s", config.DockerIndex, comp.Name)
+		default:
+			distURL = comp.DistURL
+		}
 
 		cmp := protocol.Application{
 			Name:          proto.String(comp.Name),
 			Cpus:          proto.Float32(float32(comp.Cpus)),
 			Mem:           proto.Float32(float32(comp.Mem)),
 			DiskSpace:     proto.Int64(0),
-			DistUrl:       nil,
+			DistUrl:       proto.String(distURL),
 			Command:       proto.String(comp.Command),
 			Env:           env,
 			Ports:         ports,

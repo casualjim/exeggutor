@@ -1,5 +1,5 @@
 // Package tasks provides ...
-package tasks
+package queue
 
 import (
 	"sync"
@@ -8,9 +8,12 @@ import (
 	"container/heap"
 
 	"code.google.com/p/goprotobuf/proto"
+	"github.com/op/go-logging"
 	"github.com/reverb/exeggutor"
 	"github.com/reverb/exeggutor/protocol"
 )
+
+var log = logging.MustGetLogger("exeggutor.tasks.queue")
 
 // TaskQueue represents a module that encapsulates a task queue
 // A task queue defines all the methods needed for the task manager to
@@ -37,9 +40,9 @@ type taskQueue struct {
 	lock   sync.Locker
 }
 
-// NewTaskQueue creates a new instance of the default task queue with
+// New creates a new instance of the default task queue with
 // an empty priority queue as storage
-func NewTaskQueue() TaskQueue {
+func New() TaskQueue {
 	return NewTaskQueueWithprioQueue(&prioQueue{})
 }
 

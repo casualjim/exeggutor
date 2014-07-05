@@ -1,6 +1,10 @@
 package model
 
-import "github.com/astaxie/beego/validation"
+import (
+	"strings"
+
+	"github.com/astaxie/beego/validation"
+)
 
 // AppComponent a component of an application,
 // in many cases there will be only one of these
@@ -37,4 +41,26 @@ type AppComponent struct {
 // Valid validates this struct
 func (a AppComponent) Valid(v *validation.Validation) {
 	// log.Info("The app component looks: %+v", a)
+	switch strings.ToUpper(a.Distribution) {
+	case "DOCKER":
+		// TODO: Check the docker registry if the calculated dist url
+		// actually exists for that version. if not return an error
+	case "SCRIPT", "FAT_JAR":
+		// TODO: check if the end destination of this url actually
+		// exists, if not return an erro
+		v.SetError("distribution", "not yet supported as distribution type, try docker.")
+	default:
+		v.SetError("distribution", a.Distribution+" is not supported as distribution type.")
+	}
+
+	switch strings.ToUpper(a.ComponentType) {
+	case "SERVICE":
+		if len(a.Ports) == 0 {
+			v.SetError("ports", "requires at least 1 port")
+		}
+	case "TASK", "CRON", "SPARK_JOB":
+		v.SetError("component_type", "Only long running services are supported at the moment.")
+	default:
+		v.SetError("component_type", a.ComponentType+" is not supported as component type.")
+	}
 }

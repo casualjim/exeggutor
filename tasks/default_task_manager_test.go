@@ -11,6 +11,7 @@ import (
 	"github.com/reverb/exeggutor/protocol"
 	"github.com/reverb/exeggutor/store"
 	"github.com/reverb/go-mesos/mesos"
+	. "github.com/reverb/go-utils/convey/matchers"
 	. "github.com/smartystreets/goconvey/convey"
 )
 

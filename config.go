@@ -1,6 +1,9 @@
 package exeggutor
 
-import "github.com/antage/eventsource"
+import (
+	"github.com/antage/eventsource"
+	"github.com/robfig/cron"
+)
 
 // Config the main configuration object to use in the application
 type Config struct {
@@ -16,7 +19,15 @@ type Config struct {
 	Mode            string          `json:"mode,omitempty" long:"mode" description:"The mode in which to run this application (dev, prod, stage, jenkins)" default:"development"`
 	FrameworkInfo   FrameworkConfig `json:"framework,omitempty"`
 	DockerIndex     string          `json:"dockerIndex,omitempty" long:"docker_index" description:"The docker index this application should use for pulling docker images" default:""`
-	EventSource     *eventsource.EventSource
+}
+
+// AppContext contains the global singleton services this application uses
+// they are available in most places throughout the application
+type AppContext struct {
+	EventSource *eventsource.EventSource
+	Cron        *cron.Cron
+	Config      *Config
+	IDGenerator IDGenerator
 }
 
 // FrameworkConfig framework config contains configuration specific to mesos.

@@ -1,18 +1,53 @@
 package tasks
 
 import (
+	"strconv"
+
 	"code.google.com/p/goprotobuf/proto"
 
 	"github.com/reverb/exeggutor/protocol"
+	"github.com/reverb/exeggutor/store"
 	"github.com/reverb/go-mesos/mesos"
 )
 
-// func TestState(t *testing.T) {
-// 	RegisterFailHandler(Fail)
-// 	pth := fmt.Sprintf("../test-reports/junit_exeggutor_tasks_%d.xml", config.GinkgoConfig.ParallelNode)
-// 	junitReporter := reporters.NewJUnitReporter(pth)
-// 	RunSpecsWithDefaultAndCustomReporters(t, "Exeggutor Tasks Test Suite", []Reporter{junitReporter})
-// }
+func createStoreTestData(backing store.KVStore) (*mesos.TaskID, protocol.DeployedAppComponent) {
+
+	deployed := buildStoreTestData(1)
+	saveStoreTestData(backing, &deployed)
+	return deployed.TaskId, deployed
+}
+
+func createMulti(backing store.KVStore) []protocol.DeployedAppComponent {
+	app1 := buildStoreTestData(1)
+	app2 := buildStoreTestData(2)
+	app3 := buildStoreTestData(3)
+	saveStoreTestData(backing, &app1)
+	saveStoreTestData(backing, &app2)
+	saveStoreTestData(backing, &app3)
+	return []protocol.DeployedAppComponent{app1, app2, app3}
+}
+
+func buildStoreTestData(index int) protocol.DeployedAppComponent {
+	component := testComponent("app-store-"+strconv.Itoa(index), "app-"+strconv.Itoa(index), 1, 64)
+	scheduled := scheduledComponent(&component)
+	offer := createOffer("slave-"+strconv.Itoa(index), 8, 1024)
+	task := BuildTaskInfo("task-app-id-"+strconv.Itoa(index), &offer, &scheduled)
+	return deployedApp(&component, &task)
+}
+func buildStoreTestData2(app, componentID, taskID int) protocol.DeployedAppComponent {
+	component := testComponent("app-store-"+strconv.Itoa(app), "app-"+strconv.Itoa(componentID), 1, 64)
+	scheduled := scheduledComponent(&component)
+	offer := createOffer("slave-"+strconv.Itoa(taskID), 8, 1024)
+	task := BuildTaskInfo("task-app-"+strconv.Itoa(app)+"-"+strconv.Itoa(componentID)+"-id-"+strconv.Itoa(taskID), &offer, &scheduled)
+	return deployedApp(&component, &task)
+}
+
+func saveStoreTestData(backing store.KVStore, deployed *protocol.DeployedAppComponent) {
+
+	bytes, _ := proto.Marshal(deployed)
+	backing.Set(deployed.TaskId.GetValue(), bytes)
+
+}
 
 func testComponent(appName, compName string, cpus, mem float32) protocol.Application {
 	distURL := "package://" + compName

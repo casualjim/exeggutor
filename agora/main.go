@@ -22,6 +22,8 @@ import (
 	"github.com/reverb/exeggutor/scheduler"
 	"github.com/reverb/exeggutor/store"
 	"github.com/reverb/exeggutor/tasks"
+	"github.com/reverb/go-utils/flake"
+	"github.com/robfig/cron"
 )
 
 var log = logging.MustGetLogger("exeggutor.main")
@@ -39,15 +41,21 @@ func init() {
 
 func main() {
 
+	appContext := new(exeggutor.AppContext)
+
 	es := eventsource.New(nil, nil)
-	config.EventSource = &es
-	mgr, err := tasks.NewDefaultTaskManager(&config)
+	appContext.EventSource = &es
+	appContext.Cron = cron.New()
+	appContext.Config = context.Config
+	appContext.IDGenerator = flake.NewFlake()
+
+	mgr, err := tasks.NewDefaultTaskManager(appContext)
 	if err != nil {
 		log.Fatalf("Couldn't initialize the task manager because:%v", err)
 	}
 	mgr.Start()
 
-	framework := scheduler.NewFramework(&config, mgr)
+	framework := scheduler.NewFramework(appContext, mgr)
 	err = framework.Start()
 	if err != nil {
 		log.Fatalf("Couldn't initialize the exeggutor scheduler framework because:%v", err)

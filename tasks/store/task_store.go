@@ -1,12 +1,15 @@
-package tasks
+package store
 
 import (
 	"code.google.com/p/goprotobuf/proto"
+	"github.com/op/go-logging"
 	"github.com/reverb/exeggutor"
 	"github.com/reverb/exeggutor/protocol"
 	"github.com/reverb/exeggutor/store"
 	"github.com/reverb/go-mesos/mesos"
 )
+
+var log = logging.MustGetLogger("exeggutor.tasks.store")
 
 // TaskStore A task store wraps a K/V store but
 // deals with actual protocol.DeployedAppComponent types
@@ -20,6 +23,7 @@ type TaskStore interface {
 	Keys() ([]string, error)
 	ForEach(iterator func(*protocol.DeployedAppComponent)) error
 	FilterToTaskIds(predicate func(*protocol.DeployedAppComponent) bool) ([]*mesos.TaskID, error)
+	Filter(predicate func(*protocol.DeployedAppComponent) bool) ([]*protocol.DeployedAppComponent, error)
 	Find(predicate func(*protocol.DeployedAppComponent) bool) (*protocol.DeployedAppComponent, error)
 	Contains(key string) (bool, error)
 	Start() error
@@ -31,8 +35,8 @@ type DefaultTaskStore struct {
 	store store.KVStore
 }
 
-// NewTaskStore creates a new default instance of the task store
-func NewTaskStore(config *exeggutor.Config) (TaskStore, error) {
+// New creates a new default instance of the task store
+func New(config *exeggutor.Config) (TaskStore, error) {
 	store, err := store.NewMdbStore(config.DataDirectory + "/tasks")
 	if err != nil {
 		return nil, err
@@ -102,6 +106,20 @@ func (t *DefaultTaskStore) ForEach(iterator func(*protocol.DeployedAppComponent)
 		}
 		iterator(deploy)
 	})
+}
+
+// Filter returns an array of components that match the predicate
+func (t *DefaultTaskStore) Filter(predicate func(*protocol.DeployedAppComponent) bool) ([]*protocol.DeployedAppComponent, error) {
+	var result []*protocol.DeployedAppComponent
+	err := t.ForEach(func(item *protocol.DeployedAppComponent) {
+		if predicate(item) {
+			result = append(result, item)
+		}
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 // FilterToTaskIds returns an array of task ids that match the predicate
