@@ -2,10 +2,14 @@ package check
 
 import (
 	"net"
+	"strings"
 	"time"
 
+	"github.com/op/go-logging"
 	"github.com/reverb/exeggutor/protocol"
 )
+
+var log = logging.MustGetLogger("exeggutor.health.check")
 
 // Result the result of a health check
 type Result struct {
@@ -24,8 +28,9 @@ type HealthCheck interface {
 }
 
 func errorResult(err error, next time.Time) Result {
+	log.Debug("Making error result for %v at %v", err, next)
 	e, ok := err.(net.Error)
-	if ok && e.Timeout() {
+	if (ok && e.Timeout()) || strings.Contains(err.Error(), "timeout") {
 		return Result{Code: protocol.HealthCheckResultCode_TIMEDOUT, NextCheck: next}
 	}
 	return Result{Code: protocol.HealthCheckResultCode_DOWN, NextCheck: next}

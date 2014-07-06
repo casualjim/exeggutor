@@ -69,7 +69,30 @@ func TestHTTPHealthCheck(t *testing.T) {
 			}
 			hc := newHTTPHealthCheck("blah-1", ln.Addr().String(), config, StatusCodeValidator)
 			result := hc.Check()
-			So(result.Code, ShouldEqual, protocol.HealthCheckResultCode_DOWN)
+			So(result.Code, ShouldEqual, protocol.HealthCheckResultCode_TIMEDOUT)
+			So(result.Reason, ShouldBeEmpty)
+			So(result.NextCheck, ShouldHappenAfter, time.Now())
+		})
+
+		Convey("should return timed out when the status code is 504", func() {
+			ln, err := net.Listen("tcp", "127.0.0.1:0")
+			So(err, ShouldBeNil)
+			go http.Serve(ln, http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+				fmt.Println("Got a request for:", r.URL.Path)
+				rw.WriteHeader(http.StatusGatewayTimeout)
+			}))
+			defer ln.Close()
+
+			config := &protocol.HealthCheck{
+				Mode:           protocol.HealthCheckMode_HTTP.Enum(),
+				RampUp:         proto.Int64(10),
+				IntervalMillis: proto.Int64(10),
+				Timeout:        proto.Int64(100),
+				Scheme:         proto.String("http"),
+			}
+			hc := newHTTPHealthCheck("blah-1", ln.Addr().String(), config, StatusCodeValidator)
+			result := hc.Check()
+			So(result.Code, ShouldEqual, protocol.HealthCheckResultCode_TIMEDOUT)
 			So(result.Reason, ShouldBeEmpty)
 			So(result.NextCheck, ShouldHappenAfter, time.Now())
 		})

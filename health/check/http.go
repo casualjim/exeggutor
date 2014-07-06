@@ -20,6 +20,9 @@ func StatusCodeValidator(r *http.Response, next time.Time) Result {
 	if r.StatusCode >= 200 && r.StatusCode < 300 {
 		return successResult(next)
 	}
+	if r.StatusCode == 504 {
+		return Result{Code: protocol.HealthCheckResultCode_TIMEDOUT, NextCheck: next}
+	}
 	return faultyResult(next)
 }
 
