@@ -1,6 +1,10 @@
 package tasks
 
 import (
+	"time"
+
+	"code.google.com/p/goprotobuf/proto"
+
 	"github.com/reverb/exeggutor"
 	"github.com/reverb/exeggutor/health"
 	"github.com/reverb/exeggutor/protocol"
@@ -219,8 +223,9 @@ func (t *DefaultTaskManager) FulfillOffer(offer mesos.Offer) []mesos.TaskInfo {
 		TaskId:      task.GetTaskId(),
 		Status:      protocol.AppStatus_DEPLOYING.Enum(),
 		Slave:       task.GetSlaveId(),
-		HostName:    offer.GetHostname(),
+		HostName:    offer.Hostname,
 		PortMapping: portMapping,
+		DeployedAt:  proto.Int64(time.Now().UnixNano() / 1000000),
 	}
 	err = t.taskStore.Save(deploying)
 	if err != nil {
@@ -236,13 +241,15 @@ func (t *DefaultTaskManager) updateStatus(taskID *mesos.TaskID, status protocol.
 		return err
 	}
 	deploying.Status = status.Enum()
-	if deploying.GetStatus() == protocol.AppStatus_STARTED {
-		if err := t.healtchecks.Register(deploying); err != nil {
-			log.Warning("Failed to unregister health check for %v, because %v", taskID.GetValue(), err)
-		}
-	} else {
-		if err := t.healtchecks.Unregister(taskID); err != nil {
-			log.Warning("Failed to unregister health check for %v, because %v", taskID.GetValue(), err)
+	if t.healtchecks != nil {
+		if deploying.GetStatus() == protocol.AppStatus_STARTED {
+			if err := t.healtchecks.Register(deploying); err != nil {
+				log.Warning("Failed to unregister health check for %v, because %v", taskID.GetValue(), err)
+			}
+		} else {
+			if err := t.healtchecks.Unregister(taskID); err != nil {
+				log.Warning("Failed to unregister health check for %v, because %v", taskID.GetValue(), err)
+			}
 		}
 	}
 	if err := t.taskStore.Save(deploying); err != nil {
@@ -252,8 +259,11 @@ func (t *DefaultTaskManager) updateStatus(taskID *mesos.TaskID, status protocol.
 }
 
 func (t *DefaultTaskManager) forgetTask(taskID *mesos.TaskID) {
-	if err := t.healtchecks.Unregister(taskID); err != nil {
-		log.Warning("Failed to unregister health check for %v, because %v", taskID.GetValue(), err)
+	if t.healtchecks != nil {
+		if err := t.healtchecks.Unregister(taskID); err != nil {
+			log.Warning("Failed to unregister health check for %v, because %v", taskID.GetValue(), err)
+		}
+
 	}
 	if err := t.taskStore.Delete(taskID.GetValue()); err != nil {
 		log.Warning("Failed to delete deployed app %v, because %v", taskID.GetValue(), err)

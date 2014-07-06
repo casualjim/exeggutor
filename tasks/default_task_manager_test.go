@@ -51,7 +51,13 @@ func TestTaskManager(t *testing.T) {
 		tq := task_queue.NewTaskQueueWithPrioQueue(q)
 		tq.Start()
 		ts := store.NewEmptyInMemoryStore()
-		mgr, _ := NewCustomDefaultTaskManager(tq, task_store.NewWithStore(ts), context, builder)
+		mgr := &DefaultTaskManager{
+			queue:       tq,
+			taskStore:   task_store.NewWithStore(ts),
+			context:     context,
+			builder:     builder,
+			healtchecks: nil,
+		}
 		mgr.Start()
 
 		Reset(func() {
@@ -110,7 +116,7 @@ func TestTaskManager(t *testing.T) {
 			Convey("should fullfill an offer when there is an app queued that can statisfy it", func() {
 				component := TestComponent("test-service-yada", "test-service-yada", 1.0, 256.0)
 				prange, p := builders.PortRangeFor(8000)
-				expectedCommand := builder.BuildMesosCommand("", &component, p)
+				expectedCommand, _ := builder.BuildMesosCommand("", &component, p)
 				expectedResources := builder.BuildResources(&component, prange)
 				mgr.SubmitApp([]protocol.Application{component})
 				offer := CreateOffer("offer-id-1", 5.0, 1024.0)
@@ -137,32 +143,59 @@ func TestTaskManager(t *testing.T) {
 		Convey("when handling callbacks", func() {
 
 			Convey("should remove persisted items from the persistent store when they fail", func() {
-				id, _ := SetupCallbackTestData(ts, builder)
+				id, deployed := SetupCallbackTestData(ts, builder)
 				mgr.TaskFailed(id, nil)
-				actual, _ := ts.Get(id.GetValue())
-				So(actual, ShouldBeNil)
+
+				bytes, err := ts.Get(id.GetValue())
+				So(err, ShouldBeNil)
+				So(bytes, ShouldNotBeNil)
+
+				actual := protocol.DeployedAppComponent{}
+				proto.Unmarshal(bytes, &actual)
+				deployed.Status = protocol.AppStatus_STOPPED.Enum()
+				So(actual, ShouldResemble, deployed)
 			})
 
 			Convey("should remove persisted items from the persistent store when they finish", func() {
-				id, _ := SetupCallbackTestData(ts, builder)
+				id, deployed := SetupCallbackTestData(ts, builder)
 				mgr.TaskFinished(id, nil)
-				actual, _ := ts.Get(id.GetValue())
-				So(actual, ShouldBeNil)
+
+				bytes, err := ts.Get(id.GetValue())
+				So(err, ShouldBeNil)
+				So(bytes, ShouldNotBeNil)
+
+				actual := protocol.DeployedAppComponent{}
+				proto.Unmarshal(bytes, &actual)
+				deployed.Status = protocol.AppStatus_STOPPED.Enum()
+				So(actual, ShouldResemble, deployed)
 			})
 
 			Convey("should remove persisted items from the persistent store when they are killed", func() {
-				id, _ := SetupCallbackTestData(ts, builder)
+				id, deployed := SetupCallbackTestData(ts, builder)
 				mgr.TaskKilled(id, nil)
-				actual, _ := ts.Get(id.GetValue())
-				So(actual, ShouldBeNil)
+
+				bytes, err := ts.Get(id.GetValue())
+				So(err, ShouldBeNil)
+				So(bytes, ShouldNotBeNil)
+
+				actual := protocol.DeployedAppComponent{}
+				proto.Unmarshal(bytes, &actual)
+				deployed.Status = protocol.AppStatus_STOPPED.Enum()
+				So(actual, ShouldResemble, deployed)
 			})
 
 			Convey("should remove persisted items from the persistent store when they are lost", func() {
-				id, _ := SetupCallbackTestData(ts, builder)
-
+				id, deployed := SetupCallbackTestData(ts, builder)
 				mgr.TaskLost(id, nil)
-				actual, _ := ts.Get(id.GetValue())
-				So(actual, ShouldBeNil)
+
+				bytes, err := ts.Get(id.GetValue())
+				So(err, ShouldBeNil)
+				So(bytes, ShouldNotBeNil)
+
+				actual := protocol.DeployedAppComponent{}
+				proto.Unmarshal(bytes, &actual)
+				deployed.Status = protocol.AppStatus_STOPPED.Enum()
+				So(actual, ShouldResemble, deployed)
 			})
 
 			Convey("should add to the persistence store if it exists in the deploying store for running", func() {

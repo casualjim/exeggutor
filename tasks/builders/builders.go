@@ -155,7 +155,15 @@ func (b *MesosMessageBuilder) BuildTaskEnvironment(envList []*protocol.StringKey
 func (b *MesosMessageBuilder) BuildContainerInfo(slaveID string, component *protocol.Application, reservedPorts []int32) (containerInfo *mesos.CommandInfo_ContainerInfo, portMapping []*protocol.PortMapping) {
 	av := reservedPorts
 	if component.GetDistribution() != protocol.Distribution_DOCKER {
-		return nil
+		var pm []*protocol.PortMapping
+		for _, port := range component.Ports {
+			pm = append(pm, &protocol.PortMapping{
+				Scheme:      proto.String(strings.ToUpper(port.GetKey())),
+				PrivatePort: port.Value,
+				PublicPort:  port.Value,
+			})
+		}
+		return nil, pm
 	}
 	var options []string
 	for _, port := range component.Ports {
@@ -163,7 +171,7 @@ func (b *MesosMessageBuilder) BuildContainerInfo(slaveID string, component *prot
 		av = pp
 		options = append(options, "-p", fmt.Sprintf("%v:%v", p, port.GetValue()))
 		mapping := &protocol.PortMapping{
-			Scheme:      strings.ToUpper(port.GetKey()),
+			Scheme:      proto.String(strings.ToUpper(port.GetKey())),
 			PrivatePort: port.Value,
 			PublicPort:  proto.Int32(p),
 		}

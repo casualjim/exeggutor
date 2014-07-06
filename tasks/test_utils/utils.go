@@ -2,6 +2,7 @@ package test_utils
 
 import (
 	"strconv"
+	"time"
 
 	"code.google.com/p/goprotobuf/proto"
 	"github.com/reverb/exeggutor/protocol"
@@ -31,7 +32,7 @@ func SetupCallbackTestData(ts store.KVStore, b *builders.MesosMessageBuilder) (*
 	component := TestComponent("app name", "component name", 1.0, 64.0)
 	cr := &component
 	scheduled := ScheduledComponent(cr)
-	task := b.BuildTaskInfo("task id", &offer, &scheduled)
+	task, _ := b.BuildTaskInfo("task id", &offer, &scheduled)
 	tr := &task
 	id := task.GetTaskId()
 	deployed := DeployedApp(cr, tr)
@@ -62,14 +63,14 @@ func BuildStoreTestData(index int, b *builders.MesosMessageBuilder) protocol.Dep
 	component := TestComponent("app-store-"+strconv.Itoa(index), "app-"+strconv.Itoa(index), 1, 64)
 	scheduled := ScheduledComponent(&component)
 	offer := CreateOffer("slave-"+strconv.Itoa(index), 8, 1024)
-	task := b.BuildTaskInfo("task-app-id-"+strconv.Itoa(index), &offer, &scheduled)
+	task, _ := b.BuildTaskInfo("task-app-id-"+strconv.Itoa(index), &offer, &scheduled)
 	return DeployedApp(&component, &task)
 }
 func BuildStoreTestData2(app, componentID, taskID int, b *builders.MesosMessageBuilder) protocol.DeployedAppComponent {
 	component := TestComponent("app-store-"+strconv.Itoa(app), "app-"+strconv.Itoa(componentID), 1, 64)
 	scheduled := ScheduledComponent(&component)
 	offer := CreateOffer("slave-"+strconv.Itoa(taskID), 8, 1024)
-	task := b.BuildTaskInfo("task-app-"+strconv.Itoa(app)+"-"+strconv.Itoa(componentID)+"-id-"+strconv.Itoa(taskID), &offer, &scheduled)
+	task, _ := b.BuildTaskInfo("task-app-"+strconv.Itoa(app)+"-"+strconv.Itoa(componentID)+"-id-"+strconv.Itoa(taskID), &offer, &scheduled)
 	return DeployedApp(&component, &task)
 }
 
@@ -117,11 +118,14 @@ func TestComponent(appName, compName string, cpus, mem float32) protocol.Applica
 
 func DeployedApp(component *protocol.Application, task *mesos.TaskInfo) protocol.DeployedAppComponent {
 	return protocol.DeployedAppComponent{
-		AppName:   component.AppName,
-		Component: component,
-		TaskId:    task.TaskId,
-		Status:    protocol.AppStatus_DEPLOYING.Enum(),
-		Slave:     task.SlaveId,
+		AppName:     component.AppName,
+		Component:   component,
+		TaskId:      task.TaskId,
+		Status:      protocol.AppStatus_DEPLOYING.Enum(),
+		Slave:       task.SlaveId,
+		HostName:    proto.String("exeggutor-slave-instance-1"),
+		PortMapping: nil,
+		DeployedAt:  proto.Int64(time.Now().UnixNano() / 1000000),
 	}
 }
 
