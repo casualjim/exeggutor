@@ -152,7 +152,7 @@ func (b *MesosMessageBuilder) BuildTaskEnvironment(envList []*protocol.StringKey
 
 // BuildContainerInfo builds a mesos.ContainerInfo object from a protocol.ApplicationComponent
 // It will only do this when the distribution is docker, otherwise it will return nil
-func (b *MesosMessageBuilder) BuildContainerInfo(slaveID string, component *protocol.Application, reservedPorts []int32) *mesos.CommandInfo_ContainerInfo {
+func (b *MesosMessageBuilder) BuildContainerInfo(slaveID string, component *protocol.Application, reservedPorts []int32) (containerInfo *mesos.CommandInfo_ContainerInfo, portMapping []*protocol.PortMapping) {
 	av := reservedPorts
 	if component.GetDistribution() != protocol.Distribution_DOCKER {
 		return nil
@@ -162,39 +162,51 @@ func (b *MesosMessageBuilder) BuildContainerInfo(slaveID string, component *prot
 		p, pp := av[0], av[1:]
 		av = pp
 		options = append(options, "-p", fmt.Sprintf("%v:%v", p, port.GetValue()))
+		mapping := &protocol.PortMapping{
+			Scheme:      strings.ToUpper(port.GetKey()),
+			PrivatePort: port.Value,
+			PublicPort:  proto.Int32(p),
+		}
+		portMapping = append(portMapping, mapping)
 	}
-	return &mesos.CommandInfo_ContainerInfo{
+	containerInfo = &mesos.CommandInfo_ContainerInfo{
 		Image:   proto.String("docker:///" + component.GetName() + ":" + component.GetVersion()),
 		Options: options,
 	}
+	return containerInfo, portMapping
 }
 
 // BuildMesosCommand builds a mesos.CommandInfo object from a protocol.ApplicationComponent
 // This is what drives our deployment and how it works.
-func (b *MesosMessageBuilder) BuildMesosCommand(slaveID string, component *protocol.Application, reservedPorts []int32) *mesos.CommandInfo {
-
-	return &mesos.CommandInfo{
-		Container:   b.BuildContainerInfo(slaveID, component, reservedPorts),
+func (b *MesosMessageBuilder) BuildMesosCommand(slaveID string, component *protocol.Application, reservedPorts []int32) (commandInfo *mesos.CommandInfo, portMapping []*protocol.PortMapping) {
+	containerInfo, portMapping := b.BuildContainerInfo(slaveID, component, reservedPorts)
+	commandInfo = &mesos.CommandInfo{
+		Container:   containerInfo,
 		Uris:        nil, // TODO: used to provide the docker image url for deimos?
 		Environment: b.BuildTaskEnvironment(component.GetEnv(), component.GetPorts(), reservedPorts),
 		Value:       component.Command,
 		User:        nil, // TODO: allow this to be configured?
 		HealthCheck: nil, // TODO: allow this to be configured?
 	}
+	return commandInfo, portMapping
 }
 
 // BuildTaskInfo builds a mesos.TaskInfo object from an offer and a scheduled component
-func (b *MesosMessageBuilder) BuildTaskInfo(taskID string, offer *mesos.Offer, scheduled *protocol.ScheduledApp) mesos.TaskInfo {
+func (b *MesosMessageBuilder) BuildTaskInfo(taskID string, offer *mesos.Offer, scheduled *protocol.ScheduledApp) (mesos.TaskInfo, []*protocol.PortMapping) {
 	component := scheduled.App
 	slaveID := offer.GetSlaveId().GetValue()
-	takenRanges, reservedPorts := b.PortPicker.GetPorts(offer, len(component.GetPorts()))
 
-	return mesos.TaskInfo{
+	takenRanges, reservedPorts := b.PortPicker.GetPorts(offer, len(component.GetPorts()))
+	commandInfo, portMapping := b.BuildMesosCommand(slaveID, component, reservedPorts)
+
+	taskInfo := mesos.TaskInfo{
 		Name:      proto.String(scheduled.GetAppName() + "-" + scheduled.GetName()),
 		TaskId:    &mesos.TaskID{Value: proto.String("exeggutor-task-" + taskID)},
 		SlaveId:   offer.SlaveId,
-		Command:   b.BuildMesosCommand(slaveID, component, reservedPorts),
+		Command:   commandInfo,
 		Resources: b.BuildResources(component, takenRanges),
 		Executor:  nil, // TODO: Make use of an executor to increase visibility into execution
 	}
+
+	return taskInfo, portMapping
 }

@@ -40,14 +40,8 @@ enum AppStatus {
   STOPPED = 3;
   /* AppStatus_STOPPING the application has is stopping, a command was issued to stop the app */
   STOPPING = 4;
-  /* AppStatus_STARTING the application has been deployed and is currently starting up */
-  STARTING = 5;
   /* AppStatus_STARTED the application is fully available for taking requests */
-  STARTED = 6;
-  /* AppStatus_VERY_BUSY the application is still up but timing out very often, best to avoid it for a while */
-  VERY_BUSY = 7;
-  /* AppStatus_UNHEALTHY the application has a running process but is otherwise broken, don't send requests here */
-  UNHEALTHY = 8;
+  STARTED = 5;
 }
 
 /*
@@ -84,6 +78,20 @@ enum Distribution {
   FAT_JAR = 3;
 }
 
+/*
+ * PortMapping a port mapping for a scheme with the private port 
+ * and public port. The public port is the one a service is reachable on
+ * and this is mapped to a private port inside a container.
+ */
+message PortMapping {
+  /* the scheme for this mapping */
+  required string scheme = 1;
+  /* the private port for usage inside the container */
+  required int32 private_port = 2;
+  /* the public port for usage between hosts */
+  required int32 public_port = 3;
+}
+
 /* 
  * DeployedAppComponent is a part of a deployed application
  * It links component definition to a mesos task info and an app status
@@ -100,9 +108,15 @@ message DeployedAppComponent {
   required mesos.TaskID task_id = 3;
   /* the status this deployed application is in */
   required AppStatus status = 4 [default = ABSENT ];
+  /* the unix epoch when then component was started */
+  required int64 deployed_at = 5;
 
   /* the slave id to which this app is deployed */
   optional mesos.SlaveID slave = 20;
+  /* the host name this component is deployed to */
+  optional string host_name = 21;
+  /* the known port mappings for this component */
+  repeated PortMapping port_mapping = 22;
 }
 
 /*
@@ -180,6 +194,23 @@ enum HealthCheckMode {
   TCP = 1;
   /* For the METRICS strategy it will use the HTTP strategy but additionally the response body will be validated that all components are running fine. */
   METRICS = 2;
+}
+
+/*
+ * HealthCheckResultCode a code representing the result of a health check
+ */
+enum HealthCheckResultCode {
+  /* the service responded in time and all looks great */
+  HEALTHY = 0;
+  /* the service responded with an unexpected status code */
+  ERROR = 1;
+  /* the service didn't respond in time to the healthcheck */
+  TIMEDOUT = 2;
+  /* the service was unreachable */
+  DOWN = 3;
+  /* we haven't checked the state yet etc... noop */
+  UNKNOWN = 99;
+
 }
 
 /* 

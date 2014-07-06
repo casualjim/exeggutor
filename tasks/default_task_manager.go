@@ -2,6 +2,7 @@ package tasks
 
 import (
 	"github.com/reverb/exeggutor"
+	"github.com/reverb/exeggutor/health"
 	"github.com/reverb/exeggutor/protocol"
 	"github.com/reverb/exeggutor/tasks/builders"
 	task_queue "github.com/reverb/exeggutor/tasks/queue"
@@ -15,11 +16,11 @@ import (
 // an SLA enforcement service will be able to make sure the
 // necessary application components are always alive.
 type DefaultTaskManager struct {
-	queue     task_queue.TaskQueue
-	taskStore task_store.TaskStore
-	context   *exeggutor.AppContext
-	flake     exeggutor.IDGenerator
-	builder   *builders.MesosMessageBuilder
+	queue       task_queue.TaskQueue
+	taskStore   task_store.TaskStore
+	context     *exeggutor.AppContext
+	builder     *builders.MesosMessageBuilder
+	healtchecks *health.HealthChecker
 }
 
 // NewDefaultTaskManager creates a new instance of a task manager with the values
@@ -32,25 +33,27 @@ func NewDefaultTaskManager(context *exeggutor.AppContext) (*DefaultTaskManager, 
 
 	q := task_queue.New()
 	return &DefaultTaskManager{
-		queue:     q,
-		taskStore: store,
-		context:   context,
-		builder:   builders.New(context.Config),
+		queue:       q,
+		taskStore:   store,
+		context:     context,
+		builder:     builders.New(context.Config),
+		healtchecks: health.New(context),
 	}, nil
 }
 
-// NewCustomDefaultTaskManager creates a new instance of a task manager with all the internal components injected
-func NewCustomDefaultTaskManager(q task_queue.TaskQueue, ts task_store.TaskStore, context *exeggutor.AppContext, builder *builders.MesosMessageBuilder) (*DefaultTaskManager, error) {
-	return &DefaultTaskManager{
-		queue:     q,
-		taskStore: ts,
-		context:   context,
-		builder:   builder,
-	}, nil
-}
+// // NewCustomDefaultTaskManager creates a new instance of a task manager with all the internal components injected
+// func NewCustomDefaultTaskManager(q task_queue.TaskQueue, ts task_store.TaskStore, context *exeggutor.AppContext, builder *builders.MesosMessageBuilder) (*DefaultTaskManager, error) {
+// 	return &DefaultTaskManager{
+// 		queue:     q,
+// 		taskStore: ts,
+// 		context:   context,
+// 		builder:   builder,
+// 	}, nil
+// }
 
 // Start starts the instance of the taks manager and all the components it depends on.
 func (t *DefaultTaskManager) Start() error {
+
 	err := t.taskStore.Start()
 	if err != nil {
 		return err
@@ -58,6 +61,16 @@ func (t *DefaultTaskManager) Start() error {
 
 	err = t.queue.Start()
 	if err != nil {
+		// We failed to start, cleanup the task store initialization
+		t.taskStore.Stop()
+		return err
+	}
+
+	err = t.healtchecks.Start()
+	if err != nil {
+		// Stop these guys again we failed to start.
+		t.taskStore.Stop()
+		t.queue.Stop()
 		return err
 	}
 
@@ -67,18 +80,30 @@ func (t *DefaultTaskManager) Start() error {
 // Stop stops this task manager, cleaning up any resources
 // it might have required and owns.
 func (t *DefaultTaskManager) Stop() error {
+	err3 := t.healtchecks.Stop()
 	err := t.taskStore.Stop()
 	err2 := t.queue.Stop()
-	if err != nil {
+
+	if err != nil || err2 != nil || err3 != nil {
 		log.Warning("There were problems shutting down the task manager:")
-		log.Warning("%v", err)
+		if err != nil {
+			log.Warning("%v", err)
+		}
 		if err2 != nil {
 			log.Warning("%v", err2)
 		}
-		return err
-	}
-	if err2 != nil {
-		return err2
+		if err3 != nil {
+			log.Warning("%v", err3)
+		}
+		if err != nil {
+			return err
+		}
+		if err2 != nil {
+			return err2
+		}
+		if err3 != nil {
+			return err3
+		}
 	}
 	return nil
 }
@@ -128,7 +153,7 @@ func (t *DefaultTaskManager) FindTaskForComponent(task string) (*mesos.TaskID, e
 	return res.TaskId, nil
 }
 
-func (t *DefaultTaskManager) buildTaskInfo(offer mesos.Offer, scheduled *protocol.ScheduledApp) mesos.TaskInfo {
+func (t *DefaultTaskManager) buildTaskInfo(offer mesos.Offer, scheduled *protocol.ScheduledApp) (mesos.TaskInfo, []*protocol.PortMapping) {
 	taskID, _ := t.context.IDGenerator.Next()
 	return t.builder.BuildTaskInfo(taskID, &offer, scheduled)
 }
@@ -187,13 +212,15 @@ func (t *DefaultTaskManager) FulfillOffer(offer mesos.Offer) []mesos.TaskInfo {
 		return nil
 	}
 
-	task := t.buildTaskInfo(offer, item)
+	task, portMapping := t.buildTaskInfo(offer, item)
 	deploying := &protocol.DeployedAppComponent{
-		AppName:   item.AppName,
-		Component: item.App,
-		TaskId:    task.GetTaskId(),
-		Status:    protocol.AppStatus_DEPLOYING.Enum(),
-		Slave:     task.GetSlaveId(),
+		AppName:     item.AppName,
+		Component:   item.App,
+		TaskId:      task.GetTaskId(),
+		Status:      protocol.AppStatus_DEPLOYING.Enum(),
+		Slave:       task.GetSlaveId(),
+		HostName:    offer.GetHostname(),
+		PortMapping: portMapping,
 	}
 	err = t.taskStore.Save(deploying)
 	if err != nil {
@@ -209,42 +236,57 @@ func (t *DefaultTaskManager) updateStatus(taskID *mesos.TaskID, status protocol.
 		return err
 	}
 	deploying.Status = status.Enum()
+	if deploying.GetStatus() == protocol.AppStatus_STARTED {
+		if err := t.healtchecks.Register(deploying); err != nil {
+			log.Warning("Failed to unregister health check for %v, because %v", taskID.GetValue(), err)
+		}
+	} else {
+		if err := t.healtchecks.Unregister(taskID); err != nil {
+			log.Warning("Failed to unregister health check for %v, because %v", taskID.GetValue(), err)
+		}
+	}
 	if err := t.taskStore.Save(deploying); err != nil {
-		return err
+		log.Warning("Failed to unregister health check for %v, because %v", taskID.GetValue(), err)
 	}
 	return nil
 }
 
 func (t *DefaultTaskManager) forgetTask(taskID *mesos.TaskID) {
-	// delete(t.deploying, taskID.GetValue())
-	err := t.taskStore.Delete(taskID.GetValue())
-	if err != nil {
-		log.Error("%v", err)
+	if err := t.healtchecks.Unregister(taskID); err != nil {
+		log.Warning("Failed to unregister health check for %v, because %v", taskID.GetValue(), err)
 	}
+	if err := t.taskStore.Delete(taskID.GetValue()); err != nil {
+		log.Warning("Failed to delete deployed app %v, because %v", taskID.GetValue(), err)
+	}
+}
+
+// TaskStopping transitions this task into the stopping state
+func (t *DefaultTaskManager) TaskStopping(taskID *mesos.TaskID) {
+	t.updateStatus(taskID, protocol.AppStatus_STOPPING)
 }
 
 // TaskFailed a callback for when a task failed
 func (t *DefaultTaskManager) TaskFailed(taskID *mesos.TaskID, slaveID *mesos.SlaveID) {
 	// Track failures and keep count, eventually alert
-	t.forgetTask(taskID)
+	t.updateStatus(taskID, protocol.AppStatus_STOPPED)
 }
 
 // TaskFinished a callback for when a task finishes successfully
 func (t *DefaultTaskManager) TaskFinished(taskID *mesos.TaskID, slaveID *mesos.SlaveID) {
 	// Move task into finished state, delete in 30 days
-	t.forgetTask(taskID)
+	t.updateStatus(taskID, protocol.AppStatus_STOPPED)
 }
 
 // TaskKilled a callback for when a task is killed
 func (t *DefaultTaskManager) TaskKilled(taskID *mesos.TaskID, slaveID *mesos.SlaveID) {
 	// This is generally the tail end of a migration step
-	t.forgetTask(taskID)
+	t.updateStatus(taskID, protocol.AppStatus_STOPPED)
 }
 
 // TaskLost a callback for when a task was lost
 func (t *DefaultTaskManager) TaskLost(taskID *mesos.TaskID, slaveID *mesos.SlaveID) {
 	// Uh Oh I suppose we'd better reschedule this one ahead of everybody else
-	t.forgetTask(taskID)
+	t.updateStatus(taskID, protocol.AppStatus_STOPPED)
 }
 
 // TaskRunning a callback for when a task enters the running state

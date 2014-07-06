@@ -11,6 +11,7 @@ It is generated from these files:
 It has these top-level messages:
 	StringKeyValue
 	StringIntKeyValue
+	PortMapping
 	DeployedAppComponent
 	Application
 	ScheduledApp
@@ -40,14 +41,8 @@ const (
 	AppStatus_STOPPED AppStatus = 3
 	// AppStatus_STOPPING the application has is stopping, a command was issued to stop the app
 	AppStatus_STOPPING AppStatus = 4
-	// AppStatus_STARTING the application has been deployed and is currently starting up
-	AppStatus_STARTING AppStatus = 5
 	// AppStatus_STARTED the application is fully available for taking requests
-	AppStatus_STARTED AppStatus = 6
-	// AppStatus_VERY_BUSY the application is still up but timing out very often, best to avoid it for a while
-	AppStatus_VERY_BUSY AppStatus = 7
-	// AppStatus_UNHEALTHY the application has a running process but is otherwise broken, don't send requests here
-	AppStatus_UNHEALTHY AppStatus = 8
+	AppStatus_STARTED AppStatus = 5
 )
 
 var AppStatus_name = map[int32]string{
@@ -55,20 +50,14 @@ var AppStatus_name = map[int32]string{
 	2: "DEPLOYING",
 	3: "STOPPED",
 	4: "STOPPING",
-	5: "STARTING",
-	6: "STARTED",
-	7: "VERY_BUSY",
-	8: "UNHEALTHY",
+	5: "STARTED",
 }
 var AppStatus_value = map[string]int32{
 	"ABSENT":    1,
 	"DEPLOYING": 2,
 	"STOPPED":   3,
 	"STOPPING":  4,
-	"STARTING":  5,
-	"STARTED":   6,
-	"VERY_BUSY": 7,
-	"UNHEALTHY": 8,
+	"STARTED":   5,
 }
 
 func (x AppStatus) Enum() *AppStatus {
@@ -225,6 +214,55 @@ func (x *HealthCheckMode) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+//
+// HealthCheckResultCode a code representing the result of a health check
+type HealthCheckResultCode int32
+
+const (
+	// the service responded in time and all looks great
+	HealthCheckResultCode_HEALTHY HealthCheckResultCode = 0
+	// the service responded with an unexpected status code
+	HealthCheckResultCode_ERROR HealthCheckResultCode = 1
+	// the service didn't respond in time to the healthcheck
+	HealthCheckResultCode_TIMEDOUT HealthCheckResultCode = 2
+	// the service was unreachable
+	HealthCheckResultCode_DOWN HealthCheckResultCode = 3
+	// we haven't checked the state yet etc... noop
+	HealthCheckResultCode_UNKNOWN HealthCheckResultCode = 99
+)
+
+var HealthCheckResultCode_name = map[int32]string{
+	0:  "HEALTHY",
+	1:  "ERROR",
+	2:  "TIMEDOUT",
+	3:  "DOWN",
+	99: "UNKNOWN",
+}
+var HealthCheckResultCode_value = map[string]int32{
+	"HEALTHY":  0,
+	"ERROR":    1,
+	"TIMEDOUT": 2,
+	"DOWN":     3,
+	"UNKNOWN":  99,
+}
+
+func (x HealthCheckResultCode) Enum() *HealthCheckResultCode {
+	p := new(HealthCheckResultCode)
+	*p = x
+	return p
+}
+func (x HealthCheckResultCode) String() string {
+	return proto.EnumName(HealthCheckResultCode_name, int32(x))
+}
+func (x *HealthCheckResultCode) UnmarshalJSON(data []byte) error {
+	value, err := proto.UnmarshalJSONEnum(HealthCheckResultCode_value, data, "HealthCheckResultCode")
+	if err != nil {
+		return err
+	}
+	*x = HealthCheckResultCode(value)
+	return nil
+}
+
 // StringKeyValue represents a pair of 2 strings used as a replacement for maps
 type StringKeyValue struct {
 	Key              *string `protobuf:"bytes,1,req,name=key" json:"key,omitempty"`
@@ -278,6 +316,45 @@ func (m *StringIntKeyValue) GetValue() int32 {
 }
 
 //
+// PortMapping a port mapping for a scheme with the private port
+// and public port. The public port is the one a service is reachable on
+// and this is mapped to a private port inside a container.
+type PortMapping struct {
+	// the scheme for this mapping
+	Scheme *string `protobuf:"bytes,1,req,name=scheme" json:"scheme,omitempty"`
+	// the private port for usage inside the container
+	PrivatePort *int32 `protobuf:"varint,2,req,name=private_port" json:"private_port,omitempty"`
+	// the public port for usage between hosts
+	PublicPort       *int32 `protobuf:"varint,3,req,name=public_port" json:"public_port,omitempty"`
+	XXX_unrecognized []byte `json:"-"`
+}
+
+func (m *PortMapping) Reset()         { *m = PortMapping{} }
+func (m *PortMapping) String() string { return proto.CompactTextString(m) }
+func (*PortMapping) ProtoMessage()    {}
+
+func (m *PortMapping) GetScheme() string {
+	if m != nil && m.Scheme != nil {
+		return *m.Scheme
+	}
+	return ""
+}
+
+func (m *PortMapping) GetPrivatePort() int32 {
+	if m != nil && m.PrivatePort != nil {
+		return *m.PrivatePort
+	}
+	return 0
+}
+
+func (m *PortMapping) GetPublicPort() int32 {
+	if m != nil && m.PublicPort != nil {
+		return *m.PublicPort
+	}
+	return 0
+}
+
+//
 // DeployedAppComponent is a part of a deployed application
 // It links component definition to a mesos task info and an app status
 // This keeps track of the state an application is actually in.
@@ -292,8 +369,14 @@ type DeployedAppComponent struct {
 	TaskId *mesos.TaskID `protobuf:"bytes,3,req,name=task_id" json:"task_id,omitempty"`
 	// the status this deployed application is in
 	Status *AppStatus `protobuf:"varint,4,req,name=status,enum=protocol.AppStatus,def=1" json:"status,omitempty"`
+	// the unix epoch when then component was started
+	DeployedAt *int64 `protobuf:"varint,5,req,name=deployed_at" json:"deployed_at,omitempty"`
 	// the slave id to which this app is deployed
-	Slave            *mesos.SlaveID `protobuf:"bytes,20,opt,name=slave" json:"slave,omitempty"`
+	Slave *mesos.SlaveID `protobuf:"bytes,20,opt,name=slave" json:"slave,omitempty"`
+	// the host name this component is deployed to
+	HostName *string `protobuf:"bytes,21,opt,name=host_name" json:"host_name,omitempty"`
+	// the known port mappings for this component
+	PortMapping      []*PortMapping `protobuf:"bytes,22,rep,name=port_mapping" json:"port_mapping,omitempty"`
 	XXX_unrecognized []byte         `json:"-"`
 }
 
@@ -331,9 +414,30 @@ func (m *DeployedAppComponent) GetStatus() AppStatus {
 	return Default_DeployedAppComponent_Status
 }
 
+func (m *DeployedAppComponent) GetDeployedAt() int64 {
+	if m != nil && m.DeployedAt != nil {
+		return *m.DeployedAt
+	}
+	return 0
+}
+
 func (m *DeployedAppComponent) GetSlave() *mesos.SlaveID {
 	if m != nil {
 		return m.Slave
+	}
+	return nil
+}
+
+func (m *DeployedAppComponent) GetHostName() string {
+	if m != nil && m.HostName != nil {
+		return *m.HostName
+	}
+	return ""
+}
+
+func (m *DeployedAppComponent) GetPortMapping() []*PortMapping {
+	if m != nil {
+		return m.PortMapping
 	}
 	return nil
 }
@@ -693,4 +797,5 @@ func init() {
 	proto.RegisterEnum("protocol.ComponentType", ComponentType_name, ComponentType_value)
 	proto.RegisterEnum("protocol.Distribution", Distribution_name, Distribution_value)
 	proto.RegisterEnum("protocol.HealthCheckMode", HealthCheckMode_name, HealthCheckMode_value)
+	proto.RegisterEnum("protocol.HealthCheckResultCode", HealthCheckResultCode_name, HealthCheckResultCode_value)
 }

@@ -28,6 +28,10 @@ type AppContext struct {
 	Cron        *cron.Cron
 	Config      *Config
 	IDGenerator IDGenerator
+	Mesos       struct {
+		Host string
+		Port int
+	}
 }
 
 // FrameworkConfig framework config contains configuration specific to mesos.

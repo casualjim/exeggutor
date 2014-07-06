@@ -16,6 +16,7 @@ var log = logging.MustGetLogger("exeggutor.tasks.store")
 // instead of with the raw bytes
 // It's basically a KVStore with a serializer and an id generator.
 type TaskStore interface {
+	exeggutor.Module
 	Get(key string) (*protocol.DeployedAppComponent, error)
 	Save(value *protocol.DeployedAppComponent) error
 	Delete(key string) error
@@ -26,8 +27,6 @@ type TaskStore interface {
 	Filter(predicate func(*protocol.DeployedAppComponent) bool) ([]*protocol.DeployedAppComponent, error)
 	Find(predicate func(*protocol.DeployedAppComponent) bool) (*protocol.DeployedAppComponent, error)
 	Contains(key string) (bool, error)
-	Start() error
-	Stop() error
 }
 
 // DefaultTaskStore the default implementation of the task store

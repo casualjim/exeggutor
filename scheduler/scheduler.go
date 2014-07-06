@@ -69,6 +69,7 @@ func (fw *Framework) KillApp(app string) error {
 		return err
 	}
 	for _, taskID := range taskIds {
+		fw.taskManager.TaskStopping(taskID)
 		err2 := fw.driver.KillTask(taskID)
 		if err2 != nil {
 			err = err2

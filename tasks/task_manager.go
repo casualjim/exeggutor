@@ -19,6 +19,7 @@ type TaskManager interface {
 	SubmitApp(app []protocol.Application) error
 	FulfillOffer(offer mesos.Offer) []mesos.TaskInfo
 
+	TaskStopping(taskID *mesos.TaskID)
 	TaskFailed(taskID *mesos.TaskID, slaveID *mesos.SlaveID)
 	TaskFinished(taskID *mesos.TaskID, slaveID *mesos.SlaveID)
 	TaskKilled(taskID *mesos.TaskID, slaveID *mesos.SlaveID)
