@@ -21,14 +21,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-type constantPortPicker struct {
-	Port int
-}
-
-func (p *constantPortPicker) GetPorts(offer *mesos.Offer, count int) ([]builders.PortRange, []int32) {
-	return builders.PortRangeFor(p.Port)
-}
-
 func TestTaskManager(t *testing.T) {
 	logBackend := logging.NewLogBackend(os.Stderr, "", stdlog.LstdFlags|stdlog.Lshortfile)
 	logBackend.Color = true
@@ -45,7 +37,7 @@ func TestTaskManager(t *testing.T) {
 
 	Convey("TaskManager", t, func() {
 		builder := builders.New(context.Config)
-		builder.PortPicker = &constantPortPicker{Port: 8000}
+		builder.PortPicker = &ConstantPortPicker{Port: 8000}
 
 		q := &task_queue.PrioQueue{}
 		tq := task_queue.NewTaskQueueWithPrioQueue(q)

@@ -11,6 +11,14 @@ import (
 	"github.com/reverb/go-mesos/mesos"
 )
 
+type ConstantPortPicker struct {
+	Port int
+}
+
+func (p *ConstantPortPicker) GetPorts(offer *mesos.Offer, count int) ([]builders.PortRange, []int32) {
+	return builders.PortRangeFor(p.Port)
+}
+
 func CreateFilterData(ts store.KVStore, b *builders.MesosMessageBuilder) []protocol.DeployedAppComponent {
 	app1 := BuildStoreTestData2(1, 1, 1, b)
 	app2 := BuildStoreTestData2(1, 2, 3, b)

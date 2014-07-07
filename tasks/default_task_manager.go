@@ -192,9 +192,8 @@ func (t *DefaultTaskManager) fitsInOffer(offer mesos.Offer, component *protocol.
 	hasEnoughMem := availMem >= float64(comp.GetMem())
 	hasEnoughPorts := int(maxPortsLen) >= len(comp.GetPorts())
 	log.Debug("the offer\ncpu: %t,\nmem: %t,\nports: %t", hasEnoughCPU, hasEnoughMem, hasEnoughPorts)
-	return hasEnoughCPU &&
-		hasEnoughMem &&
-		hasEnoughPorts
+
+	return hasEnoughCPU && hasEnoughMem && hasEnoughPorts
 }
 
 // FulfillOffer tries to fullfil an offer with the biggest and oldest enqueued thing it can find.
