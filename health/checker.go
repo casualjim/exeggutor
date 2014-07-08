@@ -22,7 +22,7 @@ type HealthCheckScheduler interface {
 	Contains(app *mesos.TaskID) bool
 	Register(app *protocol.DeployedAppComponent) error
 	Unregister(app *mesos.TaskID) error
-	Failures() <-chan *check.Result
+	Failures() <-chan check.Result
 }
 
 func newPool(nrw int, replyTo chan<- healthResult) *workerPool {
@@ -56,44 +56,37 @@ func (p *workerPool) Start() error {
 		for {
 			select {
 			case item := <-p.work:
-				// if this is nil it doesn't count
-				// but it will most likely mean that the channel was closed
-				if item != nil {
-					log.Debug("received work: %s", item.GetID())
-					pending = append(pending, item)
-					inProgress := len(pending)
-					log.Debug("appended item to pending items, there are now %d in progress", inProgress)
-					if inProgress == p.poolSize {
-						log.Debug("There are as many things in progress are there are workers, setup wait for new slot")
-						waitForSlot = make(chan bool)
-					}
-					if inProgress > p.poolSize {
-						log.Warning("There are more checks in progress than there are workers!")
-					}
-					go func() {
-						log.Debug("Performing health check for %s", item.GetID())
-						result := item.Check()
-						log.Debug("healthcheck for %s finished", item.GetID())
-						p.updates <- healthResult{item: item, result: result}
-						if waitForSlot != nil {
-							log.Debug("waitForSlot is not nil, sending it a message")
-							waitForSlot <- true
-						}
-					}()
+				log.Debug("received work: %s", item.GetID())
+				pending = append(pending, item)
+				inProgress := len(pending)
+				log.Debug("appended item to pending items, there are now %d in progress", inProgress)
+				if inProgress == p.poolSize {
+					log.Debug("There are as many things in progress are there are workers, setup wait for new slot")
+					waitForSlot = make(chan bool)
 				}
+				if inProgress > p.poolSize {
+					log.Warning("There are more checks in progress than there are workers!")
+				}
+				go func() {
+					log.Debug("Performing health check for %s", item.GetID())
+					result := item.Check()
+					log.Debug("healthcheck for %s finished", item.GetID())
+					p.updates <- healthResult{item: item, result: result}
+					if waitForSlot != nil {
+						log.Debug("waitForSlot is not nil, sending it a message")
+						waitForSlot <- true
+					}
+				}()
 			case <-waitForSlot:
 				log.Debug("resetting wait for slot")
 				waitForSlot = nil
 			case result := <-p.updates:
-				// if item is nil it means this channel is closed
-				if result.item != nil {
-					log.Debug("Got a result for %s in the worker pool", result.item.GetID())
-					p.results <- result
-					log.Debug("pool forwarded result for %s", result.item.GetID())
-					for i, item := range pending {
-						if item.GetID() == result.item.GetID() {
-							pending = append(pending[:i], pending[i+1:]...)
-						}
+				log.Debug("Got a result for %s in the worker pool", result.item.GetID())
+				p.results <- result
+				log.Debug("pool forwarded result for %s", result.item.GetID())
+				for i, item := range pending {
+					if item.GetID() == result.item.GetID() {
+						pending = append(pending[:i], pending[i+1:]...)
 					}
 				}
 			case closed := <-p.closing:
@@ -103,6 +96,7 @@ func (p *workerPool) Start() error {
 				}
 				closed <- nil
 				close(p.work)
+				return
 			}
 		}
 	}()

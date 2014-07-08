@@ -24,7 +24,8 @@ type DefaultTaskManager struct {
 	taskStore   task_store.TaskStore
 	context     *exeggutor.AppContext
 	builder     *builders.MesosMessageBuilder
-	healtchecks *health.HealthChecker
+	healtchecks health.HealthCheckScheduler
+	closing     chan bool
 }
 
 // NewDefaultTaskManager creates a new instance of a task manager with the values
@@ -42,6 +43,7 @@ func NewDefaultTaskManager(context *exeggutor.AppContext) (*DefaultTaskManager, 
 		context:     context,
 		builder:     builders.New(context.Config),
 		healtchecks: health.New(context),
+		closing:     make(chan bool),
 	}, nil
 }
 
@@ -80,7 +82,20 @@ func (t *DefaultTaskManager) Start() error {
 		}
 	}
 
+	go t.listenForHealthFailures()
+
 	return nil
+}
+
+func (t *DefaultTaskManager) listenForHealthFailures() {
+	for {
+		select {
+		case failure := <-t.healtchecks.Failures():
+			log.Info("task %d failed the health check", failure.ID)
+		case <-t.closing:
+			return
+		}
+	}
 }
 
 // Stop stops this task manager, cleaning up any resources
