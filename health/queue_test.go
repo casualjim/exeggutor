@@ -99,17 +99,21 @@ func TestHealthCheckQueue(t *testing.T) {
 		})
 
 		Convey("when dequeueing", func() {
+
 			Convey("should return nil when the queue is empty", func() {
 				q := newHealthCheckQueue()
 				So(q.Pop(), ShouldBeNil)
 			})
+
 			Convey("should return nil when none of the items is expired", func() {
 				cur := time.Now().Add(5 * time.Minute)
 				q := newHealthCheckQueue()
 				hc := makeActiveHealthCheck("app-21", cur)
 				q.Push(hc)
 				So(q.Pop(), ShouldBeNil)
+				So(q.Len(), ShouldEqual, 1)
 			})
+
 			Convey("should return an item when it is expired", func() {
 				cur := time.Now().Add(-1 * time.Minute)
 				hc := makeActiveHealthCheck("app-22", cur)

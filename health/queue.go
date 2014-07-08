@@ -98,6 +98,7 @@ func (h *healthCheckQueue) Pop() *activeHealthCheck {
 	}
 	ac := item.(*activeHealthCheck)
 	if ac.ExpiresAt.After(time.Now()) {
+		heap.Push(&h.queue, ac)
 		return nil
 	}
 	return ac

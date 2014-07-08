@@ -1,7 +1,6 @@
 package check
 
 import (
-	"fmt"
 	"net"
 	"net/http"
 	"testing"
@@ -55,7 +54,6 @@ func TestHTTPHealthCheck(t *testing.T) {
 			ln, err := net.Listen("tcp", "127.0.0.1:0")
 			So(err, ShouldBeNil)
 			go http.Serve(ln, http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-				fmt.Println("Got a request for:", r.URL.Path)
 				time.Sleep(1 * time.Second)
 			}))
 			defer ln.Close()
@@ -78,7 +76,6 @@ func TestHTTPHealthCheck(t *testing.T) {
 			ln, err := net.Listen("tcp", "127.0.0.1:0")
 			So(err, ShouldBeNil)
 			go http.Serve(ln, http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-				fmt.Println("Got a request for:", r.URL.Path)
 				rw.WriteHeader(http.StatusGatewayTimeout)
 			}))
 			defer ln.Close()

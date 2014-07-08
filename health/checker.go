@@ -137,37 +137,38 @@ func (h *HealthChecker) Start() error {
 }
 
 func (h *HealthChecker) loop() {
-	// emptyLoopCount := 0
+	inProgress := 0
 	for {
 		if h.queue.Len() == 0 {
-			// emptyLoopCount++
-			// if emptyLoopCount%1000 == 0 {
-			// 	// log.Debug("The queue is empty, this won't work")
-			// }
+			<-h.ticker.C
 			continue
 		}
-		item := h.queue.Pop()
-		if item != nil {
-			log.Info("We have an item to check, waiting for an available worker: %v", item)
-			worker := <-h.availableWorkers
-			replyTo := make(chan check.Result)
-			go func() {
-				log.Debug("worker acquired, sending work")
-				worker <- healthCheckTrigger{ReplyTo: replyTo, Target: item}
-				log.Debug("worker acquired, work sent")
-				result := <-replyTo
-				log.Debug("Received reply for: %v", item.HealthCheck.GetID())
-				log.Debug("Changing expiration from %v to %v", item.ExpiresAt, result.NextCheck)
-				item.ExpiresAt = result.NextCheck
-				h.queue.Push(item)
-				log.Debug("healthcheck has been requeued")
-				if result.Code != protocol.HealthCheckResultCode_HEALTHY {
-					log.Debug("This was a healthcheck failure, forwarding....")
-					h.failures <- result
-				}
-
-			}()
-
+		if inProgress < h.nrOfWorkers {
+			item := h.queue.Pop()
+			if item != nil {
+				inProgress++
+				log.Info("We have an item to check, waiting for an available worker: %v", item)
+				worker := <-h.availableWorkers
+				replyTo := make(chan check.Result)
+				go func() {
+					log.Debug("worker acquired, sending work")
+					worker <- healthCheckTrigger{ReplyTo: replyTo, Target: item}
+					log.Debug("worker acquired, work sent")
+					result := <-replyTo
+					log.Debug("Received reply for: %v", item.HealthCheck.GetID())
+					inProgress--
+					log.Debug("Changing expiration from %v to %v", item.ExpiresAt, result.NextCheck)
+					item.ExpiresAt = result.NextCheck
+					h.queue.Push(item)
+					log.Debug("healthcheck has been requeued")
+					if result.Code != protocol.HealthCheckResultCode_HEALTHY {
+						log.Debug("This was a healthcheck failure, forwarding....")
+						h.failures <- result
+					}
+				}()
+			} else {
+				<-h.ticker.C
+			}
 		}
 	}
 }
