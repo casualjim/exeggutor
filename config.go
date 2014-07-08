@@ -38,6 +38,7 @@ type AppContext struct {
 // It has things like a name of the framework and user to use when running applications
 // on mesos
 type FrameworkConfig struct {
-	User string `json:"user,omitempty" long:"framework_user" description:"The user under which this framework should authenticate"`
-	Name string `json:"name,omitempty" long:"framework_name" description:"The name of this framework" default:"Agora"`
+	User                   string `json:"user,omitempty" long:"framework_user" description:"The user under which this framework should authenticate"`
+	Name                   string `json:"name,omitempty" long:"framework_name" description:"The name of this framework" default:"Agora"`
+	HealthCheckConcurrency int    `json:"healthCheckConcurrency" long:"health_check_concurrency" description:"The number of health check workers" default:"5"`
 }

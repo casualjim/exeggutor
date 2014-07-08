@@ -12,25 +12,26 @@ import (
 
 // ResponseValidator used to validate the health check result
 // of a HTTP response
-type ResponseValidator func(*http.Response, time.Time) Result
+type ResponseValidator func(*http.Response, string, time.Time) Result
 
 // StatusCodeValidator validates a http response to check if the
 // response status code is in the 2xx range
-func StatusCodeValidator(r *http.Response, next time.Time) Result {
+func StatusCodeValidator(r *http.Response, id string, next time.Time) Result {
 	if r.StatusCode >= 200 && r.StatusCode < 300 {
-		return successResult(next)
+		return successResult(id, next)
 	}
 	if r.StatusCode == 504 {
-		return Result{Code: protocol.HealthCheckResultCode_TIMEDOUT, NextCheck: next}
+		return timedOutResult(id, next)
 	}
-	return faultyResult(next)
+	return faultyResult(id, next)
 }
 
 type httpHealthCheck struct {
 	tcpHealthCheck
-	client    *http.Client
-	Path      string
-	validator ResponseValidator
+	client         *http.Client
+	Path           string
+	validator      ResponseValidator
+	currentRequest *http.Request
 }
 
 // HTTPHealthCheck creates a new health check based on
@@ -55,13 +56,19 @@ func newHTTPHealthCheck(id, address string, config *protocol.HealthCheck, valida
 
 func (h *httpHealthCheck) Check() Result {
 	uri := fmt.Sprintf("%s://%s%s", strings.ToLower(h.Scheme), h.Address, h.Path)
-	r, err := h.client.Get(uri)
+	req, err := http.NewRequest("GET", uri, nil)
 	next := time.Now().Add(h.Interval)
+	if err != nil {
+		return errorResult(err, h.ID, next)
+	}
+	h.currentRequest = req
+	r, err := h.client.Do(h.currentRequest)
+	h.currentRequest = nil
 
 	if err != nil {
-		return errorResult(err, next)
+		return errorResult(err, h.ID, next)
 	}
-	return h.validator(r, next)
+	return h.validator(r, h.ID, next)
 }
 
 // Update reconfigures a health check based on the new values
@@ -86,5 +93,12 @@ func (h *httpHealthCheck) Update(config *protocol.HealthCheck) {
 		h.validator = StatusCodeValidator
 	} else {
 		h.validator = StatusCodeValidator
+	}
+}
+
+func (h *httpHealthCheck) Cancel() {
+	if h.currentRequest != nil {
+		trans := h.client.Transport.(*http.Transport)
+		trans.CancelRequest(h.currentRequest)
 	}
 }

@@ -25,9 +25,9 @@ func appWithHealthCheck(context *exeggutor.AppContext, index int, delay, interva
 		MaxInstances: proto.Int32(1),
 		HealthCheck: &protocol.HealthCheck{
 			Mode:           protocol.HealthCheckMode_HTTP.Enum(),
-			RampUp:         proto.Int64(delay),    // 5 min
-			IntervalMillis: proto.Int64(interval), // 1 min
-			Timeout:        proto.Int64(timeout),  // 5 sec
+			RampUp:         proto.Int64(delay),
+			IntervalMillis: proto.Int64(interval),
+			Timeout:        proto.Int64(timeout),
 		},
 		UnhealthyAt: proto.Int32(1),
 	}
@@ -111,11 +111,11 @@ func TestHealthChecker(t *testing.T) {
 					So(ok, ShouldBeTrue)
 					So(val.ExpiresAt, ShouldHappenAfter, time.Now())
 					So(len(checker.register), ShouldEqual, 1)
-					So(len(checker.queue), ShouldEqual, 1)
+					So(checker.queue.Len(), ShouldEqual, 1)
 				})
 
 				Convey("should enqueue the value in the priority queue", func() {
-					So(checker.queue, ShouldContain, val)
+					So(checker.queue.queue, ShouldContain, val)
 				})
 			})
 
@@ -131,7 +131,7 @@ func TestHealthChecker(t *testing.T) {
 
 				Convey("it should not lose its place in the queue", func() {
 					var previousIndex int
-					for i, ac := range checker.queue {
+					for i, ac := range checker.queue.queue {
 						if ac.HealthCheck.GetID() == val.HealthCheck.GetID() {
 							previousIndex = i
 							break
@@ -141,7 +141,7 @@ func TestHealthChecker(t *testing.T) {
 					err := checker.Register(&app2)
 					So(err, ShouldBeNil)
 					var currentIndex int
-					for i, ac := range checker.queue {
+					for i, ac := range checker.queue.queue {
 						if ac.HealthCheck.GetID() == val.HealthCheck.GetID() {
 							currentIndex = i
 							break
@@ -154,7 +154,7 @@ func TestHealthChecker(t *testing.T) {
 					err := checker.Register(&app2)
 					So(err, ShouldBeNil)
 					var check *activeHealthCheck
-					for _, ac := range checker.queue {
+					for _, ac := range checker.queue.queue {
 						if ac.HealthCheck.GetID() == val.HealthCheck.GetID() {
 							check = ac
 							break
@@ -166,11 +166,10 @@ func TestHealthChecker(t *testing.T) {
 		})
 
 		Convey("when unregistering", func() {
-			app := appWithHealthCheck(context, 1, 300000, 60000, 5000)
-
-			app2 := appWithHealthCheck(context, 2, 150000, 60000, 5000)
-			app3 := appWithHealthCheck(context, 3, 450000, 60000, 5000)
-			app4 := appWithHealthCheck(context, 4, 100000, 60000, 5000)
+			app := appWithHealthCheck(context, 10, 300000, 60000, 5000)
+			app2 := appWithHealthCheck(context, 20, 150000, 60000, 5000)
+			app3 := appWithHealthCheck(context, 30, 450000, 60000, 5000)
+			app4 := appWithHealthCheck(context, 40, 100000, 60000, 5000)
 
 			checker.Register(&app)
 			checker.Register(&app2)
@@ -178,9 +177,9 @@ func TestHealthChecker(t *testing.T) {
 			checker.Register(&app4)
 
 			So(len(checker.register), ShouldEqual, 4)
-			So(len(checker.queue), ShouldEqual, 4)
+			So(checker.queue.Len(), ShouldEqual, 4)
 
-			val, ok := checker.register[app.TaskId.GetValue()]
+			_, ok := checker.register[app.TaskId.GetValue()]
 			So(ok, ShouldBeTrue)
 			err := checker.Unregister(app.TaskId)
 			So(err, ShouldBeNil)
@@ -193,14 +192,9 @@ func TestHealthChecker(t *testing.T) {
 			})
 
 			Convey("it should remove the check from the queue", func() {
-				found := false
-				for _, ac := range checker.queue {
-					if ac.HealthCheck.GetID() == val.HealthCheck.GetID() {
-						found = true
-					}
-				}
+				found := checker.queue.Contains(app.TaskId.GetValue())
 				So(found, ShouldBeFalse)
-				So(len(checker.queue), ShouldEqual, 3)
+				So(checker.queue.Len(), ShouldEqual, 3)
 			})
 		})
 	})

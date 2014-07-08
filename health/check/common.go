@@ -13,6 +13,7 @@ var log = logging.MustGetLogger("exeggutor.health.check")
 
 // Result the result of a health check
 type Result struct {
+	ID        string
 	Code      protocol.HealthCheckResultCode
 	Reason    string
 	NextCheck time.Time
@@ -25,23 +26,32 @@ type HealthCheck interface {
 	GetID() string
 	Check() Result
 	Update(config *protocol.HealthCheck)
+	Cancel()
 }
 
-func errorResult(err error, next time.Time) Result {
+func errorResult(err error, id string, next time.Time) Result {
 	log.Debug("Making error result for %v at %v", err, next)
 	e, ok := err.(net.Error)
 	if (ok && e.Timeout()) || strings.Contains(err.Error(), "timeout") {
-		return Result{Code: protocol.HealthCheckResultCode_TIMEDOUT, NextCheck: next}
+		return timedOutResult(id, next)
 	}
-	return Result{Code: protocol.HealthCheckResultCode_DOWN, NextCheck: next}
+	return downResult(id, next)
 }
 
-func successResult(next time.Time) Result {
-	return Result{Code: protocol.HealthCheckResultCode_HEALTHY, NextCheck: next}
+func successResult(id string, next time.Time) Result {
+	return Result{ID: id, Code: protocol.HealthCheckResultCode_HEALTHY, NextCheck: next}
 }
 
-func faultyResult(next time.Time) Result {
-	return Result{Code: protocol.HealthCheckResultCode_ERROR, NextCheck: next}
+func faultyResult(id string, next time.Time) Result {
+	return Result{ID: id, Code: protocol.HealthCheckResultCode_ERROR, NextCheck: next}
+}
+
+func downResult(id string, next time.Time) Result {
+	return Result{ID: id, Code: protocol.HealthCheckResultCode_DOWN, NextCheck: next}
+}
+
+func timedOutResult(id string, next time.Time) Result {
+	return Result{ID: id, Code: protocol.HealthCheckResultCode_TIMEDOUT, NextCheck: next}
 }
 
 // New creates a new health check based on the provided configuration

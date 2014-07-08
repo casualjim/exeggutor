@@ -41,7 +41,7 @@ func NewDefaultTaskManager(context *exeggutor.AppContext) (*DefaultTaskManager, 
 		taskStore:   store,
 		context:     context,
 		builder:     builders.New(context.Config),
-		healtchecks: health.New(context),
+		healtchecks: nil, //health.New(context),
 	}, nil
 }
 
@@ -70,12 +70,14 @@ func (t *DefaultTaskManager) Start() error {
 		return err
 	}
 
-	err = t.healtchecks.Start()
-	if err != nil {
-		// Stop these guys again we failed to start.
-		t.taskStore.Stop()
-		t.queue.Stop()
-		return err
+	if t.healtchecks != nil {
+		err = t.healtchecks.Start()
+		if err != nil {
+			// Stop these guys again we failed to start.
+			t.taskStore.Stop()
+			t.queue.Stop()
+			return err
+		}
 	}
 
 	return nil
@@ -84,7 +86,11 @@ func (t *DefaultTaskManager) Start() error {
 // Stop stops this task manager, cleaning up any resources
 // it might have required and owns.
 func (t *DefaultTaskManager) Stop() error {
-	err3 := t.healtchecks.Stop()
+	var err3 error
+	if t.healtchecks != nil {
+		err3 = t.healtchecks.Stop()
+	}
+
 	err := t.taskStore.Stop()
 	err2 := t.queue.Stop()
 

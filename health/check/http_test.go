@@ -21,7 +21,7 @@ func TestHTTPHealthCheck(t *testing.T) {
 			config := &protocol.HealthCheck{
 				Mode:           protocol.HealthCheckMode_HTTP.Enum(),
 				RampUp:         proto.Int64(10),
-				IntervalMillis: proto.Int64(10),
+				IntervalMillis: proto.Int64(1000),
 				Timeout:        proto.Int64(100),
 				Scheme:         proto.String("http"),
 			}
@@ -40,7 +40,7 @@ func TestHTTPHealthCheck(t *testing.T) {
 			config := &protocol.HealthCheck{
 				Mode:           protocol.HealthCheckMode_HTTP.Enum(),
 				RampUp:         proto.Int64(10),
-				IntervalMillis: proto.Int64(10),
+				IntervalMillis: proto.Int64(10000),
 				Timeout:        proto.Int64(100),
 				Scheme:         proto.String("http"),
 			}
@@ -63,7 +63,7 @@ func TestHTTPHealthCheck(t *testing.T) {
 			config := &protocol.HealthCheck{
 				Mode:           protocol.HealthCheckMode_HTTP.Enum(),
 				RampUp:         proto.Int64(10),
-				IntervalMillis: proto.Int64(10),
+				IntervalMillis: proto.Int64(10000),
 				Timeout:        proto.Int64(100),
 				Scheme:         proto.String("http"),
 			}
@@ -86,7 +86,7 @@ func TestHTTPHealthCheck(t *testing.T) {
 			config := &protocol.HealthCheck{
 				Mode:           protocol.HealthCheckMode_HTTP.Enum(),
 				RampUp:         proto.Int64(10),
-				IntervalMillis: proto.Int64(10),
+				IntervalMillis: proto.Int64(1000),
 				Timeout:        proto.Int64(100),
 				Scheme:         proto.String("http"),
 			}
@@ -101,7 +101,7 @@ func TestHTTPHealthCheck(t *testing.T) {
 			config := &protocol.HealthCheck{
 				Mode:           protocol.HealthCheckMode_HTTP.Enum(),
 				RampUp:         proto.Int64(10),
-				IntervalMillis: proto.Int64(10),
+				IntervalMillis: proto.Int64(100),
 				Timeout:        proto.Int64(100),
 				Scheme:         proto.String("http"),
 			}
@@ -123,7 +123,7 @@ func TestHTTPHealthCheck(t *testing.T) {
 			config := &protocol.HealthCheck{
 				Mode:           protocol.HealthCheckMode_HTTP.Enum(),
 				RampUp:         proto.Int64(10),
-				IntervalMillis: proto.Int64(10),
+				IntervalMillis: proto.Int64(1000),
 				Timeout:        proto.Int64(100),
 				Scheme:         proto.String("http"),
 			}

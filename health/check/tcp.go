@@ -37,10 +37,10 @@ func (t *tcpHealthCheck) Check() Result {
 	next := time.Now().Add(t.Interval)
 
 	if err != nil {
-		return errorResult(err, next)
+		return errorResult(err, t.ID, next)
 	}
 	defer conn.Close()
-	return successResult(next)
+	return successResult(t.ID, next)
 }
 func (t *tcpHealthCheck) GetID() string {
 	return t.ID
@@ -51,4 +51,8 @@ func (t *tcpHealthCheck) GetID() string {
 func (t *tcpHealthCheck) Update(config *protocol.HealthCheck) {
 	t.Timeout = time.Duration(config.GetTimeout()) * time.Millisecond
 	t.Interval = time.Duration(config.GetIntervalMillis()) * time.Millisecond
+}
+
+func (t *tcpHealthCheck) Cancel() {
+
 }
