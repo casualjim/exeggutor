@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/op/go-logging"
@@ -27,67 +25,148 @@ type HealthCheckScheduler interface {
 	Failures() <-chan *check.Result
 }
 
-type healthCheckPerformer struct {
-	ID            int
-	Trigger       chan healthCheckTrigger
-	AnnounceReady chan chan healthCheckTrigger
-	Closing       chan chan bool
-	Results       chan check.Result
-}
+//type healthCheckPerformer struct {
+//ID            int
+//trigger       chan healthCheckTrigger
+//announceReady chan chan healthCheckTrigger
+//closing       chan chan bool
+//results       chan check.Result
+//}
 
-type healthCheckTrigger struct {
-	ReplyTo chan check.Result
-	Target  *activeHealthCheck
-}
+//type healthCheckTrigger struct {
+//ReplyTo chan check.Result
+//Target  *activeHealthCheck
+//}
 
-func newHealthCheckPerformer(id int, announceReady chan chan healthCheckTrigger) healthCheckPerformer {
-	return healthCheckPerformer{
-		ID:            id,
-		Trigger:       make(chan healthCheckTrigger),
-		AnnounceReady: announceReady,
-		Closing:       make(chan chan bool),
+//func newHealthCheckPerformer(id int, announceReady chan chan healthCheckTrigger) healthCheckPerformer {
+//return healthCheckPerformer{
+//ID:            id,
+//trigger:       make(chan healthCheckTrigger),
+//announceReady: announceReady,
+//closing:       make(chan chan bool),
+//}
+//}
+
+//func (h *healthCheckPerformer) Start() {
+//log.Debug("Starting health check worker %d", h.ID)
+//go func() {
+//var current *activeHealthCheck
+//var checkDone chan check.Result
+
+//for {
+//h.announceReady <- h.Trigger
+//log.Debug("Worker%d reporting ready", h.ID)
+//select {
+//case triggered := <-h.Trigger:
+//log.Debug("worker%d received work: %s", h.ID, triggered.Target.HealthCheck.GetID())
+//current = triggered.Target
+//checkDone = triggered.ReplyTo
+//go func() {
+//checkDone <- triggered.Target.Start()
+//}()
+//case result := <-checkDone:
+//log.Debug("worker%d received result for %s as %s", h.ID, result.ID, result.Code.String())
+//current = nil
+//checkDone = nil
+//case closec := <-h.closing:
+//log.Debug("Worker %d is closing", h.ID)
+//if current != nil {
+//current.Stop()
+//current = nil
+//}
+//closec <- true
+//return
+//}
+//}
+//}()
+//}
+
+//func (h *healthCheckPerformer) Stop() {
+//closec := make(chan bool)
+//h.closing <- closec
+//<-closec
+//}
+
+func newPool(nrw int, replyTo chan<- healthResult) *workerPool {
+	return &workerPool{
+		poolSize: nrw,
+		work:     make(chan *activeHealthCheck, nrw),
+		updates:  make(chan healthResult, nrw),
+		closing:  make(chan chan error),
+		results:  replyTo,
 	}
 }
 
-func (h *healthCheckPerformer) Start() {
-	log.Debug("Starting health check worker %d", h.ID)
-	go func() {
-		var current *activeHealthCheck
-		var checkDone chan check.Result
+type workerPool struct {
+	poolSize int
+	work     chan *activeHealthCheck
+	updates  chan healthResult
+	closing  chan chan error
+	results  chan<- healthResult
+}
 
+type healthResult struct {
+	item   *activeHealthCheck
+	result check.Result
+}
+
+func (p *workerPool) Start() error {
+	log.Debug("Starting worker pool with %d workers", p.poolSize)
+	var waitForSlot chan bool
+	var pending []*activeHealthCheck
+	go func() {
 		for {
-			h.AnnounceReady <- h.Trigger
-			log.Debug("Worker%d reporting ready", h.ID)
 			select {
-			case triggered := <-h.Trigger:
-				log.Debug("worker%d received work: %s", h.ID, triggered.Target.HealthCheck.GetID())
-				current = triggered.Target
-				checkDone = triggered.ReplyTo
-				go func() {
-					checkDone <- triggered.Target.Start()
-				}()
-			case result := <-checkDone:
-				log.Debug("worker%d received result for %s as %s", h.ID, result.ID, result.Code.String())
-				current = nil
-				h.Results <- result
-				checkDone = nil
-			case closec := <-h.Closing:
-				log.Debug("Worker %d is closing", h.ID)
-				if current != nil {
-					current.Stop()
-					current = nil
+			case item := <-p.work:
+				log.Debug("received work: %s", item.GetID())
+				pending = append(pending, item)
+				inProgress := len(pending)
+				log.Debug("appended item to pending items, there are now %d in progress", inProgress)
+				if inProgress == p.poolSize {
+					log.Debug("There are as many things in progress are there are workers, setup wait for new slot")
+					waitForSlot = make(chan bool)
 				}
-				closec <- true
-				return
+				if inProgress > p.poolSize {
+					log.Warning("There are more checks in progress than there are workers!")
+				}
+				go func() {
+					log.Debug("Perforing health check for %s", item.GetID())
+					result := item.Check()
+					log.Debug("healthcheck for %s finished", item.GetID())
+					p.updates <- healthResult{item: item, result: result}
+					if waitForSlot != nil {
+						log.Debug("waitForSlot is not nil, sending it a message")
+						waitForSlot <- true
+					}
+				}()
+			case <-waitForSlot:
+				log.Debug("resetting wait for slot")
+				waitForSlot = nil
+			case result := <-p.updates:
+				log.Debug("Got a result for %s in the worker pool", result.item.GetID())
+				p.results <- result
+				log.Debug("pool forwarded result for %s", result.item.GetID())
+				for i, item := range pending {
+					if item.GetID() == result.item.GetID() {
+						pending = append(pending[:i], pending[i+1:]...)
+					}
+				}
+			case closed := <-p.closing:
+				close(p.updates)
+				for _, item := range pending {
+					item.Cancel()
+				}
+				closed <- nil
 			}
 		}
 	}()
+	return nil
 }
 
-func (h *healthCheckPerformer) Stop() {
-	closec := make(chan bool)
-	h.Closing <- closec
-	<-closec
+func (p *workerPool) Stop() error {
+	errorc := make(chan error)
+	p.closing <- errorc
+	return <-errorc
 }
 
 // HealthChecker manages all the health checks for this application
@@ -98,84 +177,79 @@ func (h *healthCheckPerformer) Stop() {
 // particular health check fails
 type HealthChecker struct {
 	exeggutor.Module
-	context          *exeggutor.AppContext
-	register         map[string]*activeHealthCheck
-	queue            *healthCheckQueue
-	ticker           *time.Ticker
-	nrOfWorkers      int
-	availableWorkers chan chan healthCheckTrigger
-	workers          []healthCheckPerformer
-	failures         chan check.Result
+	context  *exeggutor.AppContext
+	register map[string]*activeHealthCheck
+	queue    *healthCheckQueue
+	ticker   *time.Ticker
+	pool     *workerPool
+	failures chan check.Result
+	results  chan healthResult
 }
 
 // New creates a new instance of the health checker scheduler.
 func New(context *exeggutor.AppContext) *HealthChecker {
 	nrw := context.Config.FrameworkInfo.HealthCheckConcurrency
+	results := make(chan healthResult, nrw)
 	return &HealthChecker{
-		context:          context,
-		register:         make(map[string]*activeHealthCheck),
-		queue:            newHealthCheckQueue(),
-		ticker:           time.NewTicker(200 * time.Millisecond),
-		nrOfWorkers:      nrw,
-		availableWorkers: make(chan chan healthCheckTrigger, nrw),
-		workers:          make([]healthCheckPerformer, nrw),
-		failures:         make(chan check.Result, nrw),
+		context:  context,
+		register: make(map[string]*activeHealthCheck),
+		queue:    newHealthCheckQueue(),
+		pool:     newPool(nrw, results),
+		failures: make(chan check.Result),
+		results:  results,
+		ticker:   time.NewTicker(200 * time.Millisecond),
 	}
 }
 
 // Start starts this instance of health checker
 func (h *HealthChecker) Start() error {
-	for i := 0; i < h.nrOfWorkers; i++ {
-		worker := newHealthCheckPerformer(i+1, h.availableWorkers)
-		h.workers[i] = worker
-		worker.Start()
-	}
-	go h.loop()
-	log.Notice("Started health checker with a worker pool of %d workers", h.nrOfWorkers)
+	h.pool.Start()
+	h.dequeueLoop()
+	h.dispatchResultsLoop()
+	log.Notice("Started health checker with a worker pool of %d workers", h.pool.poolSize)
 	return nil
 }
 
-func (h *HealthChecker) loop() {
-	inProgress := int32(0)
-	for {
-		if inProgress < int32(h.nrOfWorkers) && h.queue.Len() > 0 {
-			item := h.queue.Pop()
-			if item != nil {
-				atomic.AddInt32(&inProgress, 1)
-				worker := <-h.availableWorkers
-				replyTo := make(chan check.Result)
-				go func() {
-					worker <- healthCheckTrigger{ReplyTo: replyTo, Target: item}
-					result := <-replyTo
-					atomic.AddInt32(&inProgress, -1)
-					item.ExpiresAt = result.NextCheck
-					h.queue.Push(item)
-					if result.Code != protocol.HealthCheckResultCode_HEALTHY {
-						h.failures <- result
-					}
-				}()
+func (h *HealthChecker) dequeueLoop() {
+	go func() {
+		for {
+			if h.queue.Len() > 0 {
+				item, next, ok := h.queue.Pop()
+				if ok {
+					log.Debug("We have a health check to perform")
+					h.pool.work <- item
+				} else {
+					dur := next.Sub(time.Now())
+					log.Debug("No expired item found, waiting for %v", dur)
+					<-time.After(dur)
+				}
+
 			} else {
+				log.Debug("There were no items in the queue, waiting for a bit")
 				<-h.ticker.C
 			}
+
 		}
-	}
+	}()
+}
+
+func (h *HealthChecker) dispatchResultsLoop() {
+	go func() {
+		for result := range h.results {
+			log.Debug("processing %+v", result.result)
+			item := result.item
+			item.ExpiresAt = result.result.NextCheck
+			h.queue.Push(item)
+			if result.result.Code != protocol.HealthCheckResultCode_HEALTHY {
+				h.failures <- result.result
+			}
+		}
+	}()
 }
 
 // Stop stops this instance of health checker
 func (h *HealthChecker) Stop() error {
-	w := len(h.workers)
-	if w > 0 {
-		wg := &sync.WaitGroup{}
-		wg.Add(len(h.workers))
-		for _, worker := range h.workers {
-			ww := &worker
-			go func() {
-				ww.Stop()
-				wg.Done()
-			}()
-		}
-		wg.Wait()
-	}
+	h.pool.Stop()
 	close(h.failures)
 
 	return nil

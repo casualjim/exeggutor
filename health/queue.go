@@ -11,17 +11,9 @@ import (
 // activeHealthCheck represents a scheduled health check
 // this has a position in the health check queue based on its expiration
 type activeHealthCheck struct {
-	HealthCheck check.HealthCheck
-	ExpiresAt   time.Time
-	index       int
-}
-
-func (a *activeHealthCheck) Start() check.Result {
-	return a.HealthCheck.Check()
-}
-
-func (a *activeHealthCheck) Stop() {
-	a.HealthCheck.Cancel()
+	check.HealthCheck
+	ExpiresAt time.Time
+	index     int
 }
 
 type healthCheckPQueue []*activeHealthCheck
@@ -89,26 +81,26 @@ func (h *healthCheckQueue) Push(hc *activeHealthCheck) {
 	heap.Push(&h.queue, hc)
 }
 
-func (h *healthCheckQueue) Pop() *activeHealthCheck {
+func (h *healthCheckQueue) Pop() (*activeHealthCheck, time.Time, bool) {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 	item := heap.Pop(&h.queue)
 	if item == nil {
-		return nil
+		return nil, time.Now().Add(1 * time.Second), false
 	}
 	ac := item.(*activeHealthCheck)
 	if ac.ExpiresAt.After(time.Now()) {
 		heap.Push(&h.queue, ac)
-		return nil
+		return nil, ac.ExpiresAt, false
 	}
-	return ac
+	return ac, time.Now(), true
 }
 
 func (h *healthCheckQueue) Remove(id string) {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 	for i, ac := range h.queue {
-		if ac.HealthCheck.GetID() == id {
+		if ac.GetID() == id {
 			heap.Remove(&h.queue, i)
 			break
 		}
@@ -117,7 +109,7 @@ func (h *healthCheckQueue) Remove(id string) {
 
 func (h *healthCheckQueue) Contains(id string) bool {
 	for _, chk := range h.queue {
-		if chk.HealthCheck.GetID() == id {
+		if chk.GetID() == id {
 			return true
 		}
 	}

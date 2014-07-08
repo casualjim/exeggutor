@@ -81,7 +81,7 @@ func main() {
 	logBackend := logging.NewLogBackend(os.Stderr, "", stdlog.LstdFlags|stdlog.Lshortfile)
 	logBackend.Color = true
 	logging.SetBackend(logBackend)
-	logging.SetLevel(logging.INFO, "")
+	logging.SetLevel(logging.DEBUG, "")
 	context := &exeggutor.AppContext{
 		Config: &exeggutor.Config{
 			FrameworkInfo: exeggutor.FrameworkConfig{
