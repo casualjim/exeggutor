@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/op/go-logging"
@@ -55,7 +56,6 @@ func (h *healthCheckPerformer) Start() {
 		var checkDone chan check.Result
 
 		for {
-			log.Debug("About to announce worker: %d", h.ID)
 			h.AnnounceReady <- h.Trigger
 			log.Debug("Worker%d reporting ready", h.ID)
 			select {
@@ -71,7 +71,6 @@ func (h *healthCheckPerformer) Start() {
 				current = nil
 				h.Results <- result
 				checkDone = nil
-				log.Debug("worker%d forwarded result for %s", h.ID, result.ID)
 			case closec := <-h.Closing:
 				log.Debug("Worker %d is closing", h.ID)
 				if current != nil {
@@ -137,28 +136,21 @@ func (h *HealthChecker) Start() error {
 }
 
 func (h *HealthChecker) loop() {
-	inProgress := 0
+	inProgress := int32(0)
 	for {
-		if inProgress < h.nrOfWorkers && h.queue.Len() > 0 {
+		if inProgress < int32(h.nrOfWorkers) && h.queue.Len() > 0 {
 			item := h.queue.Pop()
 			if item != nil {
-				inProgress++
-				log.Debug("We have an item to check, waiting for an available worker: %v", item)
+				atomic.AddInt32(&inProgress, 1)
 				worker := <-h.availableWorkers
 				replyTo := make(chan check.Result)
 				go func() {
-					log.Debug("worker acquired, sending work")
 					worker <- healthCheckTrigger{ReplyTo: replyTo, Target: item}
-					log.Debug("worker acquired, work sent")
 					result := <-replyTo
-					log.Debug("Received reply for: %v", item.HealthCheck.GetID())
-					inProgress--
-					log.Debug("Changing expiration from %v to %v", item.ExpiresAt, result.NextCheck)
+					atomic.AddInt32(&inProgress, -1)
 					item.ExpiresAt = result.NextCheck
 					h.queue.Push(item)
-					log.Debug("healthcheck has been requeued")
 					if result.Code != protocol.HealthCheckResultCode_HEALTHY {
-						log.Debug("This was a healthcheck failure, forwarding....")
 						h.failures <- result
 					}
 				}()
