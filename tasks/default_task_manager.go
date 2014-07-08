@@ -41,7 +41,7 @@ func NewDefaultTaskManager(context *exeggutor.AppContext) (*DefaultTaskManager, 
 		taskStore:   store,
 		context:     context,
 		builder:     builders.New(context.Config),
-		healtchecks: nil, //health.New(context),
+		healtchecks: health.New(context),
 	}, nil
 }
 

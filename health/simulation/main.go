@@ -140,6 +140,8 @@ func main() {
 		}
 	}()
 
-	<-time.After(1 * time.Hour)
+	<-time.After(1 * time.Minute)
+	log.Info("1 minute elapsed, stopping")
 	checker.Stop()
+	os.Exit(0)
 }

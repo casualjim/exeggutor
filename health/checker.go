@@ -25,68 +25,6 @@ type HealthCheckScheduler interface {
 	Failures() <-chan *check.Result
 }
 
-//type healthCheckPerformer struct {
-//ID            int
-//trigger       chan healthCheckTrigger
-//announceReady chan chan healthCheckTrigger
-//closing       chan chan bool
-//results       chan check.Result
-//}
-
-//type healthCheckTrigger struct {
-//ReplyTo chan check.Result
-//Target  *activeHealthCheck
-//}
-
-//func newHealthCheckPerformer(id int, announceReady chan chan healthCheckTrigger) healthCheckPerformer {
-//return healthCheckPerformer{
-//ID:            id,
-//trigger:       make(chan healthCheckTrigger),
-//announceReady: announceReady,
-//closing:       make(chan chan bool),
-//}
-//}
-
-//func (h *healthCheckPerformer) Start() {
-//log.Debug("Starting health check worker %d", h.ID)
-//go func() {
-//var current *activeHealthCheck
-//var checkDone chan check.Result
-
-//for {
-//h.announceReady <- h.Trigger
-//log.Debug("Worker%d reporting ready", h.ID)
-//select {
-//case triggered := <-h.Trigger:
-//log.Debug("worker%d received work: %s", h.ID, triggered.Target.HealthCheck.GetID())
-//current = triggered.Target
-//checkDone = triggered.ReplyTo
-//go func() {
-//checkDone <- triggered.Target.Start()
-//}()
-//case result := <-checkDone:
-//log.Debug("worker%d received result for %s as %s", h.ID, result.ID, result.Code.String())
-//current = nil
-//checkDone = nil
-//case closec := <-h.closing:
-//log.Debug("Worker %d is closing", h.ID)
-//if current != nil {
-//current.Stop()
-//current = nil
-//}
-//closec <- true
-//return
-//}
-//}
-//}()
-//}
-
-//func (h *healthCheckPerformer) Stop() {
-//closec := make(chan bool)
-//h.closing <- closec
-//<-closec
-//}
-
 func newPool(nrw int, replyTo chan<- healthResult) *workerPool {
 	return &workerPool{
 		poolSize: nrw,
@@ -118,37 +56,44 @@ func (p *workerPool) Start() error {
 		for {
 			select {
 			case item := <-p.work:
-				log.Debug("received work: %s", item.GetID())
-				pending = append(pending, item)
-				inProgress := len(pending)
-				log.Debug("appended item to pending items, there are now %d in progress", inProgress)
-				if inProgress == p.poolSize {
-					log.Debug("There are as many things in progress are there are workers, setup wait for new slot")
-					waitForSlot = make(chan bool)
-				}
-				if inProgress > p.poolSize {
-					log.Warning("There are more checks in progress than there are workers!")
-				}
-				go func() {
-					log.Debug("Perforing health check for %s", item.GetID())
-					result := item.Check()
-					log.Debug("healthcheck for %s finished", item.GetID())
-					p.updates <- healthResult{item: item, result: result}
-					if waitForSlot != nil {
-						log.Debug("waitForSlot is not nil, sending it a message")
-						waitForSlot <- true
+				// if this is nil it doesn't count
+				// but it will most likely mean that the channel was closed
+				if item != nil {
+					log.Debug("received work: %s", item.GetID())
+					pending = append(pending, item)
+					inProgress := len(pending)
+					log.Debug("appended item to pending items, there are now %d in progress", inProgress)
+					if inProgress == p.poolSize {
+						log.Debug("There are as many things in progress are there are workers, setup wait for new slot")
+						waitForSlot = make(chan bool)
 					}
-				}()
+					if inProgress > p.poolSize {
+						log.Warning("There are more checks in progress than there are workers!")
+					}
+					go func() {
+						log.Debug("Performing health check for %s", item.GetID())
+						result := item.Check()
+						log.Debug("healthcheck for %s finished", item.GetID())
+						p.updates <- healthResult{item: item, result: result}
+						if waitForSlot != nil {
+							log.Debug("waitForSlot is not nil, sending it a message")
+							waitForSlot <- true
+						}
+					}()
+				}
 			case <-waitForSlot:
 				log.Debug("resetting wait for slot")
 				waitForSlot = nil
 			case result := <-p.updates:
-				log.Debug("Got a result for %s in the worker pool", result.item.GetID())
-				p.results <- result
-				log.Debug("pool forwarded result for %s", result.item.GetID())
-				for i, item := range pending {
-					if item.GetID() == result.item.GetID() {
-						pending = append(pending[:i], pending[i+1:]...)
+				// if item is nil it means this channel is closed
+				if result.item != nil {
+					log.Debug("Got a result for %s in the worker pool", result.item.GetID())
+					p.results <- result
+					log.Debug("pool forwarded result for %s", result.item.GetID())
+					for i, item := range pending {
+						if item.GetID() == result.item.GetID() {
+							pending = append(pending[:i], pending[i+1:]...)
+						}
 					}
 				}
 			case closed := <-p.closing:
@@ -157,6 +102,7 @@ func (p *workerPool) Start() error {
 					item.Cancel()
 				}
 				closed <- nil
+				close(p.work)
 			}
 		}
 	}()
@@ -197,7 +143,7 @@ func New(context *exeggutor.AppContext) *HealthChecker {
 		pool:     newPool(nrw, results),
 		failures: make(chan check.Result),
 		results:  results,
-		ticker:   time.NewTicker(200 * time.Millisecond),
+		ticker:   time.NewTicker(1 * time.Second),
 	}
 }
 
@@ -249,10 +195,12 @@ func (h *HealthChecker) dispatchResultsLoop() {
 
 // Stop stops this instance of health checker
 func (h *HealthChecker) Stop() error {
-	h.pool.Stop()
+	err := h.pool.Stop()
+	h.ticker.Stop()
 	close(h.failures)
-
-	return nil
+	close(h.results)
+	log.Notice("Stopped health checker")
+	return err
 }
 
 func (h *HealthChecker) portForScheme(portMapping []*protocol.PortMapping, scheme string) (int32, bool) {

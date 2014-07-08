@@ -163,6 +163,7 @@ func setupLogging() {
 	logBackend := logging.NewLogBackend(os.Stderr, "", stdlog.LstdFlags|stdlog.Lshortfile)
 	logBackend.Color = true
 	logging.SetBackend(logBackend)
+	logging.SetLevel(logging.INFO, "exeggutor.health")
 	if strings.HasPrefix(config.Mode, "prod") {
 		logPath := config.LogDirectory + "/agora.log"
 		os.MkdirAll(config.LogDirectory, 0755)
