@@ -131,6 +131,7 @@ func main() {
 			checker.Register(makeDeployedApp(port3, "application-3", fmt.Sprintf("comp-%d-app-1", i), fmt.Sprintf("task-%d-app-3", i), 10000, 1000, 1000))
 			checker.Register(makeDeployedApp(port4, "application-4", fmt.Sprintf("comp-%d-app-1", i), fmt.Sprintf("task-%d-app-4", i), 20000, 1000, 1000))
 		}
+		log.Info("Scheduled 40 health checks to run")
 	}()
 
 	go func() {

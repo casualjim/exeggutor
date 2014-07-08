@@ -116,7 +116,7 @@ func New(context *exeggutor.AppContext) *HealthChecker {
 		context:          context,
 		register:         make(map[string]*activeHealthCheck),
 		queue:            newHealthCheckQueue(),
-		ticker:           time.NewTicker(1 * time.Second),
+		ticker:           time.NewTicker(200 * time.Millisecond),
 		nrOfWorkers:      nrw,
 		availableWorkers: make(chan chan healthCheckTrigger, nrw),
 		workers:          make([]healthCheckPerformer, nrw),
@@ -139,15 +139,11 @@ func (h *HealthChecker) Start() error {
 func (h *HealthChecker) loop() {
 	inProgress := 0
 	for {
-		if h.queue.Len() == 0 {
-			<-h.ticker.C
-			continue
-		}
-		if inProgress < h.nrOfWorkers {
+		if inProgress < h.nrOfWorkers && h.queue.Len() > 0 {
 			item := h.queue.Pop()
 			if item != nil {
 				inProgress++
-				log.Info("We have an item to check, waiting for an available worker: %v", item)
+				log.Debug("We have an item to check, waiting for an available worker: %v", item)
 				worker := <-h.availableWorkers
 				replyTo := make(chan check.Result)
 				go func() {
