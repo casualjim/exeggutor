@@ -34,4 +34,6 @@ type TaskManager interface {
 
 	//RunningApps() []*protocol.Application
 	// Schedules
+
+	TasksToKill() <-chan *mesos.TaskID
 }

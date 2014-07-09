@@ -26,6 +26,7 @@ type DefaultTaskManager struct {
 	builder     *builders.MesosMessageBuilder
 	healtchecks health.HealthCheckScheduler
 	closing     chan bool
+	tasksToKill chan *mesos.TaskID
 }
 
 // NewDefaultTaskManager creates a new instance of a task manager with the values
@@ -44,6 +45,7 @@ func NewDefaultTaskManager(context *exeggutor.AppContext) (*DefaultTaskManager, 
 		builder:     builders.New(context.Config),
 		healtchecks: health.New(context),
 		closing:     make(chan bool),
+		tasksToKill: make(chan *mesos.TaskID),
 	}, nil
 }
 
@@ -56,6 +58,10 @@ func NewDefaultTaskManager(context *exeggutor.AppContext) (*DefaultTaskManager, 
 // 		builder:   builder,
 // 	}, nil
 // }
+
+func (t *DefaultTaskManager) TasksToKill() <-chan *mesos.TaskID {
+	return t.tasksToKill
+}
 
 // Start starts the instance of the taks manager and all the components it depends on.
 func (t *DefaultTaskManager) Start() error {
@@ -92,6 +98,14 @@ func (t *DefaultTaskManager) listenForHealthFailures() {
 		select {
 		case failure := <-t.healtchecks.Failures():
 			log.Info("task %d failed the health check", failure.ID)
+			app, err := t.taskStore.Get(failure.ID)
+			if err != nil {
+				log.Error("Failed to get an app for marking as failure")
+			}
+			if app != nil && err == nil {
+				t.tasksToKill <- app.GetTaskId()
+			}
+
 		case <-t.closing:
 			return
 		}

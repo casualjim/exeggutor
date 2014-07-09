@@ -94,7 +94,7 @@ func (fw *Framework) KillComponent(app, component string) error {
 	return err
 }
 
-// KillComponentOnSlave stop s a single component instance on a particular slave
+// KillComponentOnSlave stops a single component instance on a particular slave
 func (fw *Framework) KillComponentOnSlave(tID string) error {
 	taskID, err := fw.taskManager.FindTaskForComponent(tID)
 	if err != nil {
@@ -232,6 +232,13 @@ func (fw *Framework) Start() error {
 		log.Critical("Couldn't start the mesos scheduler driver, because %v", err)
 		return err
 	}
+
+	go func() {
+		for taskID := range fw.taskManager.TasksToKill() {
+			fw.KillApp(taskID.GetValue())
+		}
+	}()
+
 	log.Notice("Started the exeggutor scheduler")
 	return nil
 }
