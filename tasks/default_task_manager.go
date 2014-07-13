@@ -8,9 +8,10 @@ import (
 	"github.com/reverb/exeggutor"
 	"github.com/reverb/exeggutor/health"
 	"github.com/reverb/exeggutor/protocol"
+	app_store "github.com/reverb/exeggutor/store/apps"
+	task_store "github.com/reverb/exeggutor/store/tasks"
 	"github.com/reverb/exeggutor/tasks/builders"
 	task_queue "github.com/reverb/exeggutor/tasks/queue"
-	task_store "github.com/reverb/exeggutor/tasks/store"
 	"github.com/reverb/go-mesos/mesos"
 )
 
@@ -22,6 +23,7 @@ import (
 type DefaultTaskManager struct {
 	queue       task_queue.TaskQueue
 	taskStore   task_store.TaskStore
+	appStore    app_store.AppStore
 	context     *exeggutor.AppContext
 	builder     *builders.MesosMessageBuilder
 	healtchecks health.HealthCheckScheduler
@@ -37,10 +39,16 @@ func NewDefaultTaskManager(context *exeggutor.AppContext) (*DefaultTaskManager, 
 		return nil, err
 	}
 
+	appStore, err := app_store.New(context.Config)
+	if err != nil {
+		return nil, err
+	}
+
 	q := task_queue.New()
 	return &DefaultTaskManager{
 		queue:       q,
 		taskStore:   store,
+		appStore:    appStore,
 		context:     context,
 		builder:     builders.New(context.Config),
 		healtchecks: health.New(context),
@@ -49,16 +57,7 @@ func NewDefaultTaskManager(context *exeggutor.AppContext) (*DefaultTaskManager, 
 	}, nil
 }
 
-// // NewCustomDefaultTaskManager creates a new instance of a task manager with all the internal components injected
-// func NewCustomDefaultTaskManager(q task_queue.TaskQueue, ts task_store.TaskStore, context *exeggutor.AppContext, builder *builders.MesosMessageBuilder) (*DefaultTaskManager, error) {
-// 	return &DefaultTaskManager{
-// 		queue:     q,
-// 		taskStore: ts,
-// 		context:   context,
-// 		builder:   builder,
-// 	}, nil
-// }
-
+// TasksToKill a channel over which tasks that should be killed are received
 func (t *DefaultTaskManager) TasksToKill() <-chan *mesos.TaskID {
 	return t.tasksToKill
 }
@@ -86,9 +85,8 @@ func (t *DefaultTaskManager) Start() error {
 			t.queue.Stop()
 			return err
 		}
+		go t.listenForHealthFailures()
 	}
-
-	go t.listenForHealthFailures()
 
 	return nil
 }
@@ -147,15 +145,27 @@ func (t *DefaultTaskManager) Stop() error {
 	return nil
 }
 
+// SaveApp saves an application
+func (t *DefaultTaskManager) SaveApp(app *protocol.Application) error {
+	log.Debug("Saving app: %+v", app)
+	return t.appStore.Save(app)
+}
+
 // SubmitApp submits an application to the queue for scheduling on the
 // cluster
 func (t *DefaultTaskManager) SubmitApp(app []protocol.Application) error {
 	log.Debug("Submitting app: %+v", app)
 	for _, comp := range app {
+		ptr := &comp
+		err := t.SaveApp(ptr)
+		if err != nil {
+			log.Error("Couldn't save app %s, skipping this submission", comp.GetId())
+			return err
+		}
 		component := protocol.ScheduledApp{
 			Name:    comp.Name,
 			AppName: comp.AppName,
-			App:     &comp,
+			App:     ptr,
 		}
 		t.queue.Enqueue(&component)
 	}
@@ -163,24 +173,45 @@ func (t *DefaultTaskManager) SubmitApp(app []protocol.Application) error {
 }
 
 // RunningApps finds all the tasks that are currently running
-func (t *DefaultTaskManager) RunningApps(name string) ([]*mesos.TaskID, error) {
-	return t.taskStore.FilterToTaskIds(func(item *protocol.DeployedAppComponent) bool {
-		return item.GetAppName() == name && item.GetStatus() == protocol.AppStatus_STARTED
+func (t *DefaultTaskManager) RunningApps(name string) (tasks []*mesos.TaskID, err error) {
+	t.taskStore.ForEach(func(item *protocol.Deployment) {
+		app, err := t.appStore.Get(item.GetAppId())
+		if err != nil {
+			log.Warning("Couldn't get the application %s linked to the task id %s, because: %v", item.GetAppId(), item.GetTaskId().GetValue(), err)
+		}
+		if app != nil && app.GetAppName() == name && item.GetStatus() == protocol.AppStatus_STARTED {
+			tasks = append(tasks, item.GetTaskId())
+		}
 	})
+	return
 }
 
 // FindTasksForApp finds all the tasks for the specified application name
-func (t *DefaultTaskManager) FindTasksForApp(name string) ([]*mesos.TaskID, error) {
-	return t.taskStore.FilterToTaskIds(func(item *protocol.DeployedAppComponent) bool {
-		return item.GetAppName() == name
+func (t *DefaultTaskManager) FindTasksForApp(name string) (tasks []*mesos.TaskID, err error) {
+	t.taskStore.ForEach(func(item *protocol.Deployment) {
+		app, err := t.appStore.Get(item.GetAppId())
+		if err != nil {
+			log.Warning("Couldn't get the application %s linked to the task id %s, because: %v", item.GetAppId(), item.GetTaskId().GetValue(), err)
+		}
+		if app != nil && app.GetAppName() == name {
+			tasks = append(tasks, item.GetTaskId())
+		}
 	})
+	return
 }
 
 // FindTasksForComponent finds all the deployed tasks for the specified component
-func (t *DefaultTaskManager) FindTasksForComponent(app, component string) ([]*mesos.TaskID, error) {
-	return t.taskStore.FilterToTaskIds(func(item *protocol.DeployedAppComponent) bool {
-		return item.GetAppName() == app && item.Component != nil && item.Component.GetName() == component
+func (t *DefaultTaskManager) FindTasksForComponent(appName, component string) (tasks []*mesos.TaskID, err error) {
+	t.taskStore.ForEach(func(item *protocol.Deployment) {
+		app, err := t.appStore.Get(item.GetAppId())
+		if err != nil {
+			log.Warning("Couldn't get the application %s linked to the task id %s, because: %v", item.GetAppId(), item.GetTaskId().GetValue(), err)
+		}
+		if app != nil && app.GetAppName() == appName && app.GetName() == component {
+			tasks = append(tasks, item.GetTaskId())
+		}
 	})
+	return
 }
 
 // FindTaskForComponent finds the task for the specified task (single instance)
@@ -251,9 +282,8 @@ func (t *DefaultTaskManager) FulfillOffer(offer mesos.Offer) []mesos.TaskInfo {
 	}
 
 	task, portMapping := t.buildTaskInfo(offer, item)
-	deploying := &protocol.DeployedAppComponent{
-		AppName:     item.AppName,
-		Component:   item.App,
+	deploying := &protocol.Deployment{
+		AppId:       proto.String(item.GetId()),
 		TaskId:      task.GetTaskId(),
 		Status:      protocol.AppStatus_DEPLOYING.Enum(),
 		Slave:       task.GetSlaveId(),
@@ -275,9 +305,18 @@ func (t *DefaultTaskManager) updateStatus(taskID *mesos.TaskID, status protocol.
 		return err
 	}
 	deploying.Status = status.Enum()
+	if err := t.taskStore.Save(deploying); err != nil {
+		log.Warning("Failed to save task %v, because %v", taskID.GetValue(), err)
+		return err
+	}
+	app, err := t.appStore.Get(deploying.GetAppId())
+	if err != nil {
+		log.Warning("Failed to retrieve application %v, because %v", deploying.GetAppId(), err)
+		return err
+	}
 	if t.healtchecks != nil {
 		if deploying.GetStatus() == protocol.AppStatus_STARTED {
-			if err := t.healtchecks.Register(deploying); err != nil {
+			if err := t.healtchecks.Register(deploying, app); err != nil {
 				log.Warning("Failed to unregister health check for %v, because %v", taskID.GetValue(), err)
 			}
 		} else {
@@ -285,9 +324,6 @@ func (t *DefaultTaskManager) updateStatus(taskID *mesos.TaskID, status protocol.
 				log.Warning("Failed to unregister health check for %v, because %v", taskID.GetValue(), err)
 			}
 		}
-	}
-	if err := t.taskStore.Save(deploying); err != nil {
-		log.Warning("Failed to unregister health check for %v, because %v", taskID.GetValue(), err)
 	}
 	return nil
 }

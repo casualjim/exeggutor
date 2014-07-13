@@ -22,8 +22,7 @@ func New(config *exeggutor.Config) *ApplicationsConverter {
 }
 
 // ToAppManifest convert the provided app to a protobuf application manifest
-func (a *ApplicationsConverter) ToAppManifest(app *model.App, config *exeggutor.Config) []protocol.Application {
-	var cmps []protocol.Application
+func (a *ApplicationsConverter) ToAppManifest(app *model.App, config *exeggutor.Config) (cmps []protocol.Application) {
 	for _, comp := range app.Components {
 
 		var env []*protocol.StringKeyValue
@@ -53,6 +52,7 @@ func (a *ApplicationsConverter) ToAppManifest(app *model.App, config *exeggutor.
 		}
 
 		cmp := protocol.Application{
+			Id:            proto.String(strings.Join([]string{app.Name, comp.Name, comp.Version}, "-")),
 			Name:          proto.String(comp.Name),
 			Cpus:          proto.Float32(float32(comp.Cpus)),
 			Mem:           proto.Float32(float32(comp.Mem)),
@@ -72,5 +72,5 @@ func (a *ApplicationsConverter) ToAppManifest(app *model.App, config *exeggutor.
 		cmps = append(cmps, cmp)
 	}
 
-	return cmps
+	return
 }

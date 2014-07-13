@@ -56,6 +56,11 @@ func (fw *Framework) infoFromConfig() mesos.FrameworkInfo {
 	}
 }
 
+// SaveApp saves this application in the app store
+func (fw *Framework) SaveApp(app *protocol.Application) error {
+	return fw.taskManager.SaveApp(app)
+}
+
 // SubmitApp submits an application to the queue for scheduling on the
 // cluster
 func (fw *Framework) SubmitApp(app []protocol.Application) error {
@@ -139,6 +144,7 @@ func (fw *Framework) defaultMesosScheduler() *mesos.Scheduler {
 			log.Info("Status update: %+v", status)
 			taskID := status.GetTaskId().GetValue()
 			slaveID := status.SlaveId.GetValue()
+
 			switch status.GetState() {
 			case mesos.TaskState_TASK_FAILED:
 				log.Warning("Task %s failed on %s, because %s", taskID, slaveID, status.GetMessage())

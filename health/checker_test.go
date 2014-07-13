@@ -13,14 +13,14 @@ import (
 	"github.com/reverb/exeggutor"
 	"github.com/reverb/exeggutor/protocol"
 	"github.com/reverb/exeggutor/tasks/builders"
-	"github.com/reverb/exeggutor/tasks/test_utils"
+	"github.com/reverb/exeggutor/test_utils"
 	"github.com/reverb/go-utils/flake"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func appWithHealthCheck(context *exeggutor.AppContext, index int, delay, interval, timeout int64) protocol.DeployedAppComponent {
-	app := test_utils.BuildStoreTestData(index, builders.New(context.Config))
-	app.Component.Sla = &protocol.ApplicationSLA{
+func appWithHealthCheck(context *exeggutor.AppContext, index int, delay, interval, timeout int64) (protocol.Deployment, protocol.Application) {
+	deployment, app := test_utils.BuildStoreTestData(index, builders.New(context.Config))
+	app.Sla = &protocol.ApplicationSLA{
 		MinInstances: proto.Int32(1),
 		MaxInstances: proto.Int32(1),
 		HealthCheck: &protocol.HealthCheck{
@@ -31,14 +31,14 @@ func appWithHealthCheck(context *exeggutor.AppContext, index int, delay, interva
 		},
 		UnhealthyAt: proto.Int32(1),
 	}
-	app.PortMapping = []*protocol.PortMapping{
+	deployment.PortMapping = []*protocol.PortMapping{
 		&protocol.PortMapping{
 			Scheme:      proto.String("HTTP"),
 			PrivatePort: proto.Int32(8000),
 			PublicPort:  proto.Int32(8000),
 		},
 	}
-	return app
+	return deployment, app
 }
 
 func TestHealthChecker(t *testing.T) {
@@ -70,42 +70,35 @@ func TestHealthChecker(t *testing.T) {
 
 		Convey("when registering invalid values", func() {
 
-			Convey("return an error for nil app component", func() {
-				app := test_utils.BuildStoreTestData(1, builder)
-				app.Component = nil
-				err := checker.Register(&app)
-				So(err, ShouldNotBeNil)
-			})
-
 			Convey("return nil for a nil SLA", func() {
-				app := test_utils.BuildStoreTestData(1, builders.New(context.Config))
-				err := checker.Register(&app)
+				deployment, app := test_utils.BuildStoreTestData(1, builders.New(context.Config))
+				err := checker.Register(&deployment, &app)
 				So(err, ShouldBeNil)
 			})
 
 			Convey("return nil for a nil health check", func() {
-				app := test_utils.BuildStoreTestData(1, builders.New(context.Config))
-				app.Component.Sla = &protocol.ApplicationSLA{}
-				err := checker.Register(&app)
+				deployment, app := test_utils.BuildStoreTestData(1, builders.New(context.Config))
+				app.Sla = &protocol.ApplicationSLA{}
+				err := checker.Register(&deployment, &app)
 				So(err, ShouldBeNil)
 			})
 
 			Convey("return nil for a nil port mapping", func() {
-				app := test_utils.BuildStoreTestData(1, builders.New(context.Config))
-				app.Component.Sla = &protocol.ApplicationSLA{HealthCheck: &protocol.HealthCheck{}}
-				err := checker.Register(&app)
+				deployment, app := test_utils.BuildStoreTestData(1, builders.New(context.Config))
+				app.Sla = &protocol.ApplicationSLA{HealthCheck: &protocol.HealthCheck{}}
+				err := checker.Register(&deployment, &app)
 				So(err, ShouldBeNil)
 			})
 		})
 
 		Convey("when registering valid values", func() {
 
-			app := appWithHealthCheck(context, 1, 300000, 60000, 5000)
+			deployment, app := appWithHealthCheck(context, 1, 300000, 60000, 5000)
 
 			Convey("and the value is new", func() {
-				err := checker.Register(&app)
+				err := checker.Register(&deployment, &app)
 				So(err, ShouldBeNil)
-				val, ok := checker.register[app.GetTaskId().GetValue()]
+				val, ok := checker.register[deployment.GetTaskId().GetValue()]
 
 				Convey("should store the value in the registry", func() {
 					So(ok, ShouldBeTrue)
@@ -120,14 +113,14 @@ func TestHealthChecker(t *testing.T) {
 			})
 
 			Convey("and the value exits", func() {
-				checker.Register(&app)
-				val, _ := checker.register[app.GetTaskId().GetValue()]
-				app3 := appWithHealthCheck(context, 2, 150000, 5000, 500)
-				checker.Register(&app3)
+				checker.Register(&deployment, &app)
+				val, _ := checker.register[deployment.GetTaskId().GetValue()]
+				deployment3, app3 := appWithHealthCheck(context, 2, 150000, 5000, 500)
+				checker.Register(&deployment3, &app3)
 
-				app4 := appWithHealthCheck(context, 3, 450000, 5000, 500)
-				checker.Register(&app4)
-				app2 := appWithHealthCheck(context, 1, 300000, 5000, 500)
+				deployment4, app4 := appWithHealthCheck(context, 3, 450000, 5000, 500)
+				checker.Register(&deployment4, &app4)
+				deployment2, app2 := appWithHealthCheck(context, 1, 300000, 5000, 500)
 
 				Convey("it should not lose its place in the queue", func() {
 					var previousIndex int
@@ -138,7 +131,7 @@ func TestHealthChecker(t *testing.T) {
 						}
 					}
 
-					err := checker.Register(&app2)
+					err := checker.Register(&deployment2, &app2)
 					So(err, ShouldBeNil)
 					var currentIndex int
 					for i, ac := range checker.queue.queue {
@@ -151,7 +144,7 @@ func TestHealthChecker(t *testing.T) {
 				})
 
 				Convey("it should update the values", func() {
-					err := checker.Register(&app2)
+					err := checker.Register(&deployment2, &app2)
 					So(err, ShouldBeNil)
 					var check *activeHealthCheck
 					for _, ac := range checker.queue.queue {
@@ -166,33 +159,33 @@ func TestHealthChecker(t *testing.T) {
 		})
 
 		Convey("when unregistering", func() {
-			app := appWithHealthCheck(context, 10, 300000, 60000, 5000)
-			app2 := appWithHealthCheck(context, 20, 150000, 60000, 5000)
-			app3 := appWithHealthCheck(context, 30, 450000, 60000, 5000)
-			app4 := appWithHealthCheck(context, 40, 100000, 60000, 5000)
+			d, app := appWithHealthCheck(context, 10, 300000, 60000, 5000)
+			d2, app2 := appWithHealthCheck(context, 20, 150000, 60000, 5000)
+			d3, app3 := appWithHealthCheck(context, 30, 450000, 60000, 5000)
+			d4, app4 := appWithHealthCheck(context, 40, 100000, 60000, 5000)
 
-			checker.Register(&app)
-			checker.Register(&app2)
-			checker.Register(&app3)
-			checker.Register(&app4)
+			checker.Register(&d, &app)
+			checker.Register(&d2, &app2)
+			checker.Register(&d3, &app3)
+			checker.Register(&d4, &app4)
 
 			So(len(checker.register), ShouldEqual, 4)
 			So(checker.queue.Len(), ShouldEqual, 4)
 
-			_, ok := checker.register[app.TaskId.GetValue()]
+			_, ok := checker.register[d.TaskId.GetValue()]
 			So(ok, ShouldBeTrue)
-			err := checker.Unregister(app.TaskId)
+			err := checker.Unregister(d.TaskId)
 			So(err, ShouldBeNil)
 
 			Convey("it should remove the check from the registry", func() {
 
-				_, ok := checker.register[app.TaskId.GetValue()]
+				_, ok := checker.register[d.TaskId.GetValue()]
 				So(ok, ShouldBeFalse)
 				So(len(checker.register), ShouldEqual, 3)
 			})
 
 			Convey("it should remove the check from the queue", func() {
-				found := checker.queue.Contains(app.TaskId.GetValue())
+				found := checker.queue.Contains(d.TaskId.GetValue())
 				So(found, ShouldBeFalse)
 				So(checker.queue.Len(), ShouldEqual, 3)
 			})

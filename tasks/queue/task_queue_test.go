@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/reverb/exeggutor/protocol"
-	. "github.com/reverb/exeggutor/tasks/test_utils"
+	. "github.com/reverb/exeggutor/test_utils"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -143,12 +143,5 @@ func TestTaskQueue(t *testing.T) {
 			})
 		})
 
-		//Context("when being a persisted queue", func() {
-		//PIt("should save the enqueued items to the underlying store", func() {})
-		//PIt("should save the updates in orderting to the underlying store", func() {})
-		//PIt("should initialize the task queue with the saved items on create", func() {})
-		//PIt("should allow for stopping and releasing resources", func() {})
-		//PIt("should allow for starting to acquire resources", func() {})
-		//})
 	})
 }

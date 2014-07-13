@@ -17,6 +17,7 @@ type TaskManager interface {
 	exeggutor.Module
 
 	SubmitApp(app []protocol.Application) error
+	SaveApp(app *protocol.Application) error
 	FulfillOffer(offer mesos.Offer) []mesos.TaskInfo
 
 	TaskStopping(taskID *mesos.TaskID)

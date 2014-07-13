@@ -1,7 +1,6 @@
 package health
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -20,7 +19,7 @@ var log = logging.MustGetLogger("exeggutor.health")
 type HealthCheckScheduler interface {
 	exeggutor.Module
 	Contains(app *mesos.TaskID) bool
-	Register(app *protocol.DeployedAppComponent) error
+	Register(deployment *protocol.Deployment, app *protocol.Application) error
 	Unregister(app *mesos.TaskID) error
 	Failures() <-chan check.Result
 }
@@ -206,32 +205,26 @@ func (h *HealthChecker) portForScheme(portMapping []*protocol.PortMapping, schem
 	return 0, false
 }
 
-func (h *HealthChecker) checkDisabled(app *protocol.DeployedAppComponent) (config *protocol.HealthCheck, port int32, id string, hn string, err error) {
-	comp := app.GetComponent()
-	id, hn = app.GetTaskId().GetValue(), app.GetHostName()
-	if comp == nil {
-		err = errors.New("the component of an application can't be nil")
-		return
-	}
-
-	sla := comp.GetSla()
+func (h *HealthChecker) checkDisabled(deployment *protocol.Deployment, app *protocol.Application) (config *protocol.HealthCheck, port int32, id string, hn string, err error) {
+	id, hn = deployment.GetTaskId().GetValue(), deployment.GetHostName()
+	sla := app.GetSla()
 	if sla == nil {
 		mf := "component %s for app %s has no SLA defined, disabling health check for task %s on host %s"
-		log.Info(mf, app.GetAppName(), comp.GetName(), id, hn)
+		log.Info(mf, app.GetAppName(), app.GetName(), id, hn)
 		return // this component doesn't need health checking
 	}
 
 	c := sla.GetHealthCheck()
 	if c == nil {
 		mf := "component %s for app %s has no healthcheck config, disabling health check for task %s on host %s"
-		log.Info(mf, app.GetAppName(), comp.GetName(), id, hn)
+		log.Info(mf, app.GetAppName(), app.GetName(), id, hn)
 		return // this component doesn't need health checking
 	}
 
-	p, ok := h.portForScheme(app.GetPortMapping(), config.GetScheme())
+	p, ok := h.portForScheme(deployment.GetPortMapping(), config.GetScheme())
 	if !ok {
 		mf := "component %s for app %s has no ports configured, disabling health check for task %s on host %s"
-		log.Info(mf, app.GetAppName(), comp.GetName(), id, hn)
+		log.Info(mf, app.GetAppName(), app.GetName(), id, hn)
 		return
 	}
 	port, config = p, c
@@ -239,9 +232,9 @@ func (h *HealthChecker) checkDisabled(app *protocol.DeployedAppComponent) (confi
 }
 
 // Register registers a health check with this component
-func (h *HealthChecker) Register(app *protocol.DeployedAppComponent) error {
+func (h *HealthChecker) Register(deployment *protocol.Deployment, app *protocol.Application) error {
 	log.Debug("Registering %+v for healthchecks", app)
-	config, port, id, hn, err := h.checkDisabled(app)
+	config, port, id, hn, err := h.checkDisabled(deployment, app)
 	if err != nil {
 		log.Error("Couldn't register app for health checks because, %v", err)
 		return err

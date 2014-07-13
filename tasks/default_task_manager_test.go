@@ -11,10 +11,11 @@ import (
 	"github.com/reverb/exeggutor"
 	"github.com/reverb/exeggutor/protocol"
 	"github.com/reverb/exeggutor/store"
+	app_store "github.com/reverb/exeggutor/store/apps"
+	task_store "github.com/reverb/exeggutor/store/tasks"
 	"github.com/reverb/exeggutor/tasks/builders"
 	task_queue "github.com/reverb/exeggutor/tasks/queue"
-	task_store "github.com/reverb/exeggutor/tasks/store"
-	. "github.com/reverb/exeggutor/tasks/test_utils"
+	. "github.com/reverb/exeggutor/test_utils"
 	"github.com/reverb/go-mesos/mesos"
 	. "github.com/reverb/go-utils/convey/matchers"
 	"github.com/reverb/go-utils/flake"
@@ -43,9 +44,11 @@ func TestTaskManager(t *testing.T) {
 		tq := task_queue.NewTaskQueueWithPrioQueue(q)
 		tq.Start()
 		ts := store.NewEmptyInMemoryStore()
+		as := store.NewEmptyInMemoryStore()
 		mgr := &DefaultTaskManager{
 			queue:       tq,
 			taskStore:   task_store.NewWithStore(ts),
+			appStore:    app_store.NewWithStore(as),
 			context:     context,
 			builder:     builder,
 			healtchecks: nil,
@@ -135,77 +138,77 @@ func TestTaskManager(t *testing.T) {
 		Convey("when handling callbacks", func() {
 
 			Convey("should remove persisted items from the persistent store when they fail", func() {
-				id, deployed := SetupCallbackTestData(ts, builder)
+				id, deployed, _ := SetupCallbackTestData(ts, as, builder)
 				mgr.TaskFailed(id, nil)
 
 				bytes, err := ts.Get(id.GetValue())
 				So(err, ShouldBeNil)
 				So(bytes, ShouldNotBeNil)
 
-				actual := protocol.DeployedAppComponent{}
+				actual := protocol.Deployment{}
 				proto.Unmarshal(bytes, &actual)
 				deployed.Status = protocol.AppStatus_STOPPED.Enum()
 				So(actual, ShouldResemble, deployed)
 			})
 
 			Convey("should remove persisted items from the persistent store when they finish", func() {
-				id, deployed := SetupCallbackTestData(ts, builder)
+				id, deployed, _ := SetupCallbackTestData(ts, as, builder)
 				mgr.TaskFinished(id, nil)
 
 				bytes, err := ts.Get(id.GetValue())
 				So(err, ShouldBeNil)
 				So(bytes, ShouldNotBeNil)
 
-				actual := protocol.DeployedAppComponent{}
+				actual := protocol.Deployment{}
 				proto.Unmarshal(bytes, &actual)
 				deployed.Status = protocol.AppStatus_STOPPED.Enum()
 				So(actual, ShouldResemble, deployed)
 			})
 
 			Convey("should remove persisted items from the persistent store when they are killed", func() {
-				id, deployed := SetupCallbackTestData(ts, builder)
+				id, deployed, _ := SetupCallbackTestData(ts, as, builder)
 				mgr.TaskKilled(id, nil)
 
 				bytes, err := ts.Get(id.GetValue())
 				So(err, ShouldBeNil)
 				So(bytes, ShouldNotBeNil)
 
-				actual := protocol.DeployedAppComponent{}
+				actual := protocol.Deployment{}
 				proto.Unmarshal(bytes, &actual)
 				deployed.Status = protocol.AppStatus_STOPPED.Enum()
 				So(actual, ShouldResemble, deployed)
 			})
 
 			Convey("should remove persisted items from the persistent store when they are lost", func() {
-				id, deployed := SetupCallbackTestData(ts, builder)
+				id, deployed, _ := SetupCallbackTestData(ts, as, builder)
 				mgr.TaskLost(id, nil)
 
 				bytes, err := ts.Get(id.GetValue())
 				So(err, ShouldBeNil)
 				So(bytes, ShouldNotBeNil)
 
-				actual := protocol.DeployedAppComponent{}
+				actual := protocol.Deployment{}
 				proto.Unmarshal(bytes, &actual)
 				deployed.Status = protocol.AppStatus_STOPPED.Enum()
 				So(actual, ShouldResemble, deployed)
 			})
 
 			Convey("should add to the persistence store if it exists in the deploying store for running", func() {
-				id, deployed := SetupCallbackTestData(ts, builder)
+				id, deployed, _ := SetupCallbackTestData(ts, as, builder)
 				mgr.TaskRunning(id, nil)
 
 				bytes, err := ts.Get(id.GetValue())
 				So(err, ShouldBeNil)
 				So(bytes, ShouldNotBeNil)
 
-				actual := protocol.DeployedAppComponent{}
+				actual := protocol.Deployment{}
 				proto.Unmarshal(bytes, &actual)
 				deployed.Status = protocol.AppStatus_STARTED.Enum()
 				So(actual, ShouldResemble, deployed)
 			})
 
 			Convey("should remove persisted items from the store for staging", func() {
-				id, _ := SetupCallbackTestData(ts, builder)
+				id, _, _ := SetupCallbackTestData(ts, as, builder)
 
 				mgr.TaskStaging(id, nil)
 				actual, _ := ts.Get(id.GetValue())
@@ -213,7 +216,7 @@ func TestTaskManager(t *testing.T) {
 			})
 
 			Convey("should remove persisted items from the store for starting", func() {
-				id, _ := SetupCallbackTestData(ts, builder)
+				id, _, _ := SetupCallbackTestData(ts, as, builder)
 
 				mgr.TaskStarting(id, nil)
 
@@ -225,8 +228,8 @@ func TestTaskManager(t *testing.T) {
 
 		Convey("when finding deployed apps", func() {
 			Convey("should find all components for a specified app", func() {
-				apps := CreateFilterData(ts, builder)
-				expected := []*mesos.TaskID{apps[0].TaskId, apps[1].TaskId, apps[2].TaskId}
+				deployed, apps := CreateFilterData(ts, as, builder)
+				expected := []*mesos.TaskID{deployed[0].TaskId, deployed[1].TaskId, deployed[2].TaskId}
 
 				actual, err := mgr.FindTasksForApp(apps[0].GetAppName())
 				So(err, ShouldBeNil)
@@ -234,19 +237,19 @@ func TestTaskManager(t *testing.T) {
 			})
 
 			Convey("should find all instances of a component for a specified app", func() {
-				apps := CreateFilterData(ts, builder)
-				expected := []*mesos.TaskID{apps[3].TaskId, apps[5].TaskId}
+				deployed, apps := CreateFilterData(ts, as, builder)
+				expected := []*mesos.TaskID{deployed[3].TaskId, deployed[5].TaskId}
 
-				actual, err := mgr.FindTasksForComponent(apps[3].GetAppName(), apps[3].Component.GetName())
+				actual, err := mgr.FindTasksForComponent(apps[3].GetAppName(), apps[3].GetName())
 				So(err, ShouldBeNil)
 				So(actual, ShouldHaveTheSameElementsAs, expected)
 			})
 
 			Convey("should find a specific component instance", func() {
-				apps := CreateFilterData(ts, builder)
-				expected := apps[4].TaskId
+				deployed, _ := CreateFilterData(ts, as, builder)
+				expected := deployed[4].TaskId
 
-				actual, err := mgr.FindTaskForComponent(apps[4].TaskId.GetValue())
+				actual, err := mgr.FindTaskForComponent(deployed[4].TaskId.GetValue())
 				So(err, ShouldBeNil)
 				So(actual, ShouldResemble, expected)
 			})

@@ -1,4 +1,4 @@
-package store
+package tasks
 
 import (
 	"code.google.com/p/goprotobuf/proto"
@@ -12,20 +12,20 @@ import (
 var log = logging.MustGetLogger("exeggutor.tasks.store")
 
 // TaskStore A task store wraps a K/V store but
-// deals with actual protocol.DeployedAppComponent types
+// deals with actual protocol.Deployment types
 // instead of with the raw bytes
 // It's basically a KVStore with a serializer and an id generator.
 type TaskStore interface {
 	exeggutor.Module
-	Get(key string) (*protocol.DeployedAppComponent, error)
-	Save(value *protocol.DeployedAppComponent) error
+	Get(key string) (*protocol.Deployment, error)
+	Save(value *protocol.Deployment) error
 	Delete(key string) error
 	Size() (int, error)
 	Keys() ([]string, error)
-	ForEach(iterator func(*protocol.DeployedAppComponent)) error
-	FilterToTaskIds(predicate func(*protocol.DeployedAppComponent) bool) ([]*mesos.TaskID, error)
-	Filter(predicate func(*protocol.DeployedAppComponent) bool) ([]*protocol.DeployedAppComponent, error)
-	Find(predicate func(*protocol.DeployedAppComponent) bool) (*protocol.DeployedAppComponent, error)
+	ForEach(iterator func(*protocol.Deployment)) error
+	FilterToTaskIds(predicate func(*protocol.Deployment) bool) ([]*mesos.TaskID, error)
+	Filter(predicate func(*protocol.Deployment) bool) ([]*protocol.Deployment, error)
+	Find(predicate func(*protocol.Deployment) bool) (*protocol.Deployment, error)
 	Contains(key string) (bool, error)
 }
 
@@ -62,7 +62,7 @@ func (t *DefaultTaskStore) Stop() error {
 }
 
 // Get gets a deployed app component from the store by key
-func (t *DefaultTaskStore) Get(key string) (*protocol.DeployedAppComponent, error) {
+func (t *DefaultTaskStore) Get(key string) (*protocol.Deployment, error) {
 	data, err := t.store.Get(key)
 	if err != nil {
 		if err == store.ErrNotFound {
@@ -74,7 +74,7 @@ func (t *DefaultTaskStore) Get(key string) (*protocol.DeployedAppComponent, erro
 }
 
 // Save saves a deployed app component with the specified id
-func (t *DefaultTaskStore) Save(value *protocol.DeployedAppComponent) error {
+func (t *DefaultTaskStore) Save(value *protocol.Deployment) error {
 	log.Debug("Saving %+v to the task store", value)
 	ser, err := writeBytes(value)
 	if err != nil {
@@ -101,7 +101,7 @@ func (t *DefaultTaskStore) Keys() ([]string, error) {
 
 // ForEach iterates over every value in the store, calling the iterator
 // function for each value it sees
-func (t *DefaultTaskStore) ForEach(iterator func(*protocol.DeployedAppComponent)) error {
+func (t *DefaultTaskStore) ForEach(iterator func(*protocol.Deployment)) error {
 	return t.store.ForEach(func(item *store.KVData) {
 		// TODO: Use a label to get out of this loop when things go bad?
 		// For now log the error and move on
@@ -114,9 +114,9 @@ func (t *DefaultTaskStore) ForEach(iterator func(*protocol.DeployedAppComponent)
 }
 
 // Filter returns an array of components that match the predicate
-func (t *DefaultTaskStore) Filter(predicate func(*protocol.DeployedAppComponent) bool) ([]*protocol.DeployedAppComponent, error) {
-	var result []*protocol.DeployedAppComponent
-	err := t.ForEach(func(item *protocol.DeployedAppComponent) {
+func (t *DefaultTaskStore) Filter(predicate func(*protocol.Deployment) bool) ([]*protocol.Deployment, error) {
+	var result []*protocol.Deployment
+	err := t.ForEach(func(item *protocol.Deployment) {
 		if predicate(item) {
 			result = append(result, item)
 		}
@@ -128,9 +128,9 @@ func (t *DefaultTaskStore) Filter(predicate func(*protocol.DeployedAppComponent)
 }
 
 // FilterToTaskIds returns an array of task ids that match the predicate
-func (t *DefaultTaskStore) FilterToTaskIds(predicate func(*protocol.DeployedAppComponent) bool) ([]*mesos.TaskID, error) {
+func (t *DefaultTaskStore) FilterToTaskIds(predicate func(*protocol.Deployment) bool) ([]*mesos.TaskID, error) {
 	var result []*mesos.TaskID
-	err := t.ForEach(func(item *protocol.DeployedAppComponent) {
+	err := t.ForEach(func(item *protocol.Deployment) {
 		if predicate(item) {
 			result = append(result, item.TaskId)
 		}
@@ -142,8 +142,8 @@ func (t *DefaultTaskStore) FilterToTaskIds(predicate func(*protocol.DeployedAppC
 }
 
 // Find finds the first item that matches the predicate
-func (t *DefaultTaskStore) Find(predicate func(*protocol.DeployedAppComponent) bool) (*protocol.DeployedAppComponent, error) {
-	var lastTested *protocol.DeployedAppComponent // deserialize only once
+func (t *DefaultTaskStore) Find(predicate func(*protocol.Deployment) bool) (*protocol.Deployment, error) {
+	var lastTested *protocol.Deployment // deserialize only once
 
 	_, err := t.store.Find(func(kv *store.KVData) bool {
 		comp, err2 := readBytes(kv.Value)
@@ -169,8 +169,8 @@ func (t *DefaultTaskStore) Contains(key string) (bool, error) {
 	return t.store.Contains(key)
 }
 
-func readBytes(data []byte) (*protocol.DeployedAppComponent, error) {
-	deploy := &protocol.DeployedAppComponent{}
+func readBytes(data []byte) (*protocol.Deployment, error) {
+	deploy := &protocol.Deployment{}
 	err := proto.Unmarshal(data, deploy)
 	if err != nil {
 		return nil, err
@@ -178,6 +178,6 @@ func readBytes(data []byte) (*protocol.DeployedAppComponent, error) {
 	return deploy, nil
 }
 
-func writeBytes(target *protocol.DeployedAppComponent) ([]byte, error) {
+func writeBytes(target *protocol.Deployment) ([]byte, error) {
 	return proto.Marshal(target)
 }

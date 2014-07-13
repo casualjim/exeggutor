@@ -12,7 +12,7 @@ It has these top-level messages:
 	StringKeyValue
 	StringIntKeyValue
 	PortMapping
-	DeployedAppComponent
+	Deployment
 	Application
 	ScheduledApp
 	HealthCheck
@@ -355,16 +355,14 @@ func (m *PortMapping) GetPublicPort() int32 {
 }
 
 //
-// DeployedAppComponent is a part of a deployed application
+// Deployment is a part of a deployed application
 // It links component definition to a mesos task info and an app status
 // This keeps track of the state an application is actually in.
 // So in an API this could be used to return the info we need for
 // displaying what has been deployed and how many instances of it and so forth.
-type DeployedAppComponent struct {
-	// the application name for the deployed application
-	AppName *string `protobuf:"bytes,1,req,name=app_name" json:"app_name,omitempty"`
-	// the application component that is deployed
-	Component *Application `protobuf:"bytes,2,req,name=component" json:"component,omitempty"`
+type Deployment struct {
+	// the application id for the deployed application
+	AppId *string `protobuf:"bytes,1,req,name=app_id" json:"app_id,omitempty"`
 	// the task id that represents this component in the cluster
 	TaskId *mesos.TaskID `protobuf:"bytes,3,req,name=task_id" json:"task_id,omitempty"`
 	// the status this deployed application is in
@@ -380,62 +378,55 @@ type DeployedAppComponent struct {
 	XXX_unrecognized []byte         `json:"-"`
 }
 
-func (m *DeployedAppComponent) Reset()         { *m = DeployedAppComponent{} }
-func (m *DeployedAppComponent) String() string { return proto.CompactTextString(m) }
-func (*DeployedAppComponent) ProtoMessage()    {}
+func (m *Deployment) Reset()         { *m = Deployment{} }
+func (m *Deployment) String() string { return proto.CompactTextString(m) }
+func (*Deployment) ProtoMessage()    {}
 
-const Default_DeployedAppComponent_Status AppStatus = AppStatus_ABSENT
+const Default_Deployment_Status AppStatus = AppStatus_ABSENT
 
-func (m *DeployedAppComponent) GetAppName() string {
-	if m != nil && m.AppName != nil {
-		return *m.AppName
+func (m *Deployment) GetAppId() string {
+	if m != nil && m.AppId != nil {
+		return *m.AppId
 	}
 	return ""
 }
 
-func (m *DeployedAppComponent) GetComponent() *Application {
-	if m != nil {
-		return m.Component
-	}
-	return nil
-}
-
-func (m *DeployedAppComponent) GetTaskId() *mesos.TaskID {
+func (m *Deployment) GetTaskId() *mesos.TaskID {
 	if m != nil {
 		return m.TaskId
 	}
 	return nil
 }
 
-func (m *DeployedAppComponent) GetStatus() AppStatus {
+func (m *Deployment) GetStatus() AppStatus {
 	if m != nil && m.Status != nil {
 		return *m.Status
 	}
-	return Default_DeployedAppComponent_Status
+	return Default_Deployment_Status
 }
 
-func (m *DeployedAppComponent) GetDeployedAt() int64 {
+func (m *Deployment) GetDeployedAt() int64 {
 	if m != nil && m.DeployedAt != nil {
 		return *m.DeployedAt
 	}
 	return 0
 }
 
-func (m *DeployedAppComponent) GetSlave() *mesos.SlaveID {
+func (m *Deployment) GetSlave() *mesos.SlaveID {
 	if m != nil {
 		return m.Slave
 	}
 	return nil
 }
 
-func (m *DeployedAppComponent) GetHostName() string {
+func (m *Deployment) GetHostName() string {
 	if m != nil && m.HostName != nil {
 		return *m.HostName
 	}
 	return ""
 }
 
-func (m *DeployedAppComponent) GetPortMapping() []*PortMapping {
+func (m *Deployment) GetPortMapping() []*PortMapping {
 	if m != nil {
 		return m.PortMapping
 	}
@@ -449,30 +440,32 @@ func (m *DeployedAppComponent) GetPortMapping() []*PortMapping {
 // Furthermore it contains the configuration for the environment and scheme to port mapping
 // It also has a status field to track the deployment status of this component
 type Application struct {
+	// the id of the application `app_name-name-version`
+	Id *string `protobuf:"bytes,1,req,name=id" json:"id,omitempty"`
 	// the name for this component
-	Name *string `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
+	Name *string `protobuf:"bytes,2,req,name=name" json:"name,omitempty"`
 	// the amount of cpu cores this component requires
-	Cpus *float32 `protobuf:"fixed32,2,req,name=cpus" json:"cpus,omitempty"`
+	Cpus *float32 `protobuf:"fixed32,3,req,name=cpus" json:"cpus,omitempty"`
 	// the amount of memory this component requires
-	Mem *float32 `protobuf:"fixed32,3,req,name=mem" json:"mem,omitempty"`
+	Mem *float32 `protobuf:"fixed32,4,req,name=mem" json:"mem,omitempty"`
 	// the amount of disk space this component requires
-	DiskSpace *int64 `protobuf:"varint,4,req,name=disk_space" json:"disk_space,omitempty"`
+	DiskSpace *int64 `protobuf:"varint,5,req,name=disk_space" json:"disk_space,omitempty"`
 	// the url to use when deploying the application
-	DistUrl *string `protobuf:"bytes,5,req,name=dist_url" json:"dist_url,omitempty"`
+	DistUrl *string `protobuf:"bytes,6,req,name=dist_url" json:"dist_url,omitempty"`
 	// the command to run when this application is deployed
-	Command *string `protobuf:"bytes,6,req,name=command" json:"command,omitempty"`
+	Command *string `protobuf:"bytes,7,req,name=command" json:"command,omitempty"`
 	// the environment variables passed to the application
-	Env []*StringKeyValue `protobuf:"bytes,7,rep,name=env" json:"env,omitempty"`
+	Env []*StringKeyValue `protobuf:"bytes,8,rep,name=env" json:"env,omitempty"`
 	// the scheme/port mapping for this component
-	Ports []*StringIntKeyValue `protobuf:"bytes,8,rep,name=ports" json:"ports,omitempty"`
+	Ports []*StringIntKeyValue `protobuf:"bytes,9,rep,name=ports" json:"ports,omitempty"`
 	// the version for this component
-	Version *string `protobuf:"bytes,9,req,name=version" json:"version,omitempty"`
+	Version *string `protobuf:"bytes,10,req,name=version" json:"version,omitempty"`
 	// the application this component belongs to
-	AppName *string `protobuf:"bytes,10,req,name=app_name" json:"app_name,omitempty"`
+	AppName *string `protobuf:"bytes,11,req,name=app_name" json:"app_name,omitempty"`
 	// the distribution model used for this component
-	Distribution *Distribution `protobuf:"varint,11,req,name=distribution,enum=protocol.Distribution,def=1" json:"distribution,omitempty"`
+	Distribution *Distribution `protobuf:"varint,12,req,name=distribution,enum=protocol.Distribution,def=1" json:"distribution,omitempty"`
 	// the modality as to how to treat this component
-	ComponentType *ComponentType `protobuf:"varint,12,req,name=component_type,enum=protocol.ComponentType,def=0" json:"component_type,omitempty"`
+	ComponentType *ComponentType `protobuf:"varint,13,req,name=component_type,enum=protocol.ComponentType,def=0" json:"component_type,omitempty"`
 	// where to expect logs to appear
 	LogDir *string `protobuf:"bytes,30,opt,name=log_dir" json:"log_dir,omitempty"`
 	// where to expect work to appear
@@ -490,6 +483,13 @@ func (*Application) ProtoMessage()    {}
 
 const Default_Application_Distribution Distribution = Distribution_DOCKER
 const Default_Application_ComponentType ComponentType = ComponentType_SERVICE
+
+func (m *Application) GetId() string {
+	if m != nil && m.Id != nil {
+		return *m.Id
+	}
+	return ""
+}
 
 func (m *Application) GetName() string {
 	if m != nil && m.Name != nil {

@@ -5,6 +5,7 @@ import (
 	stdlog "log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"code.google.com/p/goprotobuf/proto"
@@ -16,43 +17,45 @@ import (
 	"github.com/reverb/go-mesos/mesos"
 )
 
-func makeDeployedApp(port int, name, component, id string, delay, interval, timeout int64) *protocol.DeployedAppComponent {
-	return &protocol.DeployedAppComponent{
-		AppName:  proto.String(name),
-		HostName: proto.String("127.0.0.1"),
-		Component: &protocol.Application{
-			Name:          proto.String(component),
-			Cpus:          proto.Float32(1),
-			Mem:           proto.Float32(64),
-			DistUrl:       proto.String("docker://blah"),
-			DiskSpace:     proto.Int64(0),
-			Command:       proto.String("bin/blah"),
-			Version:       proto.String("0.0.1"),
-			AppName:       proto.String(name),
-			LogDir:        proto.String("./logs"),
-			WorkDir:       proto.String("./work"),
-			ConfDir:       proto.String("./conf"),
-			Distribution:  protocol.Distribution_DOCKER.Enum(),
-			ComponentType: protocol.ComponentType_SERVICE.Enum(),
-			Env:           nil, //[]*protocol.StringKeyValue{},
-			Ports: []*protocol.StringIntKeyValue{
-				&protocol.StringIntKeyValue{
-					Key:   proto.String("HTTP"),
-					Value: proto.Int(port),
-				},
-			},
-			Sla: &protocol.ApplicationSLA{
-				MinInstances: proto.Int32(1),
-				MaxInstances: proto.Int32(1),
-				UnhealthyAt:  proto.Int32(1),
-				HealthCheck: &protocol.HealthCheck{
-					Mode:           protocol.HealthCheckMode_HTTP.Enum(),
-					RampUp:         proto.Int64(delay),
-					IntervalMillis: proto.Int64(interval),
-					Timeout:        proto.Int64(timeout),
-				},
+func makeDeployedApp(port int, name, component, id string, delay, interval, timeout int64) (deployment *protocol.Deployment, app *protocol.Application) {
+	app = &protocol.Application{
+		Id:            proto.String(strings.Join([]string{name, component, "0.0.1"}, "-")),
+		Name:          proto.String(component),
+		Cpus:          proto.Float32(1),
+		Mem:           proto.Float32(64),
+		DistUrl:       proto.String("docker://blah"),
+		DiskSpace:     proto.Int64(0),
+		Command:       proto.String("bin/blah"),
+		Version:       proto.String("0.0.1"),
+		AppName:       proto.String(name),
+		LogDir:        proto.String("./logs"),
+		WorkDir:       proto.String("./work"),
+		ConfDir:       proto.String("./conf"),
+		Distribution:  protocol.Distribution_DOCKER.Enum(),
+		ComponentType: protocol.ComponentType_SERVICE.Enum(),
+		Env:           nil, //[]*protocol.StringKeyValue{},
+		Ports: []*protocol.StringIntKeyValue{
+			&protocol.StringIntKeyValue{
+				Key:   proto.String("HTTP"),
+				Value: proto.Int(port),
 			},
 		},
+		Sla: &protocol.ApplicationSLA{
+			MinInstances: proto.Int32(1),
+			MaxInstances: proto.Int32(1),
+			UnhealthyAt:  proto.Int32(1),
+			HealthCheck: &protocol.HealthCheck{
+				Mode:           protocol.HealthCheckMode_HTTP.Enum(),
+				RampUp:         proto.Int64(delay),
+				IntervalMillis: proto.Int64(interval),
+				Timeout:        proto.Int64(timeout),
+			},
+		},
+	}
+	deployment = &protocol.Deployment{
+
+		AppId:    proto.String(app.ID()),
+		HostName: proto.String("127.0.0.1"),
 		TaskId: &mesos.TaskID{
 			Value: proto.String(id),
 		},
@@ -64,6 +67,7 @@ func makeDeployedApp(port int, name, component, id string, delay, interval, time
 			},
 		},
 	}
+	return
 }
 
 var log = logging.MustGetLogger("exeggutor.playground")

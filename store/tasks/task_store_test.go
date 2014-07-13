@@ -1,5 +1,5 @@
 // Package tasks provides ...
-package store
+package tasks
 
 import (
 	"testing"
@@ -10,7 +10,7 @@ import (
 	"github.com/reverb/exeggutor/protocol"
 	"github.com/reverb/exeggutor/store"
 	"github.com/reverb/exeggutor/tasks/builders"
-	. "github.com/reverb/exeggutor/tasks/test_utils"
+	. "github.com/reverb/exeggutor/test_utils"
 	"github.com/reverb/go-mesos/mesos"
 	. "github.com/reverb/go-utils/convey/matchers"
 	"github.com/reverb/go-utils/flake"
@@ -93,12 +93,12 @@ func TestTaskStore(t *testing.T) {
 		})
 
 		Convey("should iterate over each value", func() {
-			var expected []*protocol.DeployedAppComponent
+			var expected []*protocol.Deployment
 			for _, app := range CreateMulti(backing, builder) {
 				expected = append(expected, &app)
 			}
-			var actual []*protocol.DeployedAppComponent
-			taskStore.ForEach(func(item *protocol.DeployedAppComponent) {
+			var actual []*protocol.Deployment
+			taskStore.ForEach(func(item *protocol.Deployment) {
 				actual = append(actual, item)
 			})
 
@@ -107,8 +107,8 @@ func TestTaskStore(t *testing.T) {
 
 		Convey("should filter for task ids", func() {
 			dd := CreateMulti(backing, builder)
-			actual, err := taskStore.FilterToTaskIds(func(item *protocol.DeployedAppComponent) bool {
-				return item.GetAppName() == dd[1].GetAppName()
+			actual, err := taskStore.FilterToTaskIds(func(item *protocol.Deployment) bool {
+				return item.GetAppId() == dd[1].GetAppId()
 			})
 			So(err, ShouldBeNil)
 			So(actual, ShouldHaveTheSameElementsAs, []*mesos.TaskID{dd[1].TaskId})
@@ -116,8 +116,8 @@ func TestTaskStore(t *testing.T) {
 
 		Convey("should find an app", func() {
 			dd := CreateMulti(backing, builder)
-			actual, err := taskStore.Find(func(item *protocol.DeployedAppComponent) bool {
-				return item.GetAppName() == dd[1].GetAppName()
+			actual, err := taskStore.Find(func(item *protocol.Deployment) bool {
+				return item.GetAppId() == dd[1].GetAppId()
 			})
 			expected := dd[1]
 			So(err, ShouldBeNil)

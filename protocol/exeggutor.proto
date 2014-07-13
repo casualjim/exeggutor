@@ -93,17 +93,15 @@ message PortMapping {
 }
 
 /* 
- * DeployedAppComponent is a part of a deployed application
+ * Deployment is a part of a deployed application
  * It links component definition to a mesos task info and an app status
  * This keeps track of the state an application is actually in.
  * So in an API this could be used to return the info we need for
  * displaying what has been deployed and how many instances of it and so forth. 
  */
-message DeployedAppComponent {
-  /* the application name for the deployed application */
-  required string app_name = 1;
-  /* the application component that is deployed */
-  required Application component = 2;
+message Deployment {
+  /* the application id for the deployed application */
+  required string app_id = 1;
   /* the task id that represents this component in the cluster */
   required mesos.TaskID task_id = 3;
   /* the status this deployed application is in */
@@ -127,32 +125,33 @@ message DeployedAppComponent {
  * It also has a status field to track the deployment status of this component
  */
 message Application {
-
+  /* the id of the application `app_name-name-version` */
+  required string id = 1;
   /* the name for this component */
-  required string name = 1;
+  required string name = 2;
   /* the amount of cpu cores this component requires */
-  required float cpus = 2;
+  required float cpus = 3;
   /* the amount of memory this component requires */
-  required float mem = 3;
+  required float mem = 4;
   /* the amount of disk space this component requires */
-  required int64 disk_space = 4;
+  required int64 disk_space = 5;
   /* the url to use when deploying the application */
-  required string dist_url = 5;
+  required string dist_url = 6;
   /* the command to run when this application is deployed */
-  required string command = 6;
+  required string command = 7;
   /* the environment variables passed to the application */
-  repeated StringKeyValue env = 7;
+  repeated StringKeyValue env = 8;
   /* the scheme/port mapping for this component */
-  repeated StringIntKeyValue ports = 8;
+  repeated StringIntKeyValue ports = 9;
   /* the version for this component */
-  required string version = 9;
+  required string version = 10;
   /* the application this component belongs to */
-  required string app_name = 10;
+  required string app_name = 11;
 
   /* the distribution model used for this component */
-  required Distribution distribution = 11 [ default = DOCKER ];
+  required Distribution distribution = 12 [ default = DOCKER ];
   /* the modality as to how to treat this component */
-  required ComponentType component_type = 12 [ default = SERVICE ];
+  required ComponentType component_type = 13 [ default = SERVICE ];
 
   /* where to expect logs to appear */
   optional string log_dir = 30;

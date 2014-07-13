@@ -102,7 +102,9 @@ func TestHealthCheckQueue(t *testing.T) {
 
 			Convey("should return nil when the queue is empty", func() {
 				q := newHealthCheckQueue()
-				So(q.Pop(), ShouldBeNil)
+				ac, _, found := q.Pop()
+				So(ac, ShouldBeNil)
+				So(found, ShouldBeFalse)
 			})
 
 			Convey("should return nil when none of the items is expired", func() {
@@ -110,7 +112,9 @@ func TestHealthCheckQueue(t *testing.T) {
 				q := newHealthCheckQueue()
 				hc := makeActiveHealthCheck("app-21", cur)
 				q.Push(hc)
-				So(q.Pop(), ShouldBeNil)
+				ac, _, found := q.Pop()
+				So(ac, ShouldBeNil)
+				So(found, ShouldBeFalse)
 				So(q.Len(), ShouldEqual, 1)
 			})
 
@@ -119,7 +123,9 @@ func TestHealthCheckQueue(t *testing.T) {
 				hc := makeActiveHealthCheck("app-22", cur)
 				q := newHealthCheckQueue()
 				q.Push(hc)
-				So(q.Pop(), ShouldEqual, hc)
+				ac, _, found := q.Pop()
+				So(ac, ShouldEqual, hc)
+				So(found, ShouldBeTrue)
 				So(q.Len(), ShouldEqual, 0)
 			})
 		})
