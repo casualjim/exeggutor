@@ -21,8 +21,11 @@ func TestTaskStore(t *testing.T) {
 
 	context := &exeggutor.AppContext{
 		Config: &exeggutor.Config{
-			Mode:        "test",
-			DockerIndex: "dev-docker.helloreverb.com",
+			Mode: "test",
+			DockerIndex: &exeggutor.DockerIndexConfig{
+				Host: "dev-docker.helloreverb.com",
+				Port: 443,
+			},
 		},
 		IDGenerator: flake.NewFlake(),
 	}

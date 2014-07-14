@@ -239,14 +239,18 @@ func (fw *Framework) Start() error {
 		return err
 	}
 
-	go func() {
-		for taskID := range fw.taskManager.TasksToKill() {
-			fw.KillApp(taskID.GetValue())
-		}
-	}()
+	go fw.listenForTasksToKill()
 
 	log.Notice("Started the exeggutor scheduler")
 	return nil
+}
+
+func (fw *Framework) listenForTasksToKill() {
+	for taskID := range fw.taskManager.TasksToKill() {
+		if taskID != nil {
+			fw.KillApp(taskID.GetValue())
+		}
+	}
 }
 
 // Stop stops the mesos scheduler driver

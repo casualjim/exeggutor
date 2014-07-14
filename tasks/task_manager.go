@@ -33,8 +33,6 @@ type TaskManager interface {
 	FindTasksForComponent(app, component string) ([]*mesos.TaskID, error)
 	FindTaskForComponent(task string) (*mesos.TaskID, error)
 
-	//RunningApps() []*protocol.Application
-	// Schedules
-
+	RunningApps(appID string) ([]*mesos.TaskID, error)
 	TasksToKill() <-chan *mesos.TaskID
 }

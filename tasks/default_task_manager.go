@@ -7,6 +7,7 @@ import (
 
 	"github.com/reverb/exeggutor"
 	"github.com/reverb/exeggutor/health"
+	"github.com/reverb/exeggutor/health/sla"
 	"github.com/reverb/exeggutor/protocol"
 	app_store "github.com/reverb/exeggutor/store/apps"
 	task_store "github.com/reverb/exeggutor/store/tasks"
@@ -27,7 +28,8 @@ type DefaultTaskManager struct {
 	context     *exeggutor.AppContext
 	builder     *builders.MesosMessageBuilder
 	healtchecks health.HealthCheckScheduler
-	closing     chan bool
+	slaMonitor  sla.SLAMonitor
+	closing     chan chan bool
 	tasksToKill chan *mesos.TaskID
 }
 
@@ -52,7 +54,8 @@ func NewDefaultTaskManager(context *exeggutor.AppContext) (*DefaultTaskManager, 
 		context:     context,
 		builder:     builders.New(context.Config),
 		healtchecks: health.New(context),
-		closing:     make(chan bool),
+		slaMonitor:  sla.New(store, appStore, q),
+		closing:     make(chan chan bool),
 		tasksToKill: make(chan *mesos.TaskID),
 	}, nil
 }
@@ -77,12 +80,21 @@ func (t *DefaultTaskManager) Start() error {
 		return err
 	}
 
+	err = t.slaMonitor.Start()
+	if err != nil {
+		// We failed to start, cleanup the queue and taskstore too
+		t.taskStore.Stop()
+		t.queue.Stop()
+		return err
+	}
+
 	if t.healtchecks != nil {
 		err = t.healtchecks.Start()
 		if err != nil {
 			// Stop these guys again we failed to start.
 			t.taskStore.Stop()
 			t.queue.Stop()
+			t.slaMonitor.Stop()
 			return err
 		}
 		go t.listenForHealthFailures()
@@ -96,15 +108,33 @@ func (t *DefaultTaskManager) listenForHealthFailures() {
 		select {
 		case failure := <-t.healtchecks.Failures():
 			log.Info("task %d failed the health check", failure.ID)
-			app, err := t.taskStore.Get(failure.ID)
+			deployment, err := t.taskStore.Get(failure.ID)
 			if err != nil {
-				log.Error("Failed to get an app for marking as failure")
+				log.Error("Failed to get a deployment for marking as failure, because: %v", err)
 			}
-			if app != nil && err == nil {
-				t.tasksToKill <- app.GetTaskId()
+			if deployment != nil && err == nil {
+				t.updateStatus(deployment.GetTaskId(), protocol.AppStatus_UNHEALTHY)
+				t.tasksToKill <- deployment.GetTaskId()
 			}
 
-		case <-t.closing:
+		case scaleReq := <-t.slaMonitor.ScaleUpOrDown():
+			// We ignore requests where the count is 0
+			if scaleReq.Count > 0 {
+
+			} else if scaleReq.Count < 0 {
+
+			}
+
+		case closed := <-t.closing:
+			// We stop healthchecks and slaMonitor here so that this loop
+			// doesn't start doing weird things.
+			if err := t.healtchecks.Stop(); err != nil {
+				log.Warning("There was an error closing the health checks", err)
+			}
+			if err2 := t.slaMonitor.Stop(); err2 != nil {
+				log.Warning("There was an error closing the SLA monitor", err2)
+			}
+			closed <- true
 			return
 		}
 	}
@@ -113,15 +143,15 @@ func (t *DefaultTaskManager) listenForHealthFailures() {
 // Stop stops this task manager, cleaning up any resources
 // it might have required and owns.
 func (t *DefaultTaskManager) Stop() error {
-	var err3 error
-	if t.healtchecks != nil {
-		err3 = t.healtchecks.Stop()
-	}
+	// stop listening for things first
+	boolc := make(chan bool)
+	t.closing <- boolc
+	<-boolc
 
 	err := t.taskStore.Stop()
 	err2 := t.queue.Stop()
 
-	if err != nil || err2 != nil || err3 != nil {
+	if err != nil || err2 != nil {
 		log.Warning("There were problems shutting down the task manager:")
 		if err != nil {
 			log.Warning("%v", err)
@@ -129,19 +159,17 @@ func (t *DefaultTaskManager) Stop() error {
 		if err2 != nil {
 			log.Warning("%v", err2)
 		}
-		if err3 != nil {
-			log.Warning("%v", err3)
-		}
 		if err != nil {
 			return err
 		}
 		if err2 != nil {
 			return err2
 		}
-		if err3 != nil {
-			return err3
-		}
 	}
+	close(t.tasksToKill)
+	close(t.closing)
+	close(boolc)
+
 	return nil
 }
 
@@ -156,30 +184,31 @@ func (t *DefaultTaskManager) SaveApp(app *protocol.Application) error {
 func (t *DefaultTaskManager) SubmitApp(app []protocol.Application) error {
 	log.Debug("Submitting app: %+v", app)
 	for _, comp := range app {
-		ptr := &comp
-		err := t.SaveApp(ptr)
-		if err != nil {
-			log.Error("Couldn't save app %s, skipping this submission", comp.GetId())
-			return err
-		}
-		component := protocol.ScheduledApp{
-			Name:    comp.Name,
-			AppName: comp.AppName,
-			App:     ptr,
-		}
-		t.queue.Enqueue(&component)
+		t.scheduleAppForDeployment(&comp)
 	}
 	return nil
 }
 
+func (t *DefaultTaskManager) scheduleAppForDeployment(app *protocol.Application) {
+	if !t.slaMonitor.CanDeployMoreInstances(app) {
+		log.Warning("Can't deploy another instance of %s, the max instances have been reached")
+		return
+	}
+	component := protocol.ScheduledApp{
+		AppId: app.Id,
+		App:   app,
+	}
+	t.queue.Enqueue(&component)
+}
+
 // RunningApps finds all the tasks that are currently running
-func (t *DefaultTaskManager) RunningApps(name string) (tasks []*mesos.TaskID, err error) {
+func (t *DefaultTaskManager) RunningApps(id string) (tasks []*mesos.TaskID, err error) {
 	t.taskStore.ForEach(func(item *protocol.Deployment) {
 		app, err := t.appStore.Get(item.GetAppId())
 		if err != nil {
 			log.Warning("Couldn't get the application %s linked to the task id %s, because: %v", item.GetAppId(), item.GetTaskId().GetValue(), err)
 		}
-		if app != nil && app.GetAppName() == name && item.GetStatus() == protocol.AppStatus_STARTED {
+		if app != nil && app.GetAppName() == id && item.GetStatus() == protocol.AppStatus_STARTED {
 			tasks = append(tasks, item.GetTaskId())
 		}
 	})
@@ -270,12 +299,19 @@ func (t *DefaultTaskManager) FulfillOffer(offer mesos.Offer) []mesos.TaskInfo {
 
 	thatFits := func(i *protocol.ScheduledApp) bool { return t.fitsInOffer(offer, i) }
 
-	item, err := t.queue.DequeueFirst(thatFits)
-	if err != nil {
-		log.Critical("Couldn't dequeue from the task queue because: %v", err)
-		return nil
+	var item *protocol.ScheduledApp
+	seen := false
+	// dequeue items that fit but are saturated until we get one that fits and isn't saturated
+	// in theory this should not occur because we've got this guard at enqueue time too.
+	for (item == nil && !seen) || !t.slaMonitor.CanDeployMoreInstances(item.GetApp()) {
+		i, err := t.queue.DequeueFirst(thatFits)
+		if err != nil {
+			log.Critical("Couldn't dequeue from the task queue because: %v", err)
+			return nil
+		}
+		item = i
+		seen = true
 	}
-
 	if item == nil {
 		log.Debug("Couldn't get an item of the queue, skipping this one")
 		return nil
@@ -283,7 +319,7 @@ func (t *DefaultTaskManager) FulfillOffer(offer mesos.Offer) []mesos.TaskInfo {
 
 	task, portMapping := t.buildTaskInfo(offer, item)
 	deploying := &protocol.Deployment{
-		AppId:       proto.String(item.GetId()),
+		AppId:       proto.String(item.GetAppId()),
 		TaskId:      task.GetTaskId(),
 		Status:      protocol.AppStatus_DEPLOYING.Enum(),
 		Slave:       task.GetSlaveId(),
@@ -291,7 +327,7 @@ func (t *DefaultTaskManager) FulfillOffer(offer mesos.Offer) []mesos.TaskInfo {
 		PortMapping: portMapping,
 		DeployedAt:  proto.Int64(time.Now().UnixNano() / 1000000),
 	}
-	err = t.taskStore.Save(deploying)
+	err := t.taskStore.Save(deploying)
 	if err != nil {
 		return []mesos.TaskInfo{}
 	}
@@ -305,23 +341,31 @@ func (t *DefaultTaskManager) updateStatus(taskID *mesos.TaskID, status protocol.
 		return err
 	}
 	deploying.Status = status.Enum()
+
 	if err := t.taskStore.Save(deploying); err != nil {
 		log.Warning("Failed to save task %v, because %v", taskID.GetValue(), err)
 		return err
 	}
+
 	app, err := t.appStore.Get(deploying.GetAppId())
 	if err != nil {
 		log.Warning("Failed to retrieve application %v, because %v", deploying.GetAppId(), err)
 		return err
 	}
-	if t.healtchecks != nil {
-		if deploying.GetStatus() == protocol.AppStatus_STARTED {
-			if err := t.healtchecks.Register(deploying, app); err != nil {
-				log.Warning("Failed to unregister health check for %v, because %v", taskID.GetValue(), err)
-			}
-		} else {
-			if err := t.healtchecks.Unregister(taskID); err != nil {
-				log.Warning("Failed to unregister health check for %v, because %v", taskID.GetValue(), err)
+
+	if app != nil {
+		if t.slaMonitor.NeedsMoreInstances(app) {
+			t.scheduleAppForDeployment(app)
+		}
+		if t.healtchecks != nil {
+			if deploying.GetStatus() == protocol.AppStatus_STARTED {
+				if err := t.healtchecks.Register(deploying, app); err != nil {
+					log.Warning("Failed to unregister health check for %v, because %v", taskID.GetValue(), err)
+				}
+			} else {
+				if err := t.healtchecks.Unregister(taskID); err != nil {
+					log.Warning("Failed to unregister health check for %v, because %v", taskID.GetValue(), err)
+				}
 			}
 		}
 	}
@@ -348,7 +392,7 @@ func (t *DefaultTaskManager) TaskStopping(taskID *mesos.TaskID) {
 // TaskFailed a callback for when a task failed
 func (t *DefaultTaskManager) TaskFailed(taskID *mesos.TaskID, slaveID *mesos.SlaveID) {
 	// Track failures and keep count, eventually alert
-	t.updateStatus(taskID, protocol.AppStatus_STOPPED)
+	t.updateStatus(taskID, protocol.AppStatus_FAILED)
 }
 
 // TaskFinished a callback for when a task finishes successfully
@@ -366,7 +410,7 @@ func (t *DefaultTaskManager) TaskKilled(taskID *mesos.TaskID, slaveID *mesos.Sla
 // TaskLost a callback for when a task was lost
 func (t *DefaultTaskManager) TaskLost(taskID *mesos.TaskID, slaveID *mesos.SlaveID) {
 	// Uh Oh I suppose we'd better reschedule this one ahead of everybody else
-	t.updateStatus(taskID, protocol.AppStatus_STOPPED)
+	t.updateStatus(taskID, protocol.AppStatus_FAILED)
 }
 
 // TaskRunning a callback for when a task enters the running state

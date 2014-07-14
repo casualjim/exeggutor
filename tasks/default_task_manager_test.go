@@ -9,6 +9,7 @@ import (
 	"code.google.com/p/goprotobuf/proto"
 	"github.com/op/go-logging"
 	"github.com/reverb/exeggutor"
+	. "github.com/reverb/exeggutor/health/test_utils"
 	"github.com/reverb/exeggutor/protocol"
 	"github.com/reverb/exeggutor/store"
 	app_store "github.com/reverb/exeggutor/store/apps"
@@ -30,8 +31,11 @@ func TestTaskManager(t *testing.T) {
 
 	context := &exeggutor.AppContext{
 		Config: &exeggutor.Config{
-			Mode:        "test",
-			DockerIndex: "dev-docker.helloreverb.com",
+			Mode: "test",
+			DockerIndex: &exeggutor.DockerIndexConfig{
+				Host: "dev-docker.helloreverb.com",
+				Port: 443,
+			},
 		},
 		IDGenerator: flake.NewFlake(),
 	}
@@ -51,7 +55,10 @@ func TestTaskManager(t *testing.T) {
 			appStore:    app_store.NewWithStore(as),
 			context:     context,
 			builder:     builder,
-			healtchecks: nil,
+			healtchecks: &NoopHealthChecker{},
+			closing:     make(chan chan bool),
+			tasksToKill: make(chan *mesos.TaskID),
+			slaMonitor:  &NoopSLAMonitor{},
 		}
 		mgr.Start()
 
@@ -147,7 +154,7 @@ func TestTaskManager(t *testing.T) {
 
 				actual := protocol.Deployment{}
 				proto.Unmarshal(bytes, &actual)
-				deployed.Status = protocol.AppStatus_STOPPED.Enum()
+				deployed.Status = protocol.AppStatus_FAILED.Enum()
 				So(actual, ShouldResemble, deployed)
 			})
 
@@ -189,7 +196,7 @@ func TestTaskManager(t *testing.T) {
 
 				actual := protocol.Deployment{}
 				proto.Unmarshal(bytes, &actual)
-				deployed.Status = protocol.AppStatus_STOPPED.Enum()
+				deployed.Status = protocol.AppStatus_FAILED.Enum()
 				So(actual, ShouldResemble, deployed)
 			})
 

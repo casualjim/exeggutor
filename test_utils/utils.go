@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"code.google.com/p/goprotobuf/proto"
+
 	"github.com/reverb/exeggutor/protocol"
 	"github.com/reverb/exeggutor/store"
 	"github.com/reverb/exeggutor/tasks/builders"
@@ -140,6 +141,7 @@ func TestComponent(appName, compName string, cpus, mem float32) protocol.Applica
 		LogDir:        proto.String(logs),
 		WorkDir:       proto.String(work),
 		ConfDir:       proto.String(conf),
+		Active:        proto.Bool(true),
 		Distribution:  &dist,
 		ComponentType: &comp,
 		Env:           nil, //[]*protocol.StringKeyValue{},
@@ -166,8 +168,7 @@ func DeployedApp(component *protocol.Application, task *mesos.TaskInfo) protocol
 
 func ScheduledComponent(component *protocol.Application) protocol.ScheduledApp {
 	return protocol.ScheduledApp{
-		Name:     component.Name,
-		AppName:  component.AppName,
+		AppId:    component.Id,
 		App:      component,
 		Position: proto.Int(0),
 		Since:    proto.Int64(5),

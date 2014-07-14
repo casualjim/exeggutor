@@ -88,7 +88,7 @@ func main() {
 	logging.SetLevel(logging.DEBUG, "")
 	context := &exeggutor.AppContext{
 		Config: &exeggutor.Config{
-			FrameworkInfo: exeggutor.FrameworkConfig{
+			FrameworkInfo: &exeggutor.FrameworkConfig{
 				HealthCheckConcurrency: 50,
 			},
 		},

@@ -61,7 +61,7 @@ func TestTaskQueue(t *testing.T) {
 				tq.Enqueue(cr2)
 
 				item, err := tq.DequeueFirst(func(item *protocol.ScheduledApp) bool {
-					return item.GetAppName() == "app-tq-2"
+					return item.GetAppId() == component2.GetId()
 				})
 
 				So(err, ShouldBeNil)

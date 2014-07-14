@@ -43,6 +43,12 @@ const (
 	AppStatus_STOPPING AppStatus = 4
 	// AppStatus_STARTED the application is fully available for taking requests
 	AppStatus_STARTED AppStatus = 5
+	// AppStatus_FAILED the application has failed in some way
+	AppStatus_FAILED AppStatus = 6
+	// AppStatus_UNHEALTHY the application is unhealthy in some way
+	AppStatus_UNHEALTHY AppStatus = 7
+	// AppStatus_DISABLING the application is being disabled
+	AppStatus_DISABLING AppStatus = 8
 )
 
 var AppStatus_name = map[int32]string{
@@ -51,6 +57,9 @@ var AppStatus_name = map[int32]string{
 	3: "STOPPED",
 	4: "STOPPING",
 	5: "STARTED",
+	6: "FAILED",
+	7: "UNHEALTHY",
+	8: "DISABLING",
 }
 var AppStatus_value = map[string]int32{
 	"ABSENT":    1,
@@ -58,6 +67,9 @@ var AppStatus_value = map[string]int32{
 	"STOPPED":   3,
 	"STOPPING":  4,
 	"STARTED":   5,
+	"FAILED":    6,
+	"UNHEALTHY": 7,
+	"DISABLING": 8,
 }
 
 func (x AppStatus) Enum() *AppStatus {
@@ -462,10 +474,12 @@ type Application struct {
 	Version *string `protobuf:"bytes,10,req,name=version" json:"version,omitempty"`
 	// the application this component belongs to
 	AppName *string `protobuf:"bytes,11,req,name=app_name" json:"app_name,omitempty"`
+	// Active is true when this app should be deployed
+	Active *bool `protobuf:"varint,12,req,name=active" json:"active,omitempty"`
 	// the distribution model used for this component
-	Distribution *Distribution `protobuf:"varint,12,req,name=distribution,enum=protocol.Distribution,def=1" json:"distribution,omitempty"`
+	Distribution *Distribution `protobuf:"varint,13,req,name=distribution,enum=protocol.Distribution,def=1" json:"distribution,omitempty"`
 	// the modality as to how to treat this component
-	ComponentType *ComponentType `protobuf:"varint,13,req,name=component_type,enum=protocol.ComponentType,def=0" json:"component_type,omitempty"`
+	ComponentType *ComponentType `protobuf:"varint,14,req,name=component_type,enum=protocol.ComponentType,def=0" json:"component_type,omitempty"`
 	// where to expect logs to appear
 	LogDir *string `protobuf:"bytes,30,opt,name=log_dir" json:"log_dir,omitempty"`
 	// where to expect work to appear
@@ -561,6 +575,13 @@ func (m *Application) GetAppName() string {
 	return ""
 }
 
+func (m *Application) GetActive() bool {
+	if m != nil && m.Active != nil {
+		return *m.Active
+	}
+	return false
+}
+
 func (m *Application) GetDistribution() Distribution {
 	if m != nil && m.Distribution != nil {
 		return *m.Distribution
@@ -608,11 +629,7 @@ func (m *Application) GetSla() *ApplicationSLA {
 // component that has been scheduled for deployment.
 type ScheduledApp struct {
 	// Id the id of the scheduled component (for retrieval from persistence medium for example)
-	Id *string `protobuf:"bytes,1,req,name=id" json:"id,omitempty"`
-	// Name the name of the component
-	Name *string `protobuf:"bytes,2,req,name=name" json:"name,omitempty"`
-	// AppName the name of the app this component belongs to
-	AppName *string `protobuf:"bytes,3,req,name=app_name" json:"app_name,omitempty"`
+	AppId *string `protobuf:"bytes,1,req,name=app_id" json:"app_id,omitempty"`
 	// Component the full component that has been scheduled
 	App *Application `protobuf:"bytes,4,req,name=app" json:"app,omitempty"`
 	// Position the full position of this item in the queue
@@ -626,23 +643,9 @@ func (m *ScheduledApp) Reset()         { *m = ScheduledApp{} }
 func (m *ScheduledApp) String() string { return proto.CompactTextString(m) }
 func (*ScheduledApp) ProtoMessage()    {}
 
-func (m *ScheduledApp) GetId() string {
-	if m != nil && m.Id != nil {
-		return *m.Id
-	}
-	return ""
-}
-
-func (m *ScheduledApp) GetName() string {
-	if m != nil && m.Name != nil {
-		return *m.Name
-	}
-	return ""
-}
-
-func (m *ScheduledApp) GetAppName() string {
-	if m != nil && m.AppName != nil {
-		return *m.AppName
+func (m *ScheduledApp) GetAppId() string {
+	if m != nil && m.AppId != nil {
+		return *m.AppId
 	}
 	return ""
 }

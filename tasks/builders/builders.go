@@ -208,7 +208,7 @@ func (b *MesosMessageBuilder) BuildTaskInfo(taskID string, offer *mesos.Offer, s
 	commandInfo, portMapping := b.BuildMesosCommand(slaveID, component, reservedPorts)
 
 	taskInfo := mesos.TaskInfo{
-		Name:      proto.String(scheduled.GetAppName() + "-" + scheduled.GetName()),
+		Name:      proto.String(scheduled.GetAppId()),
 		TaskId:    &mesos.TaskID{Value: proto.String("exeggutor-task-" + taskID)},
 		SlaveId:   offer.SlaveId,
 		Command:   commandInfo,

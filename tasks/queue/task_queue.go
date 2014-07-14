@@ -27,6 +27,11 @@ type TaskQueue interface {
 	Dequeue() (*protocol.ScheduledApp, error)
 	// DequeueFirst pops the first item of the queue that matches the predicated
 	DequeueFirst(func(*protocol.ScheduledApp) bool) (*protocol.ScheduledApp, error)
+	// CountAppsForId returns how many apps are currently scheduled for deployment
+	// with that specified app id
+	CountAppsForID(appID string) int32
+	// CountsForApps
+	CountsForApps() map[string]int32
 	// Len returns the size of the queue
 	Len() int
 }
@@ -72,6 +77,39 @@ func (tq *taskQueue) Stop() error {
 // Len returns the size of the queue
 func (tq *taskQueue) Len() int {
 	return tq.pQueue.Len()
+}
+
+// CountAppsForId returns how many apps are currently scheduled for deployment
+// with that specified app id
+func (tq *taskQueue) CountAppsForID(appID string) int32 {
+	tq.lock.Lock()
+	defer tq.lock.Unlock()
+	queue := *tq.pQueue
+
+	var count int32
+	for _, item := range queue {
+		if item.GetAppId() == appID {
+			count++
+		}
+	}
+	return count
+}
+
+func (tq *taskQueue) CountsForApps() map[string]int32 {
+	tq.lock.Lock()
+	defer tq.lock.Unlock()
+
+	queue := *tq.pQueue
+	var counts map[string]int32
+	for _, item := range queue {
+		appID := item.GetAppId()
+		cnt, ok := counts[appID]
+		if !ok {
+			cnt = 0
+		}
+		counts[appID] = cnt + 1
+	}
+	return counts
 }
 
 // Enqueue enqueues an item if it hasn't been queued already

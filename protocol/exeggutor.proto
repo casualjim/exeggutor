@@ -9,8 +9,6 @@ option cc_generic_services = false;
 option java_generic_services = false;
 option py_generic_services = false;
 
-
-
 /* StringKeyValue represents a pair of 2 strings used as a replacement for maps
  */
 message StringKeyValue {
@@ -42,6 +40,12 @@ enum AppStatus {
   STOPPING = 4;
   /* AppStatus_STARTED the application is fully available for taking requests */
   STARTED = 5;
+  /* AppStatus_FAILED the application has failed in some way */
+  FAILED = 6;
+  /* AppStatus_UNHEALTHY the application is unhealthy in some way */
+  UNHEALTHY = 7;
+  /* AppStatus_DISABLING the application is being disabled */
+  DISABLING = 8;
 }
 
 /*
@@ -147,11 +151,13 @@ message Application {
   required string version = 10;
   /* the application this component belongs to */
   required string app_name = 11;
-
+  /* Active is true when this app should be deployed */
+  required bool active = 12;
   /* the distribution model used for this component */
-  required Distribution distribution = 12 [ default = DOCKER ];
+  required Distribution distribution = 13 [ default = DOCKER ];
   /* the modality as to how to treat this component */
-  required ComponentType component_type = 13 [ default = SERVICE ];
+  required ComponentType component_type = 14 [ default = SERVICE ];
+
 
   /* where to expect logs to appear */
   optional string log_dir = 30;
@@ -169,11 +175,7 @@ message Application {
  */ 
 message ScheduledApp {
   /* Id the id of the scheduled component (for retrieval from persistence medium for example) */
-  required string id = 1;
-  /* Name the name of the component */
-  required string name = 2;
-  /* AppName the name of the app this component belongs to */
-  required string app_name = 3;
+  required string app_id = 1;
   /* Component the full component that has been scheduled */
   required Application app = 4;
   /* Position the full position of this item in the queue */

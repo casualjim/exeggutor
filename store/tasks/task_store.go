@@ -27,22 +27,20 @@ type TaskStore interface {
 	Filter(predicate func(*protocol.Deployment) bool) ([]*protocol.Deployment, error)
 	Find(predicate func(*protocol.Deployment) bool) (*protocol.Deployment, error)
 	Contains(key string) (bool, error)
+	RunningApps(appID string) ([]*protocol.Deployment, error)
+	RunningAppsCount(appID string) int32
 }
 
 // DefaultTaskStore the default implementation of the task store
 type DefaultTaskStore struct {
-	store store.KVStore
+	store            store.KVStore
+	runningAppsCount int32
 }
 
 // New creates a new default instance of the task store
 func New(config *exeggutor.Config) (TaskStore, error) {
-	store, err := store.NewMdbStore(config.DataDirectory + "/tasks")
-	if err != nil {
-		return nil, err
-	}
-	return &DefaultTaskStore{
-		store: store,
-	}, nil
+	store := store.NewEmptyInMemoryStore()
+	return &DefaultTaskStore{store: store}, nil
 }
 
 // NewWithStore creates a new instance of a task store with a provided backing store.
@@ -81,7 +79,29 @@ func (t *DefaultTaskStore) Save(value *protocol.Deployment) error {
 		log.Error("Couldn't serialize deployed app component %+v, because %+v", value, err)
 		return err
 	}
-	return t.store.Set(value.TaskId.GetValue(), ser)
+
+	key := value.TaskId.GetValue()
+	// prev, err := t.Get(key)
+	// if err != nil {
+	// 	return err
+	// }
+
+	err = t.store.Set(key, ser)
+	if err != nil {
+		return err
+	}
+
+	// if prev != nil && prev.GetStatus() != value.GetStatus() {
+	// 	if value.GetStatus() == protocol.AppStatus_STARTED {
+	// 		atomic.AddInt32(&t.runningAppsCount, 1)
+	// 	}
+	// 	if prev.GetStatus() == protocol.AppStatus_STARTED {
+	// 		atomic.AddInt32(&t.runningAppsCount, -1)
+	// 	}
+	// } else if prev == nil && value.GetStatus() == protocol.AppStatus_STARTED {
+	// 	atomic.AddInt32(&t.runningAppsCount, 1)
+	// }
+	return nil
 }
 
 // Delete removes the specified app component from the store
@@ -167,6 +187,18 @@ func (t *DefaultTaskStore) Find(predicate func(*protocol.Deployment) bool) (*pro
 // Contains returns whether or not this store has the specified key
 func (t *DefaultTaskStore) Contains(key string) (bool, error) {
 	return t.store.Contains(key)
+}
+
+// RunningApps returns the collection of deployed instances for that app
+func (t *DefaultTaskStore) RunningApps(appID string) ([]*protocol.Deployment, error) {
+	return t.Filter(func(i *protocol.Deployment) bool {
+		return i.GetAppId() == appID && i.GetStatus() == protocol.AppStatus_STARTED
+	})
+}
+
+// RunningAppsCount returns the amount of running instances for a particular application
+func (t *DefaultTaskStore) RunningAppsCount(appID string) int32 {
+	return t.runningAppsCount
 }
 
 func readBytes(data []byte) (*protocol.Deployment, error) {

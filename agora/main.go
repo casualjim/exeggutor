@@ -96,6 +96,7 @@ func main() {
 	n.Use(middlewares.NewJSONOnlyAPI())
 	n.Use(middlewares.NewRecovery())
 	n.Use(middlewares.NewLogger())
+	n.Use(middlewares.NewProxyHost("/docker", config.DockerIndex.ToURL()))
 	n.Use(negroni.NewStatic(staticFS))
 	n.UseHandler(router)
 
@@ -131,9 +132,17 @@ func readConfig() exeggutor.Config {
 		os.Exit(1)
 	}
 
-	d, err := os.Open(cfg.ConfigDirectory + "/application.json")
+	cfgPath := os.Getenv("CONFIG_FILE")
+	if cfgPath == "" {
+		cfgPath = cfg.ConfigDirectory
+		if cfgPath == "" {
+			cfgPath = "./etc"
+		}
+		cfgPath += "/application.json"
+	}
+	d, err := os.Open(cfgPath)
 	if err != nil {
-		log.Fatalf("Couldn't read json config at %s/application.json", cfg.ConfigDirectory)
+		log.Fatalf("Couldn't read json config at %s", cfgPath)
 		os.Exit(1)
 	}
 	defer d.Close()
