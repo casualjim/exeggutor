@@ -142,7 +142,7 @@ func (b *MesosMessageBuilder) BuildTaskEnvironment(envList []*protocol.StringKey
 				Value: proto.String(strconv.Itoa(int(port.GetValue()))),
 			},
 			&mesos.Environment_Variable{
-				Name:  proto.String(strings.ToUpper(port.GetKey()) + "_PUBLIC_PORT"),
+				Name:  proto.String(strings.ToUpper(port.GetKey()) + "_MAPPING"),
 				Value: proto.String(strconv.Itoa(int(reservedPorts[i]))),
 			},
 		)

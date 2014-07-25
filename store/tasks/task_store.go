@@ -198,7 +198,11 @@ func (t *DefaultTaskStore) RunningApps(appID string) ([]*protocol.Deployment, er
 
 // RunningAppsCount returns the amount of running instances for a particular application
 func (t *DefaultTaskStore) RunningAppsCount(appID string) int32 {
-	return t.runningAppsCount
+	a, err := t.RunningApps(appID)
+	if err != nil {
+		return 0
+	}
+	return int32(len(a))
 }
 
 func readBytes(data []byte) (*protocol.Deployment, error) {
