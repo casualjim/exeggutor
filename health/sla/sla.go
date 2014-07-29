@@ -38,6 +38,7 @@ type simpleSLAMonitor struct {
 	ticker       *time.Ticker
 	closing      chan chan bool
 	needsScaling chan ChangeDeployCount
+	interval     time.Duration
 }
 
 // New creates a new instance of an SLA enforcer
@@ -46,14 +47,15 @@ func New(ts task_store.TaskStore, as app_store.AppStore, q queue.TaskQueue) SLAM
 		taskStore:    ts,
 		appStore:     as,
 		queue:        q,
-		ticker:       time.NewTicker(1 * time.Minute),
 		closing:      make(chan chan bool),
 		needsScaling: make(chan ChangeDeployCount),
+		interval:     1 * time.Minute,
 	}
 }
 
 // Start starts this SLA enforcer
 func (s *simpleSLAMonitor) Start() error {
+	s.ticker = time.NewTicker(s.interval)
 	go func() {
 		for {
 			select {
@@ -93,8 +95,8 @@ func (s *simpleSLAMonitor) countsAsRunningForActive(status protocol.AppStatus) b
 
 func (s *simpleSLAMonitor) checkSLAConformance() {
 	s.appStore.ForEach(func(item *protocol.Application) {
-		deployments, err := s.taskStore.Filter(func(item *protocol.Deployment) bool {
-			return item.GetAppId() == item.GetAppId()
+		deployments, err := s.taskStore.Filter(func(deployment *protocol.Deployment) bool {
+			return item.GetId() == deployment.GetAppId()
 		})
 		queuedCounts := s.queue.CountsForApps()
 		if err == nil {

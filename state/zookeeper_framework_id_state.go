@@ -81,6 +81,7 @@ func (f *ZookeeperFrameworkIDState) Start(buildInitial bool) error {
 func (f *ZookeeperFrameworkIDState) Stop() error {
 	f.currentLock.Lock()
 	defer f.currentLock.Unlock()
+
 	f.current = nil
 	return f.cache.Stop()
 }

@@ -95,12 +95,15 @@ func (tq *taskQueue) CountAppsForID(appID string) int32 {
 	return count
 }
 
+// CountForApps returns all the apps with their counts
+// It is a separate method so that it only needs to traverse
+// list of queue elements once
 func (tq *taskQueue) CountsForApps() map[string]int32 {
 	tq.lock.Lock()
 	defer tq.lock.Unlock()
 
 	queue := *tq.pQueue
-	var counts map[string]int32
+	var counts = make(map[string]int32)
 	for _, item := range queue {
 		appID := item.GetAppId()
 		cnt, ok := counts[appID]

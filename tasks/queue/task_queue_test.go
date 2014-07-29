@@ -69,6 +69,63 @@ func TestTaskQueue(t *testing.T) {
 				So(item, ShouldResemble, cr2)
 				So(q.Len(), ShouldEqual, 1)
 			})
+
+			Convey("should count the queued apps for the specified id", func() {
+				component := TestComponent("app-tq-1", "comp-tq-1", 1.0, 64.0)
+				scheduled := ScheduledComponent(&component)
+				cr := &scheduled
+
+				component2 := TestComponent("app-tq-2", "comp-tq-2", 1.0, 64.0)
+				scheduled2 := ScheduledComponent(&component2)
+				cr2 := &scheduled2
+				tq.Enqueue(cr)
+				tq.Enqueue(cr2)
+				tq.Enqueue(cr)
+				tq.Enqueue(cr2)
+				tq.Enqueue(cr2)
+				tq.Enqueue(cr2)
+				tq.Enqueue(cr)
+
+				So(tq.CountAppsForID(component.GetId()), ShouldEqual, 3)
+				So(tq.CountAppsForID(component2.GetId()), ShouldEqual, 4)
+			})
+
+			Convey("should count all the queued apps", func() {
+				component := TestComponent("app-tq-1", "comp-tq-1", 1.0, 64.0)
+				scheduled := ScheduledComponent(&component)
+				cr := &scheduled
+
+				component2 := TestComponent("app-tq-2", "comp-tq-2", 1.0, 64.0)
+				scheduled2 := ScheduledComponent(&component2)
+				cr2 := &scheduled2
+				tq.Enqueue(cr)
+				tq.Enqueue(cr2)
+				tq.Enqueue(cr)
+				tq.Enqueue(cr2)
+				tq.Enqueue(cr2)
+				tq.Enqueue(cr2)
+				tq.Enqueue(cr)
+
+				expected := map[string]int32{
+					component.GetId():  3,
+					component2.GetId(): 4,
+				}
+				So(tq.CountsForApps(), ShouldResemble, expected)
+			})
+
+			Convey("should get the length of a queue", func() {
+				component := TestComponent("app-tq-1", "comp-tq-1", 1.0, 64.0)
+				scheduled := ScheduledComponent(&component)
+				cr := &scheduled
+				tq.Enqueue(cr)
+
+				component2 := TestComponent("app-tq-2", "comp-tq-2", 1.0, 64.0)
+				scheduled2 := ScheduledComponent(&component2)
+				cr2 := &scheduled2
+				tq.Enqueue(cr2)
+
+				So(tq.Len(), ShouldEqual, 2)
+			})
 		})
 
 		Convey("when being a priority queue", func() {
