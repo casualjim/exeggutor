@@ -165,6 +165,10 @@ func (s *simpleSLAMonitor) checkSLAConformance() {
 	}
 }
 
+// NeedsMoreInstances returns true when the app is active and has an SLA defined.
+// in addition to not having reached the minimum instances threshold yet.
+// It takes the running apps as well as the queued applications into account when it
+// counts the apps that are deployed or scheduled to be.
 func (s *simpleSLAMonitor) NeedsMoreInstances(app *protocol.Application) bool {
 	if !app.GetActive() {
 		return app.GetActive()
@@ -178,6 +182,11 @@ func (s *simpleSLAMonitor) NeedsMoreInstances(app *protocol.Application) bool {
 	return runningApps < minInstances
 }
 
+// CanDeployMoreInstances returns true when this app has no SLA defined and is active.
+// Without an SLA an application is allowed to deploy as many instances as it wants
+// but deployments need to happen manually.
+// You can also deploy more instances when the application is active and it has less apps
+// deployed and/or queued than it has maximum instances defined in the SLA.
 func (s *simpleSLAMonitor) CanDeployMoreInstances(app *protocol.Application) bool {
 	if !app.GetActive() {
 		return app.GetActive()
@@ -190,6 +199,9 @@ func (s *simpleSLAMonitor) CanDeployMoreInstances(app *protocol.Application) boo
 	return runningApps < appSLA.GetMaxInstances()
 }
 
+// ScaleUpOrDown returns the channel at which this component will publish
+// its events. Whenever a deployment needs to be changed because of a SLA
+// rule this channel will receive a ChangeDeployCount message
 func (s *simpleSLAMonitor) ScaleUpOrDown() <-chan ChangeDeployCount {
 	return s.needsScaling
 }
