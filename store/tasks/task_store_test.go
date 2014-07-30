@@ -108,6 +108,16 @@ func TestTaskStore(t *testing.T) {
 			So(actual, ShouldHaveTheSameElementsAs, expected)
 		})
 
+		Convey("should filter to apps", func() {
+			dd := CreateMulti(backing, builder)
+			actual, err := taskStore.Filter(func(item *protocol.Deployment) bool {
+				return item.GetAppId() == dd[1].GetAppId()
+			})
+			So(err, ShouldBeNil)
+			el := dd[1]
+			So(actual, ShouldHaveTheSameElementsAs, []*protocol.Deployment{&el})
+		})
+
 		Convey("should filter for task ids", func() {
 			dd := CreateMulti(backing, builder)
 			actual, err := taskStore.FilterToTaskIds(func(item *protocol.Deployment) bool {
@@ -125,6 +135,39 @@ func TestTaskStore(t *testing.T) {
 			expected := dd[1]
 			So(err, ShouldBeNil)
 			So(actual, ShouldResemble, &expected)
+		})
+
+		Convey("should get all the running apps", func() {
+			appStore := store.NewEmptyInMemoryStore()
+			dd, apps := CreateFilterData(backing, appStore, builder)
+			offer := CreateOffer("offer-4949", 1, 1024)
+			scheduled := ScheduledComponent(&apps[1])
+			task, _ := builder.BuildTaskInfo("task-94994", &offer, &scheduled)
+			deployed := DeployedApp(&apps[1], &task)
+			taskStore.Save(&deployed)
+			bytes, _ := proto.Marshal(&apps[1])
+			appStore.Set(apps[1].GetId(), bytes)
+
+			actual, err := taskStore.RunningApps(dd[1].GetAppId())
+			So(err, ShouldBeNil)
+			So(len(actual), ShouldEqual, 2)
+
+		})
+
+		Convey("should count all the running apps", func() {
+			appStore := store.NewEmptyInMemoryStore()
+			dd, apps := CreateFilterData(backing, appStore, builder)
+			offer := CreateOffer("offer-4949", 1, 1024)
+			scheduled := ScheduledComponent(&apps[1])
+			task, _ := builder.BuildTaskInfo("task-94994", &offer, &scheduled)
+			deployed := DeployedApp(&apps[1], &task)
+			taskStore.Save(&deployed)
+			bytes, _ := proto.Marshal(&apps[1])
+			appStore.Set(apps[1].GetId(), bytes)
+
+			actual := taskStore.RunningAppsCount(dd[1].GetAppId())
+			So(actual, ShouldEqual, 2)
+
 		})
 	})
 

@@ -158,7 +158,7 @@ func DeployedApp(component *protocol.Application, task *mesos.TaskInfo) protocol
 	return protocol.Deployment{
 		AppId:       component.Id,
 		TaskId:      task.TaskId,
-		Status:      protocol.AppStatus_DEPLOYING.Enum(),
+		Status:      protocol.AppStatus_STARTED.Enum(),
 		Slave:       task.SlaveId,
 		HostName:    proto.String("exeggutor-slave-instance-1"),
 		PortMapping: nil,

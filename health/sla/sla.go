@@ -39,6 +39,7 @@ type simpleSLAMonitor struct {
 	closing      chan chan bool
 	needsScaling chan ChangeDeployCount
 	interval     time.Duration
+	enabled      bool // purely here for testing
 }
 
 // New creates a new instance of an SLA enforcer
@@ -50,32 +51,37 @@ func New(ts task_store.TaskStore, as app_store.AppStore, q queue.TaskQueue) SLAM
 		closing:      make(chan chan bool),
 		needsScaling: make(chan ChangeDeployCount),
 		interval:     1 * time.Minute,
+		enabled:      true,
 	}
 }
 
 // Start starts this SLA enforcer
 func (s *simpleSLAMonitor) Start() error {
-	s.ticker = time.NewTicker(s.interval)
-	go func() {
-		for {
-			select {
-			case <-s.ticker.C:
-				s.checkSLAConformance()
-			case boolc := <-s.closing:
-				s.ticker.Stop()
-				boolc <- true
-				return
+	if s.enabled {
+		s.ticker = time.NewTicker(s.interval)
+		go func() {
+			for {
+				select {
+				case <-s.ticker.C:
+					s.checkSLAConformance()
+				case boolc := <-s.closing:
+					s.ticker.Stop()
+					boolc <- true
+					return
+				}
 			}
-		}
-	}()
+		}()
+	}
 	return nil
 }
 
 // Stop stops this SLA enforcer
 func (s *simpleSLAMonitor) Stop() error {
-	boolc := make(chan bool)
-	s.closing <- boolc
-	<-boolc
+	if s.enabled {
+		boolc := make(chan bool)
+		s.closing <- boolc
+		<-boolc
+	}
 	return nil
 }
 
@@ -93,7 +99,8 @@ func (s *simpleSLAMonitor) countsAsRunningForActive(status protocol.AppStatus) b
 		status == protocol.AppStatus_UNHEALTHY
 }
 
-func (s *simpleSLAMonitor) checkSLAConformance() {
+func (s *simpleSLAMonitor) changeDeployCount() []ChangeDeployCount {
+	var changes []ChangeDeployCount
 	s.appStore.ForEach(func(item *protocol.Application) {
 		deployments, err := s.taskStore.Filter(func(deployment *protocol.Deployment) bool {
 			return item.GetId() == deployment.GetAppId()
@@ -121,15 +128,15 @@ func (s *simpleSLAMonitor) checkSLAConformance() {
 					// if there are too few instances, scale up
 					// and if there are too many instances, scale down
 					if totalCount < sla.GetMinInstances() {
-						s.needsScaling <- ChangeDeployCount{
+						changes = append(changes, ChangeDeployCount{
 							App:   item,
 							Count: sla.GetMinInstances() - totalCount,
-						}
+						})
 					} else if totalCount > sla.GetMaxInstances() {
-						s.needsScaling <- ChangeDeployCount{
+						changes = append(changes, ChangeDeployCount{
 							App:   item,
 							Count: sla.GetMaxInstances() - totalCount, // We want a negative number here
-						}
+						})
 					}
 				}
 			} else {
@@ -140,17 +147,28 @@ func (s *simpleSLAMonitor) checkSLAConformance() {
 						toKill = append(toKill, deployment.GetTaskId())
 					}
 				}
-				s.needsScaling <- ChangeDeployCount{
+				changes = append(changes, ChangeDeployCount{
 					App:   item,
 					Tasks: toKill,
 					Count: int32(len(toKill) * -1),
-				}
+				})
 			}
 		}
 	})
+	return changes
+}
+
+func (s *simpleSLAMonitor) checkSLAConformance() {
+	changes := s.changeDeployCount()
+	for _, change := range changes {
+		s.needsScaling <- change
+	}
 }
 
 func (s *simpleSLAMonitor) NeedsMoreInstances(app *protocol.Application) bool {
+	if !app.GetActive() {
+		return app.GetActive()
+	}
 	runningApps := s.taskStore.RunningAppsCount(app.GetId()) + s.queue.CountAppsForID(app.GetId())
 	appSLA := app.GetSla()
 	if appSLA == nil {
@@ -161,6 +179,9 @@ func (s *simpleSLAMonitor) NeedsMoreInstances(app *protocol.Application) bool {
 }
 
 func (s *simpleSLAMonitor) CanDeployMoreInstances(app *protocol.Application) bool {
+	if !app.GetActive() {
+		return app.GetActive()
+	}
 	appSLA := app.GetSla()
 	if appSLA == nil {
 		return true

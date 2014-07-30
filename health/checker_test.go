@@ -18,7 +18,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func appWithHealthCheck(context *exeggutor.AppContext, index int, delay, interval, timeout int64) (protocol.Deployment, protocol.Application) {
+func AppWithHealthCheck(context *exeggutor.AppContext, index int, delay, interval, timeout int64) (protocol.Deployment, protocol.Application) {
 	deployment, app := test_utils.BuildStoreTestData(index, builders.New(context.Config))
 	app.Sla = &protocol.ApplicationSLA{
 		MinInstances: proto.Int32(1),
@@ -40,7 +40,6 @@ func appWithHealthCheck(context *exeggutor.AppContext, index int, delay, interva
 	}
 	return deployment, app
 }
-
 func TestHealthChecker(t *testing.T) {
 
 	logBackend := logging.NewLogBackend(os.Stderr, "", stdlog.LstdFlags|stdlog.Lshortfile)
@@ -99,7 +98,7 @@ func TestHealthChecker(t *testing.T) {
 
 		Convey("when registering valid values", func() {
 
-			deployment, app := appWithHealthCheck(context, 1, 300000, 60000, 5000)
+			deployment, app := AppWithHealthCheck(context, 1, 300000, 60000, 5000)
 
 			Convey("and the value is new", func() {
 				err := checker.Register(&deployment, &app)
@@ -121,12 +120,12 @@ func TestHealthChecker(t *testing.T) {
 			Convey("and the value exits", func() {
 				checker.Register(&deployment, &app)
 				val, _ := checker.register[deployment.GetTaskId().GetValue()]
-				deployment3, app3 := appWithHealthCheck(context, 2, 150000, 5000, 500)
+				deployment3, app3 := AppWithHealthCheck(context, 2, 150000, 5000, 500)
 				checker.Register(&deployment3, &app3)
 
-				deployment4, app4 := appWithHealthCheck(context, 3, 450000, 5000, 500)
+				deployment4, app4 := AppWithHealthCheck(context, 3, 450000, 5000, 500)
 				checker.Register(&deployment4, &app4)
-				deployment2, app2 := appWithHealthCheck(context, 1, 300000, 5000, 500)
+				deployment2, app2 := AppWithHealthCheck(context, 1, 300000, 5000, 500)
 
 				Convey("it should not lose its place in the queue", func() {
 					var previousIndex int
@@ -165,10 +164,10 @@ func TestHealthChecker(t *testing.T) {
 		})
 
 		Convey("when unregistering", func() {
-			d, app := appWithHealthCheck(context, 10, 300000, 60000, 5000)
-			d2, app2 := appWithHealthCheck(context, 20, 150000, 60000, 5000)
-			d3, app3 := appWithHealthCheck(context, 30, 450000, 60000, 5000)
-			d4, app4 := appWithHealthCheck(context, 40, 100000, 60000, 5000)
+			d, app := AppWithHealthCheck(context, 10, 300000, 60000, 5000)
+			d2, app2 := AppWithHealthCheck(context, 20, 150000, 60000, 5000)
+			d3, app3 := AppWithHealthCheck(context, 30, 450000, 60000, 5000)
+			d4, app4 := AppWithHealthCheck(context, 40, 100000, 60000, 5000)
 
 			checker.Register(&d, &app)
 			checker.Register(&d2, &app2)
