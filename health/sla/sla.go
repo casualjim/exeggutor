@@ -43,20 +43,25 @@ type simpleSLAMonitor struct {
 
 // New creates a new instance of an SLA monitor
 func New(ts task_store.TaskStore, as app_store.AppStore, q queue.TaskQueue) SLAMonitor {
+	return NewWithInterval(ts, as, q, 1*time.Minute)
+}
+
+// NewWithInterval creates a new instance of an SLA monitor which ticks at the specified interval
+func NewWithInterval(ts task_store.TaskStore, as app_store.AppStore, q queue.TaskQueue, interval time.Duration) SLAMonitor {
 	return &simpleSLAMonitor{
 		taskStore:    ts,
 		appStore:     as,
 		queue:        q,
 		closing:      make(chan chan bool),
 		needsScaling: make(chan ChangeDeployCount),
-		interval:     1 * time.Minute,
+		interval:     interval,
 	}
 }
 
 // Start starts this SLA enforcer
 func (s *simpleSLAMonitor) Start() error {
+	log.Debug("Staring simple SLA monitor as enabled: %t", s.interval > 0)
 	if s.interval > 0 {
-
 		s.ticker = time.NewTicker(s.interval)
 		go func() {
 			for {
@@ -158,6 +163,7 @@ func (s *simpleSLAMonitor) changeDeployCount() []ChangeDeployCount {
 }
 
 func (s *simpleSLAMonitor) checkSLAConformance() {
+	log.Debug("Checking SLA conformance of running apps")
 	changes := s.changeDeployCount()
 	for _, change := range changes {
 		s.needsScaling <- change

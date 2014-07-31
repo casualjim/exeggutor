@@ -423,5 +423,25 @@ func TestSLAMonitor(t *testing.T) {
 				So(counts[0].Count, ShouldEqual, -1)
 			})
 		})
+
+		Convey("when the application is active but has no SLA defined", func() {
+			deployment, component := AppWithSla(context, 1, 1, 5)
+			deployment.Status = protocol.AppStatus_STARTED.Enum()
+			component.Sla = nil
+			monitor.taskStore.Save(&deployment)
+			monitor.appStore.Save(&component)
+
+			Convey("it should not need more instances", func() {
+				So(monitor.NeedsMoreInstances(&component), ShouldBeFalse)
+			})
+
+			Convey("it can deploy more instances", func() {
+				So(monitor.CanDeployMoreInstances(&component), ShouldBeTrue)
+			})
+
+			Convey("it should not need to change the deployment count", func() {
+				So(monitor.changeDeployCount(), ShouldBeEmpty)
+			})
+		})
 	})
 }
