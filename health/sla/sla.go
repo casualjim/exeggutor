@@ -42,7 +42,7 @@ type simpleSLAMonitor struct {
 	enabled      bool // purely here for testing
 }
 
-// New creates a new instance of an SLA enforcer
+// New creates a new instance of an SLA monitor
 func New(ts task_store.TaskStore, as app_store.AppStore, q queue.TaskQueue) SLAMonitor {
 	return &simpleSLAMonitor{
 		taskStore:    ts,

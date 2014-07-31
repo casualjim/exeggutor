@@ -9,15 +9,15 @@ import (
 	"github.com/astaxie/beego/validation"
 	"github.com/julienschmidt/httprouter"
 	"github.com/reverb/exeggutor/agora/api/model"
-	"github.com/reverb/exeggutor/converters/applications"
 	"github.com/reverb/exeggutor/store"
 )
 
 // ApplicationsController has the context for the applications resource
 // and also contains the applications store DAO.
 type ApplicationsController struct {
-	apiContext *APIContext
-	AppStore   store.KVStore
+	apiContext   *APIContext
+	AppStore     store.KVStore
+	appConverter *model.ApplicationsConverter
 }
 
 func readAppJSON(req *http.Request) (model.App, error) {
@@ -61,7 +61,7 @@ func validateData(rw http.ResponseWriter, data model.App) (bool, error) {
 
 // NewApplicationsController creates a new instance of an applications controller
 func NewApplicationsController(context *APIContext) *ApplicationsController {
-	return &ApplicationsController{apiContext: context, AppStore: context.AppStore}
+	return &ApplicationsController{apiContext: context, AppStore: context.AppStore, appConverter: model.New(context.Config)}
 }
 
 // ListAll lists all the apps currently known to this application.
@@ -171,7 +171,7 @@ func (a *ApplicationsController) Deploy(rw http.ResponseWriter, req *http.Reques
 	}
 	log.Debug("Building a manifest from app %+v", app)
 
-	appManifest := applications.New(a.apiContext.Config).ToAppManifest(app, a.apiContext.Config)
+	appManifest := a.appConverter.ToAppManifest(app, a.apiContext.Config)
 	a.apiContext.Framework.SubmitApp(appManifest)
 
 	rw.WriteHeader(http.StatusAccepted)

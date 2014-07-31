@@ -13,6 +13,46 @@ import (
 	"unicode/utf8"
 )
 
+func (mj *App) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	buf.Grow(1024)
+	err := mj.MarshalJSONBuf(&buf)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+func (mj *App) MarshalJSONBuf(buf *bytes.Buffer) error {
+	var err error
+	var obj []byte
+	var first bool = true
+	_ = obj
+	_ = err
+	_ = first
+	buf.WriteString(`{`)
+	if first == true {
+		first = false
+	} else {
+		buf.WriteString(`,`)
+	}
+	buf.WriteString(`"components":`)
+	/* Falling back. type=map[string]model.AppComponent kind=map */
+	obj, err = json.Marshal(mj.Components)
+	if err != nil {
+		return err
+	}
+	buf.Write(obj)
+	if first == true {
+		first = false
+	} else {
+		buf.WriteString(`,`)
+	}
+	buf.WriteString(`"name":`)
+	ffjson_WriteJsonString(buf, mj.Name)
+	buf.WriteString(`}`)
+	return nil
+}
+
 func (mj *AppComponent) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	buf.Grow(1024)
@@ -69,13 +109,6 @@ func (mj *AppComponent) MarshalJSONBuf(buf *bytes.Buffer) error {
 	}
 	buf.WriteString(`"dist_url":`)
 	ffjson_WriteJsonString(buf, mj.DistURL)
-	if first == true {
-		first = false
-	} else {
-		buf.WriteString(`,`)
-	}
-	buf.WriteString(`"distribution":`)
-	ffjson_WriteJsonString(buf, mj.Distribution)
 	if first == true {
 		first = false
 	} else {

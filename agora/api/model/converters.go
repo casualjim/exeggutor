@@ -1,4 +1,4 @@
-package applications
+package model
 
 import (
 	"fmt"
@@ -6,7 +6,6 @@ import (
 
 	"code.google.com/p/goprotobuf/proto"
 	"github.com/reverb/exeggutor"
-	"github.com/reverb/exeggutor/agora/api/model"
 	"github.com/reverb/exeggutor/protocol"
 )
 
@@ -22,7 +21,7 @@ func New(config *exeggutor.Config) *ApplicationsConverter {
 }
 
 // ToAppManifest convert the provided app to a protobuf application manifest
-func (a *ApplicationsConverter) ToAppManifest(app *model.App, config *exeggutor.Config) (cmps []protocol.Application) {
+func (a *ApplicationsConverter) ToAppManifest(app *App, config *exeggutor.Config) (cmps []protocol.Application) {
 	for _, comp := range app.Components {
 
 		var env []*protocol.StringKeyValue
@@ -41,18 +40,13 @@ func (a *ApplicationsConverter) ToAppManifest(app *model.App, config *exeggutor.
 			})
 		}
 
-		dist := protocol.Distribution(protocol.Distribution_value[strings.ToUpper(comp.Distribution)])
+		appID := strings.Join([]string{app.Name, comp.Name, comp.Version}, "-")
+		dist := protocol.Distribution_DOCKER.Enum()
 		compType := protocol.ComponentType(protocol.ComponentType_value[strings.ToUpper(comp.ComponentType)])
-		var distURL string
-		switch dist {
-		case protocol.Distribution_DOCKER:
-			distURL = fmt.Sprintf("docker://%s/%s", config.DockerIndex, comp.Name)
-		default:
-			distURL = comp.DistURL
-		}
+		distURL := fmt.Sprintf("docker://%s/%s/%s:%s", config.DockerIndex.ToURL().String(), app.Name, comp.Name, comp.Version)
 
 		cmp := protocol.Application{
-			Id:            proto.String(strings.Join([]string{app.Name, comp.Name, comp.Version}, "-")),
+			Id:            proto.String(appID),
 			Name:          proto.String(comp.Name),
 			Cpus:          proto.Float32(float32(comp.Cpus)),
 			Mem:           proto.Float32(float32(comp.Mem)),
@@ -65,7 +59,7 @@ func (a *ApplicationsConverter) ToAppManifest(app *model.App, config *exeggutor.
 			LogDir:        nil, //proto.String("/var/log/" + comp.Name),
 			WorkDir:       nil, //proto.String("/tmp/" + comp.Name),
 			ConfDir:       nil, //proto.String("/etc/" + comp.Name),
-			Distribution:  &dist,
+			Distribution:  dist,
 			ComponentType: &compType,
 			AppName:       proto.String(app.Name),
 		}

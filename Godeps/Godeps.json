@@ -11,6 +11,10 @@
 			"Rev": "f5ac12b15e49095c60ae0acc6da0e28d47e2a29f"
 		},
 		{
+			"ImportPath": "github.com/antage/eventsource",
+			"Rev": "6d2ad4019fda44eaab70c2c0ec46786fa30fd081"
+		},
+		{
 			"ImportPath": "github.com/armon/gomdb",
 			"Rev": "a8e036c4dabe7437014ecf9dbc03c6f6f0766ef8"
 		},
@@ -35,17 +39,12 @@
 		},
 		{
 			"ImportPath": "github.com/jessevdk/go-flags",
-			"Comment": "v1-200-g7047cf7",
-			"Rev": "7047cf7a8dc6f41e53365420ab62d415055232c6"
+			"Comment": "v1-202-g4f0ca1e",
+			"Rev": "4f0ca1e2d1349e9662b633ea1b8b8d48e8a32533"
 		},
 		{
 			"ImportPath": "github.com/julienschmidt/httprouter",
 			"Rev": "c5247d1e3f4859f0ad3ec04311a872702fb86209"
-		},
-		{
-			"ImportPath": "github.com/onsi/ginkgo",
-			"Comment": "v1.0.0-17-gd3d2576",
-			"Rev": "d3d25767b7af0efa7b12a900d0f4ac5477ed9fa1"
 		},
 		{
 			"ImportPath": "github.com/onsi/gomega",
@@ -61,16 +60,25 @@
 		},
 		{
 			"ImportPath": "github.com/reverb/go-mesos/mesos",
-			"Comment": "v0.19.0-rvb1-3-gbb20c1f",
-			"Rev": "bb20c1f7718c9c13d8bb2a7dd40944c3e30dae80"
+			"Comment": "v0.19.0-rvb1-4-g2d92ba2",
+			"Rev": "2d92ba2165681421ab3434778ccbc7f2ba0bde4a"
+		},
+		{
+			"ImportPath": "github.com/reverb/go-utils/convey/matchers",
+			"Rev": "b01016a338c23fb2469689020e3294f2a8dbbecb"
 		},
 		{
 			"ImportPath": "github.com/reverb/go-utils/flake",
-			"Rev": "dd521a3cd945c3aafa04fdb9b4f0162b63587d5f"
+			"Rev": "b01016a338c23fb2469689020e3294f2a8dbbecb"
 		},
 		{
 			"ImportPath": "github.com/reverb/go-utils/rvb_zk",
-			"Rev": "dd521a3cd945c3aafa04fdb9b4f0162b63587d5f"
+			"Rev": "b01016a338c23fb2469689020e3294f2a8dbbecb"
+		},
+		{
+			"ImportPath": "github.com/robfig/cron",
+			"Comment": "v1-3-gb024fc5",
+			"Rev": "b024fc5ea0e34bc3f83d9941c8d60b0622bfaca4"
 		},
 		{
 			"ImportPath": "github.com/samuel/go-zookeeper/zk",
@@ -80,10 +88,6 @@
 			"ImportPath": "github.com/smartystreets/goconvey/convey",
 			"Comment": "1.5.0-240-g6e8b6a6",
 			"Rev": "6e8b6a6845c5dc7738d519162c9a9ff5c9cd5f48"
-		},
-		{
-			"ImportPath": "gopkg.in/check.v1",
-			"Rev": "5586b28e002e7fc07a078ab36dbb684990376c59"
 		}
 	]
 }
