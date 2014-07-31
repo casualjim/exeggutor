@@ -39,7 +39,6 @@ type simpleSLAMonitor struct {
 	closing      chan chan bool
 	needsScaling chan ChangeDeployCount
 	interval     time.Duration
-	enabled      bool // purely here for testing
 }
 
 // New creates a new instance of an SLA monitor
@@ -51,13 +50,13 @@ func New(ts task_store.TaskStore, as app_store.AppStore, q queue.TaskQueue) SLAM
 		closing:      make(chan chan bool),
 		needsScaling: make(chan ChangeDeployCount),
 		interval:     1 * time.Minute,
-		enabled:      true,
 	}
 }
 
 // Start starts this SLA enforcer
 func (s *simpleSLAMonitor) Start() error {
-	if s.enabled {
+	if s.interval > 0 {
+
 		s.ticker = time.NewTicker(s.interval)
 		go func() {
 			for {
@@ -77,7 +76,7 @@ func (s *simpleSLAMonitor) Start() error {
 
 // Stop stops this SLA enforcer
 func (s *simpleSLAMonitor) Stop() error {
-	if s.enabled {
+	if s.interval > 0 {
 		boolc := make(chan bool)
 		s.closing <- boolc
 		<-boolc

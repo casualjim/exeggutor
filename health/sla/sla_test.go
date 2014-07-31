@@ -73,18 +73,21 @@ func TestSLAMonitor(t *testing.T) {
 		as := store.NewEmptyInMemoryStore()
 		ts := store.NewEmptyInMemoryStore()
 		builder := builders.New(context.Config)
+		scal := make(chan ChangeDeployCount)
 
 		monitor := &simpleSLAMonitor{
-			taskStore: task_store.NewWithStore(ts),
-			appStore:  app_store.NewWithStore(as),
-			queue:     tq,
-			interval:  1 * time.Second,
+			taskStore:    task_store.NewWithStore(ts),
+			appStore:     app_store.NewWithStore(as),
+			queue:        tq,
+			interval:     0 * time.Nanosecond,
+			needsScaling: scal,
 		}
 		monitor.Start()
 
 		Reset(func() {
 			tq.Stop()
 			monitor.Stop()
+			close(scal)
 		})
 
 		Convey("when nothing is queued or running", func() {
@@ -271,7 +274,43 @@ func TestSLAMonitor(t *testing.T) {
 			})
 		})
 
-		Convey("with only running apps, and things in the queue", func() {
+		Convey("with both running apps, and things in the queue and receiving on a channel", func() {
+
+			Convey("for an app with more min instances available", func() {
+				deployment, component := AppWithSla(context, 1, 3, 4)
+				scheduled := test_utils.ScheduledComponent(&component)
+				tq.Enqueue(&scheduled)
+				monitor.taskStore.Save(&deployment)
+				monitor.appStore.Save(&component)
+
+				Convey("it should need to change the deployment count", func() {
+					go monitor.checkSLAConformance()
+					cnt := <-monitor.needsScaling
+					So(cnt.Count, ShouldEqual, 1)
+				})
+			})
+
+			Convey("for an app with less max instances available", func() {
+				deployment, component := AppWithSla(context, 1, 1, 1)
+				deployment.Status = protocol.AppStatus_STARTED.Enum()
+				monitor.taskStore.Save(&deployment)
+
+				offer := test_utils.CreateOffer("offer-4949", 1, 1024)
+				scheduled := test_utils.ScheduledComponent(&component)
+				task, _ := builder.BuildTaskInfo("task-94994", &offer, &scheduled)
+				deployed := test_utils.DeployedApp(&component, &task)
+				monitor.taskStore.Save(&deployed)
+				monitor.appStore.Save(&component)
+
+				Convey("it should need to change the deployment count", func() {
+					go monitor.checkSLAConformance()
+					cnt := <-monitor.needsScaling
+					So(cnt.Count, ShouldEqual, -1)
+				})
+			})
+		})
+
+		Convey("with both running apps, and things in the queue", func() {
 			Convey("for an app with 1 min instance and 2 max instance", func() {
 
 				deployment, component := AppWithSla(context, 1, 1, 2)
@@ -362,6 +401,7 @@ func TestSLAMonitor(t *testing.T) {
 				})
 			})
 		})
+
 		Convey("when the application is inactive", func() {
 			deployment, component := AppWithSla(context, 1, 1, 5)
 			deployment.Status = protocol.AppStatus_STARTED.Enum()
