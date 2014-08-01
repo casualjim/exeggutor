@@ -9,14 +9,15 @@ import (
 	"github.com/astaxie/beego/validation"
 	"github.com/julienschmidt/httprouter"
 	"github.com/reverb/exeggutor/agora/api/model"
-	"github.com/reverb/exeggutor/store"
+	"github.com/reverb/exeggutor/protocol"
+	app_store "github.com/reverb/exeggutor/store/apps"
 )
 
 // ApplicationsController has the context for the applications resource
 // and also contains the applications store DAO.
 type ApplicationsController struct {
 	apiContext   *APIContext
-	AppStore     store.KVStore
+	AppStore     app_store.AppStore
 	appConverter *model.ApplicationsConverter
 }
 
@@ -66,9 +67,9 @@ func NewApplicationsController(context *APIContext) *ApplicationsController {
 
 // ListAll lists all the apps currently known to this application.
 func (a *ApplicationsController) ListAll(rw http.ResponseWriter, req *http.Request, _ httprouter.Params) {
-	var arr [][]byte
+	var arr []*protocol.Application
 	// Can't write in one go, need to get the error first
-	err := a.AppStore.ForEachValue(func(data []byte) {
+	err := a.AppStore.ForEach(func(data *protocol.Application) {
 		arr = append(arr, data)
 	})
 
@@ -81,12 +82,13 @@ func (a *ApplicationsController) ListAll(rw http.ResponseWriter, req *http.Reque
 	rw.WriteHeader(http.StatusOK)
 	rw.Write([]byte("["))
 	isFirst := true
+	enc := json.NewEncoder(rw)
 	for _, v := range arr {
 		if !isFirst {
 			rw.Write([]byte(","))
 		}
 		isFirst = false
-		rw.Write(v)
+		enc.Encode(a.appConverter.FromAppManifest(v))
 	}
 	rw.Write([]byte("]"))
 }
@@ -107,7 +109,8 @@ func (a *ApplicationsController) ShowOne(rw http.ResponseWriter, req *http.Reque
 	}
 
 	rw.WriteHeader(http.StatusOK)
-	rw.Write(data)
+	d, _ := json.Marshal(a.appConverter.FromAppManifest(data))
+	rw.Write(d)
 }
 
 // Save saves an app in the data store
@@ -129,7 +132,9 @@ func (a *ApplicationsController) Save(rw http.ResponseWriter, req *http.Request,
 		return
 	}
 
-	a.AppStore.Set(app.Name, data)
+	for _, protoApp := range a.appConverter.ToAppManifest(&app, a.apiContext.Config) {
+		a.AppStore.Save(&protoApp)
+	}
 
 	rw.WriteHeader(http.StatusOK)
 	rw.Write(data)
@@ -163,17 +168,9 @@ func (a *ApplicationsController) Deploy(rw http.ResponseWriter, req *http.Reques
 		return
 	}
 
-	app := &model.App{}
-	err = json.Unmarshal(data, app)
-	if err != nil {
-		unknownErrorWithMessage(rw, err)
-		return
-	}
-	log.Debug("Building a manifest from app %+v", app)
-
-	appManifest := a.appConverter.ToAppManifest(app, a.apiContext.Config)
-	a.apiContext.Framework.SubmitApp(appManifest)
+	a.apiContext.Framework.SubmitApp([]protocol.Application{*data})
 
 	rw.WriteHeader(http.StatusAccepted)
-	rw.Write(data)
+	d, _ := json.Marshal(a.appConverter.FromAppManifest(data))
+	rw.Write(d)
 }

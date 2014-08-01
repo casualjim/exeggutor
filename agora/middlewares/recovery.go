@@ -17,7 +17,7 @@ type Recovery struct {
 // NewRecovery returns a new instance of Recovery
 func NewRecovery() *Recovery {
 	return &Recovery{
-		Logger:     logging.MustGetLogger("agara.request.errors"),
+		Logger:     logging.MustGetLogger("agora.request.errors"),
 		PrintStack: true,
 	}
 }

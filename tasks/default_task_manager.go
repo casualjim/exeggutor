@@ -35,16 +35,16 @@ type DefaultTaskManager struct {
 
 // NewDefaultTaskManager creates a new instance of a task manager with the values
 // from the provided config.
-func NewDefaultTaskManager(context *exeggutor.AppContext) (*DefaultTaskManager, error) {
+func NewDefaultTaskManager(context *exeggutor.AppContext, appStore app_store.AppStore) (*DefaultTaskManager, error) {
 	store, err := task_store.New(context.Config)
 	if err != nil {
 		return nil, err
 	}
 
-	appStore, err := app_store.New(context.Config)
-	if err != nil {
-		return nil, err
-	}
+	//appStore := context.AppStore
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	q := task_queue.New()
 	return &DefaultTaskManager{
@@ -80,13 +80,13 @@ func (t *DefaultTaskManager) Start() error {
 		return err
 	}
 
-	// err = t.slaMonitor.Start()
-	// if err != nil {
-	// 	// We failed to start, cleanup the queue and taskstore too
-	// 	t.taskStore.Stop()
-	// 	t.queue.Stop()
-	// 	return err
-	// }
+	err = t.slaMonitor.Start()
+	if err != nil {
+		// We failed to start, cleanup the queue and taskstore too
+		t.taskStore.Stop()
+		t.queue.Stop()
+		return err
+	}
 
 	if t.healtchecks != nil {
 		err = t.healtchecks.Start()
@@ -117,13 +117,13 @@ func (t *DefaultTaskManager) listenForHealthFailures() {
 				t.tasksToKill <- deployment.GetTaskId()
 			}
 
-		// case scaleReq := <-t.slaMonitor.ScaleUpOrDown():
-		// 	// We ignore requests where the count is 0
-		// 	if scaleReq.Count > 0 {
+		case scaleReq := <-t.slaMonitor.ScaleUpOrDown():
+			// We ignore requests where the count is 0
+			if scaleReq.Count > 0 {
 
-		// 	} else if scaleReq.Count < 0 {
+			} else if scaleReq.Count < 0 {
 
-		// 	}
+			}
 
 		case closed := <-t.closing:
 			// We stop healthchecks and slaMonitor here so that this loop
@@ -131,9 +131,9 @@ func (t *DefaultTaskManager) listenForHealthFailures() {
 			if err := t.healtchecks.Stop(); err != nil {
 				log.Warning("There was an error closing the health checks", err)
 			}
-			// if err2 := t.slaMonitor.Stop(); err2 != nil {
-			// 	log.Warning("There was an error closing the SLA monitor", err2)
-			// }
+			if err2 := t.slaMonitor.Stop(); err2 != nil {
+				log.Warning("There was an error closing the SLA monitor", err2)
+			}
 			closed <- true
 			return
 		}
@@ -190,10 +190,12 @@ func (t *DefaultTaskManager) SubmitApp(app []protocol.Application) error {
 }
 
 func (t *DefaultTaskManager) scheduleAppForDeployment(app *protocol.Application) {
-	// if !t.slaMonitor.CanDeployMoreInstances(app) {
-	// 	log.Warning("Can't deploy another instance of %s, the max instances have been reached")
-	// 	return
-	// }
+	log.Debug("Enqueueing for deployment with more instances (%t) %+v", t.slaMonitor.CanDeployMoreInstances(app), app)
+	if !t.slaMonitor.CanDeployMoreInstances(app) {
+		log.Warning("Can't deploy another instance of %s, the max instances have been reached")
+		return
+	}
+	log.Debug("We can deploy more instances of %+v", app)
 	component := protocol.ScheduledApp{
 		AppId: app.Id,
 		App:   app,
@@ -303,8 +305,9 @@ func (t *DefaultTaskManager) FulfillOffer(offer mesos.Offer) []mesos.TaskInfo {
 	seen := false
 	// dequeue items that fit but are saturated until we get one that fits and isn't saturated
 	// in theory this should not occur because we've got this guard at enqueue time too.
-	// for (item == nil && !seen) || t.slaMonitor.CanDeployMoreInstances(item.GetApp()) {
-	for item == nil && !seen {
+	for item == nil && !seen && !t.slaMonitor.CanDeployMoreInstances(item.GetApp()) {
+		// for item == nil && !seen {
+		log.Debug("Checking queue: %+v", t.queue)
 		i, err := t.queue.DequeueFirst(thatFits)
 		if err != nil {
 			log.Critical("Couldn't dequeue from the task queue because: %v", err)
@@ -348,16 +351,16 @@ func (t *DefaultTaskManager) updateStatus(taskID *mesos.TaskID, status protocol.
 		return err
 	}
 
+	log.Debug("Getting from appstore %v", deploying)
 	app, err := t.appStore.Get(deploying.GetAppId())
 	if err != nil {
 		log.Warning("Failed to retrieve application %v, because %v", deploying.GetAppId(), err)
-		return err
 	}
 
 	if app != nil {
-		// if t.slaMonitor.NeedsMoreInstances(app) {
-		// 	t.scheduleAppForDeployment(app)
-		// }
+		if t.slaMonitor.NeedsMoreInstances(app) {
+			t.scheduleAppForDeployment(app)
+		}
 		if t.healtchecks != nil {
 			if deploying.GetStatus() == protocol.AppStatus_STARTED {
 				if err := t.healtchecks.Register(deploying, app); err != nil {

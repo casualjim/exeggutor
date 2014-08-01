@@ -8,7 +8,7 @@ import (
 	"github.com/op/go-logging"
 	"github.com/reverb/exeggutor"
 	"github.com/reverb/exeggutor/scheduler"
-	"github.com/reverb/exeggutor/store"
+	app_store "github.com/reverb/exeggutor/store/apps"
 )
 
 const (
@@ -22,7 +22,7 @@ var log = logging.MustGetLogger("agora.api")
 type APIContext struct {
 	Framework *scheduler.Framework
 	Config    *exeggutor.Config
-	AppStore  store.KVStore
+	AppStore  app_store.AppStore
 }
 
 func renderJSON(rw http.ResponseWriter, data interface{}) {

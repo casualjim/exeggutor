@@ -7,12 +7,12 @@
 	"Deps": [
 		{
 			"ImportPath": "code.google.com/p/goprotobuf/proto",
-			"Comment": "go.r60-146",
-			"Rev": "f5ac12b15e49095c60ae0acc6da0e28d47e2a29f"
+			"Comment": "go.r60-150",
+			"Rev": "74b407a42099a47c7cf14dc526472d991ecbd1a3"
 		},
 		{
 			"ImportPath": "github.com/antage/eventsource",
-			"Rev": "6d2ad4019fda44eaab70c2c0ec46786fa30fd081"
+			"Rev": "1077d16d7464a3e16dc339a01db15968b05203d6"
 		},
 		{
 			"ImportPath": "github.com/armon/gomdb",
@@ -20,18 +20,18 @@
 		},
 		{
 			"ImportPath": "github.com/astaxie/beego/validation",
-			"Comment": "v1.3.0-24-g14dee37",
-			"Rev": "14dee37a2159ee9db1770e79ab23651c59797ebc"
+			"Comment": "v1.3.0-31-g509af63",
+			"Rev": "509af636b1d287617adf31a923c657b11dbfbb52"
 		},
 		{
 			"ImportPath": "github.com/codegangsta/negroni",
-			"Comment": "v0.1-16-ga806ce7",
-			"Rev": "a806ce72c275b52932b38eb28fa394773f0fac66"
+			"Comment": "v0.1-26-gc3c3ac4",
+			"Rev": "c3c3ac4cf8e12e06de3ca62f16c7cde2874d1606"
 		},
 		{
 			"ImportPath": "github.com/imdario/mergo",
-			"Comment": "0.1.3",
-			"Rev": "8cd7902f25c1ab8342cb78f8b56ff9692374b8f0"
+			"Comment": "0.1.3-7-ge1856b2",
+			"Rev": "e1856b2128eb93453caf1f21d4f1d9926ebeb593"
 		},
 		{
 			"ImportPath": "github.com/jacobsa/oglematchers",
@@ -44,11 +44,11 @@
 		},
 		{
 			"ImportPath": "github.com/julienschmidt/httprouter",
-			"Rev": "c5247d1e3f4859f0ad3ec04311a872702fb86209"
+			"Rev": "7deadb6844d2c6ff1dfb812eaa439b87cdaedf20"
 		},
 		{
 			"ImportPath": "github.com/onsi/gomega",
-			"Rev": "0d06fd5dfbad573535d36c7ce971541d3b0a1f20"
+			"Rev": "4699d5a664396173c7d9fcef9e88be297c7bae13"
 		},
 		{
 			"ImportPath": "github.com/op/go-logging",
@@ -56,7 +56,7 @@
 		},
 		{
 			"ImportPath": "github.com/rcrowley/go-metrics",
-			"Rev": "3be59ceb5538550555459fb77d0efe0e218cdfc7"
+			"Rev": "1f6faa4de7e71a54cb9edff5dd0f93ad12ba71a7"
 		},
 		{
 			"ImportPath": "github.com/reverb/go-mesos/mesos",
@@ -86,8 +86,8 @@
 		},
 		{
 			"ImportPath": "github.com/smartystreets/goconvey/convey",
-			"Comment": "1.5.0-240-g6e8b6a6",
-			"Rev": "6e8b6a6845c5dc7738d519162c9a9ff5c9cd5f48"
+			"Comment": "1.5.0-254-g627707e",
+			"Rev": "627707e8db4a4e52f4e1fbbb4e10d98e79a3c946"
 		}
 	]
 }

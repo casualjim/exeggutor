@@ -29,7 +29,7 @@ dist: build-binary build-frontend
 	rm -rf agora
 
 upload: 
-	scp agora.tar.gz mesos.helloreverb.com:~
+	scp agora.tar.gz mesos.dev.helloreverb.com:~
 
 clean:
 	-rm -rf agora

@@ -59,6 +59,8 @@ type AppComponent struct {
 
 	// ComponentType the type of component this is (SERVICE, TASK, CRON, SPARK_JOB)
 	ComponentType string `json:"component_type"`
+
+	Active bool `json:"active" valid:"Required"`
 }
 
 // Valid validates this struct

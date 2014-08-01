@@ -45,6 +45,19 @@ func (d *DockerIndexConfig) ToURL() *url.URL {
 	return res
 }
 
+// ToProtoURL generates a url from the properties of the docker index config
+func (d *DockerIndexConfig) ToProtoURL() *url.URL {
+	res := &url.URL{
+		Scheme: "docker",
+		Host:   strings.Join([]string{d.Host, strconv.Itoa(d.Port)}, ":"),
+		Path:   strings.Join([]string{"/", d.APIVersion}, ""),
+	}
+	if d.User != "" {
+		res.User = url.UserPassword(d.User, d.Pass)
+	}
+	return res
+}
+
 // FrameworkConfig framework config contains configuration specific to mesos.
 // It has things like a name of the framework and user to use when running applications
 // on mesos

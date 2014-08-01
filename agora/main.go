@@ -20,7 +20,7 @@ import (
 	"github.com/reverb/exeggutor/agora/api"
 	"github.com/reverb/exeggutor/agora/middlewares"
 	"github.com/reverb/exeggutor/scheduler"
-	"github.com/reverb/exeggutor/store"
+	app_store "github.com/reverb/exeggutor/store/apps"
 	"github.com/reverb/exeggutor/tasks"
 	"github.com/reverb/go-utils/flake"
 	"github.com/robfig/cron"
@@ -49,7 +49,13 @@ func main() {
 	appContext.Config = context.Config
 	appContext.IDGenerator = flake.NewFlake()
 
-	mgr, err := tasks.NewDefaultTaskManager(appContext)
+	appStore, err := app_store.New(context.Config)
+	if err != nil {
+		log.Fatalf("Couldn't initialize app database at %s/apps, because %v", config.DataDirectory, err)
+	}
+	appStore.Start()
+
+	mgr, err := tasks.NewDefaultTaskManager(appContext, appStore)
 	if err != nil {
 		log.Fatalf("Couldn't initialize the task manager because:%v", err)
 	}
@@ -61,11 +67,10 @@ func main() {
 		log.Fatalf("Couldn't initialize the exeggutor scheduler framework because:%v", err)
 	}
 
-	appStore, err := store.NewMdbStore(config.DataDirectory + "/applications")
-	if err != nil {
-		log.Fatalf("Couldn't initialize app database at %s/applications, because %v", config.DataDirectory, err)
-	}
-	appStore.Start()
+	// appStore, err := app_store.NewWithStore(store.NewEmptyInMemoryStore())
+	// if err != nil {
+	// 	log.Fatalf("Couldn't initialize app database at %s/apps, because %v", config.DataDirectory, err)
+	// }
 
 	context.Framework = framework
 	context.AppStore = appStore
