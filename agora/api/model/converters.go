@@ -3,6 +3,7 @@ package model
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"code.google.com/p/goprotobuf/proto"
 	"github.com/reverb/exeggutor"
@@ -32,6 +33,30 @@ func (a *ApplicationsConverter) FromAppManifest(application *protocol.Applicatio
 		ports[v.GetKey()] = int(v.GetValue())
 	}
 
+	var sla *AppSLA
+	if application.Sla != nil {
+		s := application.Sla
+		h := s.HealthCheck
+
+		var hc *HealthCheck
+		if h != nil {
+			hc = &HealthCheck{
+				Mode:     h.GetMode().String(),
+				Rampup:   time.Duration(h.GetRampUp()),
+				Interval: time.Duration(h.GetIntervalMillis()),
+				Timeout:  time.Duration(h.GetTimeout()),
+				Path:     h.GetPath(),
+				Scheme:   h.GetScheme(),
+			}
+		}
+
+		sla = &AppSLA{
+			MinInstances: int(s.GetMinInstances()),
+			MaxInstances: int(s.GetMaxInstances()),
+			HealthCheck:  hc,
+		}
+	}
+
 	return App{
 		Name: application.GetAppName(),
 		Components: map[string]AppComponent{
@@ -47,6 +72,7 @@ func (a *ApplicationsConverter) FromAppManifest(application *protocol.Applicatio
 				Version:       application.GetVersion(),
 				ComponentType: application.GetComponentType().String(),
 				Active:        application.GetActive(),
+				SLA:           sla,
 			},
 		},
 	}
@@ -72,6 +98,35 @@ func (a *ApplicationsConverter) ToAppManifest(app *App, config *exeggutor.Config
 			})
 		}
 
+		var sla *protocol.ApplicationSLA
+		if comp.SLA != nil {
+			s := comp.SLA
+			h := s.HealthCheck
+
+			var hc *protocol.HealthCheck
+			if h != nil {
+				var mode = protocol.HealthCheckMode_HTTP
+				if h.Mode != "" {
+					mode = protocol.HealthCheckMode(protocol.HealthCheckMode_value[strings.ToUpper(h.Mode)])
+				}
+				ru := h.Rampup.Nanoseconds()
+
+				hc = &protocol.HealthCheck{
+					Mode:           mode.Enum(),
+					RampUp:         proto.Int64(h.Rampup.Nanoseconds()),
+					IntervalMillis: proto.Int64(h.Interval.Nanoseconds()),
+					Timeout:        proto.Int64(h.Timeout.Nanoseconds()),
+					Path:           proto.String(h.Path),
+					Scheme:         proto.String(h.Scheme),
+				}
+			}
+			sla = &protocol.ApplicationSLA{
+				MinInstances: proto.Int32(int32(s.MinInstances)),
+				MaxInstances: proto.Int32(int32(s.MaxInstances)),
+				HealthCheck:  hc,
+			}
+		}
+
 		appID := strings.Join([]string{app.Name, comp.Name, comp.Version}, "-")
 		dist := protocol.Distribution_DOCKER.Enum()
 		compType := protocol.ComponentType(protocol.ComponentType_value[strings.ToUpper(comp.ComponentType)])
@@ -95,6 +150,7 @@ func (a *ApplicationsConverter) ToAppManifest(app *App, config *exeggutor.Config
 			ComponentType: &compType,
 			AppName:       proto.String(app.Name),
 			Active:        proto.Bool(comp.Active),
+			SLA:           sla,
 		}
 		cmps = append(cmps, cmp)
 	}
