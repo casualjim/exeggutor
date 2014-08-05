@@ -305,7 +305,7 @@ func (t *DefaultTaskManager) FulfillOffer(offer mesos.Offer) []mesos.TaskInfo {
 	seen := false
 	// dequeue items that fit but are saturated until we get one that fits and isn't saturated
 	// in theory this should not occur because we've got this guard at enqueue time too.
-	for item == nil && !seen && !t.slaMonitor.CanDeployMoreInstances(item.GetApp()) {
+	for item == nil && !seen && t.slaMonitor.CanDeployMoreInstances(item.GetApp()) {
 		// for item == nil && !seen {
 		log.Debug("Checking queue: %+v", t.queue)
 		i, err := t.queue.DequeueFirst(thatFits)
