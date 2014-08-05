@@ -66,6 +66,9 @@ func (a *DefaultAppStore) Get(key string) (*protocol.Application, error) {
 		}
 		return nil, err
 	}
+	if data == nil {
+		return nil, nil
+	}
 	return readBytes(data)
 }
 

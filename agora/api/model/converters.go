@@ -70,7 +70,7 @@ func (a *ApplicationsConverter) FromAppManifest(application *protocol.Applicatio
 				Env:           env,
 				Ports:         ports,
 				Version:       application.GetVersion(),
-				ComponentType: application.GetComponentType().String(),
+				ComponentType: strings.ToLower(application.GetComponentType().String()),
 				Active:        application.GetActive(),
 				SLA:           sla,
 			},
@@ -79,7 +79,8 @@ func (a *ApplicationsConverter) FromAppManifest(application *protocol.Applicatio
 }
 
 // ToAppManifest convert the provided app to a protobuf application manifest
-func (a *ApplicationsConverter) ToAppManifest(app *App, config *exeggutor.Config) (cmps []protocol.Application) {
+func (a *ApplicationsConverter) ToAppManifest(app *App) (cmps []protocol.Application) {
+	config := a.config
 	for _, comp := range app.Components {
 
 		env := []*protocol.StringKeyValue{}
@@ -109,7 +110,6 @@ func (a *ApplicationsConverter) ToAppManifest(app *App, config *exeggutor.Config
 				if h.Mode != "" {
 					mode = protocol.HealthCheckMode(protocol.HealthCheckMode_value[strings.ToUpper(h.Mode)])
 				}
-				ru := h.Rampup.Nanoseconds()
 
 				hc = &protocol.HealthCheck{
 					Mode:           mode.Enum(),
@@ -150,7 +150,7 @@ func (a *ApplicationsConverter) ToAppManifest(app *App, config *exeggutor.Config
 			ComponentType: &compType,
 			AppName:       proto.String(app.Name),
 			Active:        proto.Bool(comp.Active),
-			SLA:           sla,
+			Sla:           sla,
 		}
 		cmps = append(cmps, cmp)
 	}

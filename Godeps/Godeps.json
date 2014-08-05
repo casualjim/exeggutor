@@ -20,13 +20,13 @@
 		},
 		{
 			"ImportPath": "github.com/astaxie/beego/validation",
-			"Comment": "v1.3.0-31-g509af63",
-			"Rev": "509af636b1d287617adf31a923c657b11dbfbb52"
+			"Comment": "v1.3.0-33-g289f050",
+			"Rev": "289f050c047112e7569082da0e93c7c49a86a5d4"
 		},
 		{
 			"ImportPath": "github.com/codegangsta/negroni",
-			"Comment": "v0.1-26-gc3c3ac4",
-			"Rev": "c3c3ac4cf8e12e06de3ca62f16c7cde2874d1606"
+			"Comment": "v0.1-27-g46bd821",
+			"Rev": "46bd821940d86fb9777f7f86e9ae428132e110da"
 		},
 		{
 			"ImportPath": "github.com/imdario/mergo",
@@ -56,7 +56,7 @@
 		},
 		{
 			"ImportPath": "github.com/rcrowley/go-metrics",
-			"Rev": "1f6faa4de7e71a54cb9edff5dd0f93ad12ba71a7"
+			"Rev": "8d35757aca76ecbb3130db5eef56ab7ecc1d6dba"
 		},
 		{
 			"ImportPath": "github.com/reverb/go-mesos/mesos",

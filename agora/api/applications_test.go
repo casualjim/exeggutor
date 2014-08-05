@@ -10,6 +10,7 @@ import (
 	"github.com/op/go-logging"
 	"github.com/reverb/exeggutor/agora/api/model"
 	"github.com/reverb/exeggutor/store"
+	app_store "github.com/reverb/exeggutor/store/apps"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -20,9 +21,10 @@ func testApp(name, component string, context *APIContext) model.App {
 			Name:          component,
 			Cpus:          1,
 			Mem:           1,
-			DistURL:       "http://somewhere.com",
+			DistURL:       fmt.Sprintf("docker://dev-docker.helloreverb.com/v1/%s/%s:0.0.1", name, component),
 			Command:       "./" + component,
 			Ports:         map[string]int{"HTTP": 8000},
+			Env:           make(map[string]string),
 			Version:       "0.0.1",
 			ComponentType: "service",
 		}},
@@ -39,10 +41,11 @@ func TestApplicationsApi(t *testing.T) {
 		logging.SetLevel(logging.ERROR, "")
 		context := &APIContext{
 			Config:   testAppConfig(),
-			AppStore: store.NewEmptyInMemoryStore(),
+			AppStore: app_store.NewWithStore(store.NewEmptyInMemoryStore()),
 		}
 		context.AppStore.Start()
 		controller := NewApplicationsController(context)
+		converter := model.New(context.Config)
 		server := NewTestHTTP()
 		server.Mount("GET", "/applications", controller.ListAll)
 		server.Mount("GET", "/applications/:name", controller.ShowOne)
@@ -67,9 +70,9 @@ func TestApplicationsApi(t *testing.T) {
 					testApp("veggr-service", "veggr-service", context),
 				}
 				for _, app := range expected {
-					bytes, err := json.Marshal(&app)
-					So(err, ShouldBeNil)
-					context.AppStore.Set(app.Name, bytes)
+					for _, a := range converter.ToAppManifest(&app) {
+						context.AppStore.Save(&a)
+					}
 				}
 				server.Get("/applications")
 				So(response.Code, ShouldEqual, 200)
@@ -79,6 +82,7 @@ func TestApplicationsApi(t *testing.T) {
 				err := json.Unmarshal(bodyBytes, &apps)
 				So(err, ShouldBeNil)
 				So(len(apps), ShouldEqual, 2)
+
 				So(apps, ShouldResemble, expected)
 			})
 		})
@@ -86,26 +90,27 @@ func TestApplicationsApi(t *testing.T) {
 		Convey("Get a single application", func() {
 
 			Convey("returns 200 and the application", func() {
-				expected := testApp("foo393", "foo939", context)
-				expectedJSON, _ := json.Marshal(expected)
-				controller.AppStore = store.NewInMemoryStore(map[string][]byte{expected.Name: expectedJSON})
+				ex := testApp("foo393", "foo939", context)
+				expected := converter.ToAppManifest(&ex)[0]
+				context.AppStore.Save(&expected)
 
-				server.Get("/applications/" + expected.Name)
+				server.Get("/applications/" + expected.GetId())
 
 				So(response.Code, ShouldEqual, 200)
 
 				var app model.App
 				err := json.Unmarshal(response.Body.Bytes(), &app)
 				So(err, ShouldBeNil)
-				So(app, ShouldResemble, expected)
+				So(app, ShouldResemble, ex)
 			})
 
 			Convey("returns 404 and an error message", func() {
-				expected := testApp("foo393", "foo939", context)
-				server.Get("/applications/" + expected.Name)
+				ex := testApp("foo393", "foo939", context)
+				expected := converter.ToAppManifest(&ex)[0]
+				server.Get("/applications/" + expected.GetId())
 
 				So(response.Code, ShouldEqual, 404)
-				So(response.Body.String(), ShouldEqual, fmt.Sprintf(`{"message":"Couldn't find %s for key '%s'.", "type": "error"}`, "App", expected.Name))
+				So(response.Body.String(), ShouldEqual, fmt.Sprintf(`{"message":"Couldn't find %s for key '%s'.", "type": "error"}`, "App", expected.GetId()))
 			})
 
 		})
@@ -134,7 +139,7 @@ func TestApplicationsApi(t *testing.T) {
 			Convey("returns 200 when the item is updated", func() {
 				expected := testApp("blah-service", "blah", context)
 				expectedJSON, _ := json.Marshal(expected)
-				controller.AppStore = store.NewInMemoryStore(map[string][]byte{expected.Name: expectedJSON})
+				controller.AppStore = app_store.NewWithStore(store.NewInMemoryStore(map[string][]byte{expected.Name: expectedJSON}))
 
 				server.Put("/applications/"+expected.Name, expected)
 				So(response.Code, ShouldEqual, 200)
@@ -149,7 +154,7 @@ func TestApplicationsApi(t *testing.T) {
 			Convey("returns 422 when the app is invalid ", func() {
 				expected := model.App{Name: "blah-service"}
 				expectedJSON, _ := json.Marshal(expected)
-				controller.AppStore = store.NewInMemoryStore(map[string][]byte{expected.Name: expectedJSON})
+				controller.AppStore = app_store.NewWithStore(store.NewInMemoryStore(map[string][]byte{expected.Name: expectedJSON}))
 				server.Put("/applications/"+expected.Name, expected)
 				So(response.Code, ShouldEqual, 422)
 			})
@@ -160,7 +165,7 @@ func TestApplicationsApi(t *testing.T) {
 			Convey("returns 204 when the delete succeeds", func() {
 				expected := testApp("blah-service", "blah", context)
 				expectedJSON, _ := json.Marshal(expected)
-				controller.AppStore = store.NewInMemoryStore(map[string][]byte{expected.Name: expectedJSON})
+				controller.AppStore = app_store.NewWithStore(store.NewInMemoryStore(map[string][]byte{expected.Name: expectedJSON}))
 
 				server.Delete("/applications/" + expected.Name)
 				So(response.Code, ShouldEqual, 204)

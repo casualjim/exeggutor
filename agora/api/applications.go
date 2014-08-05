@@ -99,6 +99,7 @@ func (a *ApplicationsController) ShowOne(rw http.ResponseWriter, req *http.Reque
 	data, err := a.AppStore.Get(pparam)
 
 	if err != nil {
+		log.Error("%v", err)
 		unknownErrorWithMessage(rw, err)
 		return
 	}
@@ -132,7 +133,7 @@ func (a *ApplicationsController) Save(rw http.ResponseWriter, req *http.Request,
 		return
 	}
 
-	for _, protoApp := range a.appConverter.ToAppManifest(&app, a.apiContext.Config) {
+	for _, protoApp := range a.appConverter.ToAppManifest(&app) {
 		a.AppStore.Save(&protoApp)
 	}
 

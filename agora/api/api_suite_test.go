@@ -30,6 +30,12 @@ func testAppConfig() *exeggutor.Config {
 		Port:            9484,
 		Interface:       "0.0.0.0",
 		Mode:            "test",
+		DockerIndex: &exeggutor.DockerIndexConfig{
+			Host:       "dev-docker.helloreverb.com",
+			Port:       443,
+			Scheme:     "https",
+			APIVersion: "v1",
+		},
 	}
 }
 
