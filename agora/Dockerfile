@@ -9,5 +9,8 @@ ADD ./libmesos.la /lib/libmesos.la
 EXPOSE 8000
 
 VOLUME ["/etc/agora"]
+VOLUME ["/data"]
+VOLUME ["/logs"]
+VOLUME ["/work"]
 
 CMD ["/agora --conf=/etc/agora"]

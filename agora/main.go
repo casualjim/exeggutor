@@ -36,7 +36,7 @@ var (
 func init() {
 	config = readConfig()
 	context = api.APIContext{Config: &config}
-	setupLogging()
+	setupLogging(config.Logging)
 }
 
 func main() {
@@ -169,18 +169,47 @@ func readConfig() exeggutor.Config {
 	return cfg
 }
 
-func setupLogging() {
+func logLevel(name string) logging.Level {
+	switch strings.ToUpper(name) {
+	case "INFO":
+		return logging.INFO
+	case "NOTICE":
+		return logging.NOTICE
+	case "WARN":
+		return logging.WARNING
+	case "WARNING":
+		return logging.WARNING
+	case "ERROR":
+		return logging.ERROR
+	case "CRITICAL":
+		return logging.CRITICAL
+	default:
+		return logging.DEBUG
+	}
+}
+
+func setupLogging(cfg *exeggutor.LoggingConfig) {
+	lc := cfg
+	if lc == nil {
+		lc = &exeggutor.LoggingConfig{
+			Level:        "DEBUG",
+			Colorize:     true,
+			Pattern:      "%{level} %{message}",
+			LogDirectory: "./logs",
+		}
+	}
+
 	// Customize the output format
-	logging.SetFormatter(logging.MustStringFormatter("%{level} %{message}"))
+	logging.SetFormatter(logging.MustStringFormatter(lc.Pattern))
 
 	// Setup one stdout and one syslog backend.
 	logBackend := logging.NewLogBackend(os.Stderr, "", stdlog.LstdFlags|stdlog.Lshortfile)
 	logBackend.Color = true
 	logging.SetBackend(logBackend)
-	logging.SetLevel(logging.INFO, "exeggutor.health")
-	if strings.HasPrefix(config.Mode, "prod") {
-		logPath := config.LogDirectory + "/agora.log"
-		os.MkdirAll(config.LogDirectory, 0755)
+	logging.SetLevel(logLevel(lc.Level), "")
+	if strings.HasPrefix(config.Mode, "prod") && lc.LogDirectory != "" {
+		logPath := lc.LogDirectory + "/agora.log"
+		os.MkdirAll(lc.LogDirectory, 0755)
 		logFile, err := os.OpenFile(logPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 		if err != nil {
 			log.Fatalf("Couldn't open log file at %s, because %v", logPath, err)

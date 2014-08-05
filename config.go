@@ -11,7 +11,6 @@ type Config struct {
 	ZookeeperURL    string             `json:"zookeeper,omitempty" long:"zk" description:"The uri for zookeeper in the form of zk://localhost:2181/root"`
 	MesosMaster     string             `json:"mesos,omitempty" long:"mesos" description:"The uri for the mesos master"`
 	DataDirectory   string             `json:"dataDirectory,omitempty" long:"data_dir" description:"The base path for storing the data" default:"./data"`
-	LogDirectory    string             `json:"logDirectory,omitempty" long:"log_dir" description:"The directory to store log files in" default:"./logs"`
 	StaticFiles     string             `json:"staticFiles,omitempty" long:"public" description:"The directory to find the static files for this app" default:"./static/build"`
 	WorkDirectory   string             `json:"workDirectory,omitempty" long:"work_dir" description:"The directory to use when doing temporary work" default:"/tmp/agora-wrk-$RANDOM"`
 	ConfigDirectory string             `json:"confDirectory,omitempty" long:"conf" description:"The directory where to find the config files" default:"./etc"`
@@ -19,7 +18,8 @@ type Config struct {
 	Interface       string             `json:"interface,omitempty" long:"listen" description:"The interface to use to listen for web requests" default:"0.0.0.0"`
 	Mode            string             `json:"mode,omitempty" long:"mode" description:"The mode in which to run this application (dev, prod, stage, jenkins)" default:"development"`
 	FrameworkInfo   *FrameworkConfig   `json:"framework,omitempty"`
-	DockerIndex     *DockerIndexConfig `json:"dockerIndex,omitempty" long:"docker_index" description:"The docker index this application should use for pulling docker images"`
+	DockerIndex     *DockerIndexConfig `json:"dockerIndex,omitempty"`
+	Logging         *LoggingConfig     `json:"logging,omitempty"`
 }
 
 // DockerIndexConfig contains the configuration properties for a docker index
@@ -61,4 +61,13 @@ type FrameworkConfig struct {
 	User                   string `json:"user,omitempty" long:"framework_user" description:"The user under which this framework should authenticate"`
 	Name                   string `json:"name,omitempty" long:"framework_name" description:"The name of this framework" default:"Agora"`
 	HealthCheckConcurrency int    `json:"healthCheckConcurrency" long:"health_check_concurrency" description:"The number of health check workers" default:"5"`
+}
+
+// LoggingConfig contains the configuration for the logging
+// It configures levels and possibly appenders
+type LoggingConfig struct {
+	Level        string `json:"level,omitempty" long:"log_level" description:"The level at which to log" default:"DEBUG"`
+	Colorize     bool   `json:"colorize,omitempty" long:"log_colorize" description:"Use colors in logs" default:true`
+	Pattern      string `json:"pattern,omitempty" long:"log_pattern" description:"The pattern to use for logging" default:"%{level} %{message}"`
+	LogDirectory string `json:"logDirectory,omitempty" long:"log_dir" description:"The directory to store log files in" default:"./logs"`
 }
