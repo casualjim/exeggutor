@@ -1,6 +1,5 @@
 {
   "dataDirectory": "./data",
-  "logDirectory": "./logs",
   "staticFiles": "./static/build",
   "zookeeper": "zk://exeggutor-box:2181/exeggutor",
   "mesos": "zk://exeggutor-box:2181/mesos",
@@ -16,5 +15,12 @@
   "framework": {
     "user": "vagrant",
     "name": "Reverb Agora"
+  }
+  "logging": {
+    "level": "DEBUG",
+   "logDirectory": "",
+   "colorize":true,
+   "pattern":"%{level} %{message}"
+   
   }
 }

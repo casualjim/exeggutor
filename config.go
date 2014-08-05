@@ -67,7 +67,7 @@ type FrameworkConfig struct {
 // It configures levels and possibly appenders
 type LoggingConfig struct {
 	Level        string `json:"level,omitempty" long:"log_level" description:"The level at which to log" default:"DEBUG"`
-	Colorize     bool   `json:"colorize,omitempty" long:"log_colorize" description:"Use colors in logs" default:true`
+	Colorize     bool   `json:"colorize,omitempty" long:"log_colorize" description:"Use colors in logs" default:"true"`
 	Pattern      string `json:"pattern,omitempty" long:"log_pattern" description:"The pattern to use for logging" default:"%{level} %{message}"`
 	LogDirectory string `json:"logDirectory,omitempty" long:"log_dir" description:"The directory to store log files in" default:"./logs"`
 }
