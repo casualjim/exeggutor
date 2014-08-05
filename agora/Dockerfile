@@ -6,4 +6,6 @@ ADD ./dist/static /static
 
 EXPOSE 8000
 
+VOLUME ["/etc/agora"]
+
 CMD ["/agora"]

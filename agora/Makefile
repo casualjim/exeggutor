@@ -18,10 +18,11 @@ docker: build-linux build-frontend
 	-rm -rf dist
 	mkdir -p dist
 	mv agora.linux dist
-	mv static/build dist/static
-	$(DOCKER) build -t $(shell basename $(CURDIR)):$(VERSION) .
+	mv static/bin dist/static
+	$(DOCKER) build -t dev-docker.helloreverb.com/library/$(shell basename $(CURDIR)):$(VERSION) .
 
 dist: build-binary build-frontend
+	-rm -rf dist
 	mkdir -p dist
 	mv agora dist
 	mv static/bin dist/static
