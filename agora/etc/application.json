@@ -9,7 +9,9 @@
   "dockerIndex": {
      "host": "dev-docker.helloreverb.com",
      "port": 443,
-     "scheme": "https"
+     "scheme": "https",
+     "user": "agora",
+     "pass": "93deirjwq30s"
   },
   "framework": {
     "user": "vagrant",

@@ -1,11 +1,13 @@
-FROM busybox:ubuntu-14.04
+FROM dev-docker.helloreverb.com/base:latest
 MAINTAINER Reverb Technologies, Inc 
 
-ADD ./dist/agora.linux /agora
-ADD ./dist/static /static
+ADD ./agora.linux /agora
+ADD ./static /static
+ADD ./libmesos-0.19.0-rvb3.so /lib/libmesos-0.19.0-rvb3.so
+ADD ./libmesos.la /lib/libmesos.la
 
 EXPOSE 8000
 
 VOLUME ["/etc/agora"]
 
-CMD ["/agora"]
+CMD ["/agora --conf=/etc/agora"]

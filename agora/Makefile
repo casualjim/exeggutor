@@ -19,7 +19,9 @@ docker: build-linux build-frontend
 	mkdir -p dist
 	mv agora.linux dist
 	mv static/bin dist/static
-	$(DOCKER) build -t dev-docker.helloreverb.com/library/$(shell basename $(CURDIR)):$(VERSION) .
+	cp /usr/local/lib/libmesos.la /usr/local/lib/libmesos-0.19.0-rvb3.so dist
+	cp Dockerfile dist
+	$(DOCKER) build -t dev-docker.helloreverb.com/library/$(shell basename $(CURDIR)):$(VERSION) dist
 
 dist: build-binary build-frontend
 	-rm -rf dist
