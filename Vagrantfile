@@ -17,15 +17,15 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     v.memory = 4096
     v.cpus = 4
 
-    v.customize ["modifyvm", :id, "--cpuexecutioncap", "50"]    
+    # v.customize ["modifyvm", :id, "--cpuexecutioncap", "50"]    
     v.customize ["modifyvm", :id, "--usb", "off"]
     v.customize ["modifyvm", :id, "--usbehci", "off"]
     v.customize ["modifyvm", :id, "--usbcardreader", "off"] 
 
     # the settings below allow for faster network over the natted interface 
-    v.customize ["modifyvm", :id, "--chipset", "ich9"]
-    v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
-    v.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
+    # v.customize ["modifyvm", :id, "--chipset", "ich9"]
+    # v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+    # v.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
   end
   
   config.vm.provision "ansible" do |ansible|
