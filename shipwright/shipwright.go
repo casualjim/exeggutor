@@ -44,6 +44,6 @@ type Inventory interface {
 
 // RemoteEvent is a structure that represents an event received from a remote host.
 type RemoteEvent struct {
-	Host *InventoryItem
+	Host InventoryItem
 	Line []byte
 }

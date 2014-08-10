@@ -14,12 +14,12 @@ import (
 )
 
 var (
-	newLine []byte = []byte("\n")
+	newLine = []byte("\n")
 )
 
 type printWriter struct {
 	writer io.Writer
-	item   *shipwright.InventoryItem
+	item   shipwright.InventoryItem
 }
 
 func (w *printWriter) Write(p []byte) (n int, err error) {
@@ -37,7 +37,7 @@ func (w *printWriter) Write(p []byte) (n int, err error) {
 
 type channelWriter struct {
 	channel chan<- shipwright.RemoteEvent
-	item    *shipwright.InventoryItem
+	item    shipwright.InventoryItem
 }
 
 func (c *channelWriter) Write(p []byte) (n int, err error) {
@@ -53,7 +53,7 @@ func (c *channelWriter) Write(p []byte) (n int, err error) {
 type SshClient struct {
 	conn      *gossh.Client
 	config    *shipwright.Config
-	host      *shipwright.InventoryItem
+	host      shipwright.InventoryItem
 	connected bool
 }
 
@@ -89,7 +89,7 @@ func (s *SshClient) makeKeyring() gossh.AuthMethod {
 }
 
 // Connect create the connection session
-func (s *SshClient) Connect(item *shipwright.InventoryItem) error {
+func (s *SshClient) Connect(item shipwright.InventoryItem) error {
 	fmt.Printf("Connecting with %+v\n", item)
 	auths := []gossh.AuthMethod{s.makeKeyring()}
 

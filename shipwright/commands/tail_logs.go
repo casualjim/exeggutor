@@ -33,21 +33,23 @@ func (t *TailLogsCommand) Execute(args []string) error {
 	stream := make(chan string, 100)
 	var closing []chan<- chan struct{}
 
-	for _, item := range items {
-		client := ssh.New(t.config)
-		err := client.Connect(&item)
-		if err != nil {
-			fmt.Errorf("Failed to connect, because: %v", err)
-			break
-		}
-		s, err := client.RunStreaming(inventory.TailCommand(item.Name))
-		if err != nil {
-			fmt.Errorf("Failed to get log stream, because %v", err)
-			break
-		}
+	for i := 0; i < len(items); i++ {
+		item := items[i]
 		c := make(chan chan struct{})
 		closing = append(closing, c)
 		go func() {
+			client := ssh.New(t.config)
+			err := client.Connect(item)
+			if err != nil {
+				fmt.Errorf("Failed to connect, because: %v", err)
+				return
+			}
+			s, err := client.RunStreaming(inventory.TailCommand(item.Name))
+			if err != nil {
+				fmt.Errorf("Failed to get log stream, because %v", err)
+				return
+			}
+
 			for {
 				select {
 				case evt := <-s:
@@ -57,7 +59,6 @@ func (t *TailLogsCommand) Execute(args []string) error {
 					close(s)
 					ch <- struct{}{}
 					return
-				default:
 				}
 			}
 		}()
