@@ -69,7 +69,7 @@ type Instance struct {
 	DNSName            string              `json:"publicDnsName"`
 	KeyName            string              `json:"keyName"`
 	AMILaunchIndex     int                 `json:"amiLaunchIndex"`
-	State              *InstanceState      `json:"instanceState"`
+	State              *InstanceState      `json:"state"`
 	Tags               []Tag               `json:"tags"`
 	VpcID              string              `json:"vpcId"`
 	SubnetID           string              `json:"subnetId"`

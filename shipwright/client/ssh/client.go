@@ -77,7 +77,7 @@ func makeSigner(keyname string) (signer gossh.Signer, err error) {
 func (s *SshClient) makeKeyring() gossh.AuthMethod {
 	signers := []gossh.Signer{}
 	keys := []string{s.config.SSH.KeyFile}
-	fmt.Println("Connecting with key:", s.config.SSH.KeyFile)
+	// fmt.Println("Connecting with key:", s.config.SSH.KeyFile)
 
 	for _, keyname := range keys {
 		if signer, err := makeSigner(keyname); err == nil {
@@ -90,7 +90,7 @@ func (s *SshClient) makeKeyring() gossh.AuthMethod {
 
 // Connect create the connection session
 func (s *SshClient) Connect(item shipwright.InventoryItem) error {
-	fmt.Printf("Connecting with %+v\n", item)
+	fmt.Printf("Connecting to %s in %s at %s with user %s and key %s\n", item.Name, item.Cluster, item.PublicHost, s.config.SSH.User, s.config.SSH.KeyFile)
 	auths := []gossh.AuthMethod{s.makeKeyring()}
 
 	clientConfig := &gossh.ClientConfig{
@@ -125,7 +125,7 @@ func (s *SshClient) RunSimple(cmd string) error {
 // RunStreaming runs a command but writes every received line as an event to a channel
 func (s *SshClient) RunStreaming(cmd string) (chan shipwright.RemoteEvent, error) {
 	if !s.connected {
-		return nil, errors.New("You need to connect the ssh client firest")
+		return nil, errors.New("You need to connect the ssh client first")
 	}
 	hatch := make(chan shipwright.RemoteEvent, 1000)
 	go func() {

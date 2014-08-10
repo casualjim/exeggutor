@@ -46,12 +46,14 @@ func (i *CapricaInventory) FetchInventory(clusterNames, serviceNames string) ([]
 
 	var result []shipwright.InventoryItem
 	for _, svc := range svcs {
-		result = append(result, shipwright.InventoryItem{
-			PublicHost:  svc.Instance.PublicIPAddress,
-			PrivateHost: svc.Instance.PrivateIPAddress,
-			Name:        svc.Name,
-			Cluster:     svc.Cluster,
-		})
+		if svc.Instance != nil && svc.Instance.State != nil && svc.Instance.State.Name == "running" {
+			result = append(result, shipwright.InventoryItem{
+				PublicHost:  svc.Instance.PublicIPAddress,
+				PrivateHost: svc.Instance.PrivateIPAddress,
+				Name:        svc.Name,
+				Cluster:     svc.Cluster,
+			})
+		}
 	}
 	return result, nil
 }
