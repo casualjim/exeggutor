@@ -23,6 +23,8 @@ func NewTailLogsCommand(config *boatwright.Config) *TailLogsCommand {
 	return &TailLogsCommand{config: config}
 }
 
+// Execute executes the tail logs command.
+// This will SSH into each matched host and then tail the logs at a predefined location.
 func (t *TailLogsCommand) Execute(args []string) error {
 	inventory := caprica.NewInventory(t.config)
 	items, err := inventory.FetchInventory(t.ClusterName, t.ServiceName)

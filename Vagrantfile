@@ -23,9 +23,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     v.customize ["modifyvm", :id, "--usbcardreader", "off"] 
 
     # the settings below allow for faster network over the natted interface 
-    # v.customize ["modifyvm", :id, "--chipset", "ich9"]
-    # v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
-    # v.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
+     v.customize ["modifyvm", :id, "--chipset", "ich9"]
+     v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+     v.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
   end
   
   config.vm.provision "ansible" do |ansible|

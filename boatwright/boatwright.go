@@ -16,15 +16,16 @@ type HttpConfig struct {
 }
 
 // SshConfig holds the configuration for establishing ssh connections
-type SshConfig struct {
+type SsConfig struct {
 	User    string
 	KeyFile string `yaml:"private_key"`
 }
 
-// Config holds the configuration for the other jobs
+// EnvConfig holds the configuration for the other jobs
 type EnvConfig struct {
-	Caprica  HttpConfig
-	LogPaths map[string]string
+	Caprica        HttpConfig
+	LogPaths       map[string]string
+	DockerRegistry HttpConfig `yaml:"docker_registry"`
 }
 
 // InventoryItem is an item that is retrieved from an inventory server
@@ -46,4 +47,9 @@ type Inventory interface {
 type RemoteEvent struct {
 	Host InventoryItem
 	Line []byte
+}
+
+// DockerConfig holds the information necessary to talk to work with docker.
+type DockerConfig struct {
+	Registry string
 }

@@ -18,6 +18,53 @@ type InitCommand struct {
 	Force bool `short:"f" long:"force" description:"When this is set then the config file will be reinitialized"`
 }
 
+func (i *InitCommand) ensureCapricaConfig() (dev *boatwright.HttpConfig, prod *boatwright.HttpConfig, changed bool, err error) {
+	u, _ := user.Current()
+	fmt.Print("Caprica user: (" + u.Username + ")")
+	devuser := ""
+	fmt.Scanln(&devuser)
+	if strings.TrimSpace(devuser) == "" {
+		devuser = u.Username
+	}
+	devpass, err := gopass.GetPass("Caprica password: ")
+	if err != nil {
+		return
+	}
+	dev = &boatwright.HttpConfig{
+		URL:  "https://caprica-dev.helloreverb.com",
+		User: devuser,
+		Pass: devpass,
+	}
+	prod = &boatwright.HttpConfig{
+		URL:  "https://caprica-dev.helloreverb.com",
+		User: devuser,
+		Pass: devpass,
+	}
+	changed = true
+	return
+}
+
+func (i *InitCommand) ensureSSHConfig() (ssh *boatwright.SshConfig, changed bool, err error) {
+	fmt.Print("ssh key file: ($HOME/.ssh/id_rsa)")
+	keyfile := ""
+	fmt.Scanln(&keyfile)
+	if strings.TrimSpace(keyfile) != "" {
+		if keyfile[:2] == "~/" {
+			keyfile = os.Getenv("HOME") + keyfile[:1]
+		}
+	} else {
+		keyfile = "$HOME/.ssh/id_rsa"
+	}
+
+	u, _ := user.Current()
+	fmt.Print("ssh user: (" + u.Username + ")")
+	sshuser := ""
+	fmt.Scanln(&sshuser)
+	if strings.TrimSpace(sshuser) == "" {
+		sshuser = u.Username
+	}
+}
+
 // Execute runs this command
 func (i *InitCommand) Execute(config *boatwright.Config) {
 	dpath := os.Getenv("HOME") + "/.boatwright"
@@ -32,6 +79,10 @@ func (i *InitCommand) Execute(config *boatwright.Config) {
 ---
 common: &common
   caprica:
+    user: example
+    pass: guessme
+  docker_registry:
+    url: https://dev-docker.helloreverb.com
     user: example
     pass: guessme
 ssh:
@@ -49,29 +100,8 @@ prod:
 			os.Exit(1)
 		}
 
-		fmt.Print("Caprica user: ")
-		devuser := ""
-		fmt.Scanln(&devuser)
-
-		devpass, _ := gopass.GetPass("Caprica password: ")
-		fmt.Print("ssh key file: ($HOME/.ssh/id_rsa)")
-		keyfile := ""
-		fmt.Scanln(&keyfile)
-		if strings.TrimSpace(keyfile) != "" {
-			if keyfile[:2] == "~/" {
-				keyfile = os.Getenv("HOME") + keyfile[:1]
-			}
-		} else {
-			keyfile = "$HOME/.ssh/id_rsa"
-		}
-
-		u, _ := user.Current()
-		fmt.Print("ssh user: (" + u.Username + ")")
-		sshuser := ""
-		fmt.Scanln(&sshuser)
-		if strings.TrimSpace(sshuser) == "" {
-			sshuser = u.Username
-		}
+		i.ensureCapricaConfig()
+		i.ensureSSHConfig()
 
 		if _, err := os.Stat(os.Getenv("HOME") + "/.boatwright"); os.IsNotExist(err) {
 			os.MkdirAll(dpath, 0700)
@@ -80,6 +110,10 @@ prod:
 		cfgTempl := `---
 common: &common
   caprica: 
+    user: %s
+    pass: %s
+  docker_registry:
+    url: https://dev-docker.helloreverb.com
     user: %s
     pass: %s
 ssh:
