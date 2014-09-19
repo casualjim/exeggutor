@@ -16,7 +16,7 @@ type HttpConfig struct {
 }
 
 // SshConfig holds the configuration for establishing ssh connections
-type SsConfig struct {
+type SshConfig struct {
 	User    string
 	KeyFile string `yaml:"private_key"`
 }

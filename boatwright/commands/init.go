@@ -31,14 +31,14 @@ func (i *InitCommand) ensureCapricaConfig() (dev *boatwright.HttpConfig, prod *b
 		return
 	}
 	dev = &boatwright.HttpConfig{
-		URL:  "https://caprica-dev.helloreverb.com",
-		User: devuser,
-		Pass: devpass,
+		URL:      "https://caprica-dev.helloreverb.com",
+		User:     devuser,
+		Password: devpass,
 	}
 	prod = &boatwright.HttpConfig{
-		URL:  "https://caprica-dev.helloreverb.com",
-		User: devuser,
-		Pass: devpass,
+		URL:      "https://caprica-dev.helloreverb.com",
+		User:     devuser,
+		Password: devpass,
 	}
 	changed = true
 	return
@@ -63,6 +63,7 @@ func (i *InitCommand) ensureSSHConfig() (ssh *boatwright.SshConfig, changed bool
 	if strings.TrimSpace(sshuser) == "" {
 		sshuser = u.Username
 	}
+	return
 }
 
 // Execute runs this command
@@ -129,7 +130,7 @@ prod:
     url: https://caprica.helloreverb.com
 `
 
-		cfgStr := fmt.Sprintf(cfgTempl, devuser, devpass, os.ExpandEnv(keyfile), sshuser)
+		cfgStr := fmt.Sprintf(cfgTempl, config.Dev.Caprica.User, config.Dev.Caprica.Password, os.ExpandEnv(config.SSH.KeyFile), config.SSH.User)
 		err = ioutil.WriteFile(pth, []byte(cfgStr), 0600)
 		if err != nil {
 			fmt.Errorf("Failed to write the config file at %s, because %v", pth, err)

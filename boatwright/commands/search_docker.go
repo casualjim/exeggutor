@@ -14,5 +14,5 @@ func NewSearchDockerCommand(config *boatwright.Config) *TailLogsCommand {
 }
 
 func (s *SearchDockerCommand) Execute(args []string) error {
-
+	return nil
 }
