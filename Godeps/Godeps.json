@@ -1,14 +1,23 @@
 {
 	"ImportPath": "github.com/reverb/exeggutor",
-	"GoVersion": "go1.3",
+	"GoVersion": "go1.3.1",
 	"Packages": [
 		"./..."
 	],
 	"Deps": [
 		{
+			"ImportPath": "code.google.com/p/go.crypto/ssh",
+			"Comment": "null-221",
+			"Rev": "6e881b5273dfffbadb6a76a61d3c39a71e3588d1"
+		},
+		{
+			"ImportPath": "code.google.com/p/gopass",
+			"Rev": "3b39664481b57ad99d34c86bd64090c28eacc7a1"
+		},
+		{
 			"ImportPath": "code.google.com/p/goprotobuf/proto",
-			"Comment": "go.r60-150",
-			"Rev": "74b407a42099a47c7cf14dc526472d991ecbd1a3"
+			"Comment": "go.r60-152",
+			"Rev": "36be16571e14f67e114bb0af619e5de2c1591679"
 		},
 		{
 			"ImportPath": "github.com/antage/eventsource",
@@ -20,8 +29,8 @@
 		},
 		{
 			"ImportPath": "github.com/astaxie/beego/validation",
-			"Comment": "v1.3.0-33-g289f050",
-			"Rev": "289f050c047112e7569082da0e93c7c49a86a5d4"
+			"Comment": "v1.4.1-2-gfcc359a",
+			"Rev": "fcc359af11650ff3c523ece170f9ec134ffa8aef"
 		},
 		{
 			"ImportPath": "github.com/codegangsta/negroni",
@@ -34,46 +43,38 @@
 			"Rev": "e1856b2128eb93453caf1f21d4f1d9926ebeb593"
 		},
 		{
-			"ImportPath": "github.com/jacobsa/oglematchers",
-			"Rev": "4fc24f97b5b74022c2a3f4ca7eed57ca29083d3e"
-		},
-		{
 			"ImportPath": "github.com/jessevdk/go-flags",
-			"Comment": "v1-202-g4f0ca1e",
-			"Rev": "4f0ca1e2d1349e9662b633ea1b8b8d48e8a32533"
+			"Comment": "v1-211-g7dff25f",
+			"Rev": "7dff25ff3dc42258f880b5388ac9251bc54be0bb"
 		},
 		{
 			"ImportPath": "github.com/julienschmidt/httprouter",
-			"Rev": "7deadb6844d2c6ff1dfb812eaa439b87cdaedf20"
-		},
-		{
-			"ImportPath": "github.com/onsi/gomega",
-			"Rev": "4699d5a664396173c7d9fcef9e88be297c7bae13"
+			"Rev": "6db904312c78e5595a8d48c6b74fce77f407a33a"
 		},
 		{
 			"ImportPath": "github.com/op/go-logging",
-			"Rev": "c1b91128b40ead0e98dbc63cde57c0541feaa6c1"
+			"Rev": "06b24434bba6c80f1807aeb19d3cf62051c0a636"
 		},
 		{
 			"ImportPath": "github.com/rcrowley/go-metrics",
-			"Rev": "8d35757aca76ecbb3130db5eef56ab7ecc1d6dba"
+			"Rev": "dc42d45218778850334afa8c0758e3e00ebf6f22"
 		},
 		{
 			"ImportPath": "github.com/reverb/go-mesos/mesos",
-			"Comment": "v0.19.0-rvb1-4-g2d92ba2",
-			"Rev": "2d92ba2165681421ab3434778ccbc7f2ba0bde4a"
+			"Comment": "v0.19.0-rvb1-5-g65b9551",
+			"Rev": "65b9551d64f4bb00d47890d0c37acca04051247a"
 		},
 		{
 			"ImportPath": "github.com/reverb/go-utils/convey/matchers",
-			"Rev": "b01016a338c23fb2469689020e3294f2a8dbbecb"
+			"Rev": "3575c522f6f250de18aa598ec53ad222edd7a734"
 		},
 		{
 			"ImportPath": "github.com/reverb/go-utils/flake",
-			"Rev": "b01016a338c23fb2469689020e3294f2a8dbbecb"
+			"Rev": "3575c522f6f250de18aa598ec53ad222edd7a734"
 		},
 		{
 			"ImportPath": "github.com/reverb/go-utils/rvb_zk",
-			"Rev": "b01016a338c23fb2469689020e3294f2a8dbbecb"
+			"Rev": "3575c522f6f250de18aa598ec53ad222edd7a734"
 		},
 		{
 			"ImportPath": "github.com/robfig/cron",
@@ -82,12 +83,16 @@
 		},
 		{
 			"ImportPath": "github.com/samuel/go-zookeeper/zk",
-			"Rev": "041700315ab94d5f506317d8798adc9a6674c547"
+			"Rev": "9a466eec51e72221d972768a15f025bf096fc3e0"
 		},
 		{
 			"ImportPath": "github.com/smartystreets/goconvey/convey",
-			"Comment": "1.5.0-254-g627707e",
-			"Rev": "627707e8db4a4e52f4e1fbbb4e10d98e79a3c946"
+			"Comment": "1.5.0-264-ge4cef38",
+			"Rev": "e4cef38b8924b3cff6d84a524e8fe938ad0bcbf2"
+		},
+		{
+			"ImportPath": "gopkg.in/yaml.v1",
+			"Rev": "feb4ca79644e8e7e39c06095246ee54b1282c118"
 		}
 	]
 }
