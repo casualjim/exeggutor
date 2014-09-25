@@ -1,4 +1,4 @@
-GOPATH := $(CURDIR)/../_vendor:$(GOPATH)
+GOPATH := $(GOPATH)
 GO ?= go
 VERSION ?= 0.0.1
 DOCKER ?= docker

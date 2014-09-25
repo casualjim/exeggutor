@@ -6,21 +6,20 @@
   "port": 8000,
   "interface": "0.0.0.0",
   "dockerIndex": {
-     "host": "dev-docker.helloreverb.com",
-     "port": 443,
-     "scheme": "https",
-     "user": "agora",
-     "pass": "93deirjwq30s"
+    "host": "dev-docker.helloreverb.com",
+    "port": 443,
+    "scheme": "https",
+    "user": "agora",
+    "pass": "93deirjwq30s"
   },
   "framework": {
     "user": "vagrant",
     "name": "Reverb Agora"
-  }
+  },
   "logging": {
     "level": "DEBUG",
-   "logDirectory": "",
-   "colorize":true,
-   "pattern":"%{level} %{message}"
-   
+    "logDirectory": "",
+    "colorize": true,
+    "pattern": "%{level} %{message}"
   }
 }

@@ -23,7 +23,6 @@ func testAppConfig() *exeggutor.Config {
 		ZookeeperURL:    "zk://localhost:2181/apiTests",
 		MesosMaster:     "zk://localhost:2181/mesos",
 		DataDirectory:   data,
-		LogDirectory:    logs,
 		StaticFiles:     "./static/build",
 		WorkDirectory:   work,
 		ConfigDirectory: "./etc",
@@ -35,6 +34,9 @@ func testAppConfig() *exeggutor.Config {
 			Port:       443,
 			Scheme:     "https",
 			APIVersion: "v1",
+		},
+		Logging: &exeggutor.LoggingConfig{
+			LogDirectory: logs,
 		},
 	}
 }

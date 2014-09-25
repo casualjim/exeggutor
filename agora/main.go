@@ -18,11 +18,12 @@ import (
 	"github.com/op/go-logging"
 	"github.com/reverb/exeggutor"
 	"github.com/reverb/exeggutor/agora/api"
-	"github.com/reverb/exeggutor/agora/middlewares"
+	app_mw "github.com/reverb/exeggutor/agora/middlewares"
 	"github.com/reverb/exeggutor/scheduler"
 	app_store "github.com/reverb/exeggutor/store/apps"
 	"github.com/reverb/exeggutor/tasks"
 	"github.com/reverb/go-utils/flake"
+	"github.com/reverb/go-utils/http/middlewares"
 	"github.com/robfig/cron"
 )
 
@@ -97,11 +98,11 @@ func main() {
 
 	n := negroni.New()
 
-	n.Use(middlewares.NewEventSource(es))
-	n.Use(middlewares.NewJSONOnlyAPI())
+	n.Use(app_mw.NewEventSource(es))
+	n.Use(app_mw.NewJSONOnlyAPI())
 	n.Use(middlewares.NewRecovery())
 	n.Use(middlewares.NewLogger())
-	n.Use(middlewares.NewProxyHost("/docker", config.DockerIndex.ToURL()))
+	n.Use(app_mw.NewProxyHost("/docker", config.DockerIndex.ToURL()))
 	n.Use(negroni.NewStatic(staticFS))
 	n.UseHandler(router)
 

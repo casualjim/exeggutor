@@ -194,7 +194,6 @@ func (b *MesosMessageBuilder) BuildMesosCommand(slaveID string, component *proto
 		Environment: b.BuildTaskEnvironment(component.GetEnv(), component.GetPorts(), reservedPorts),
 		Value:       component.Command,
 		User:        nil, // TODO: allow this to be configured?
-		HealthCheck: nil, // TODO: allow this to be configured?
 	}
 	return commandInfo, portMapping
 }
