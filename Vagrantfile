@@ -1,11 +1,14 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
+require("fileutils")
+
 VAGRANTFILE_API_VERSION = "2"
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.box = "casualjim/trusty-vagrant"
   config.vm.hostname = "exeggutor-box"
+  config.ssh.forward_agent = true
 
   config.vm.define "exeggutor-box" do |b|    
     b.vm.network :private_network, ip: "192.168.11.253"
@@ -24,7 +27,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     # the settings below allow for faster network over the natted interface 
      v.customize ["modifyvm", :id, "--chipset", "ich9"]
-     v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
      v.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
   end
   

@@ -7,8 +7,8 @@
 	"Deps": [
 		{
 			"ImportPath": "code.google.com/p/go.crypto/ssh",
-			"Comment": "null-221",
-			"Rev": "6e881b5273dfffbadb6a76a61d3c39a71e3588d1"
+			"Comment": "null-223",
+			"Rev": "31393df5baea9ed8d6778396e7f3896070ea5c04"
 		},
 		{
 			"ImportPath": "code.google.com/p/gopass",
@@ -21,7 +21,7 @@
 		},
 		{
 			"ImportPath": "github.com/antage/eventsource",
-			"Rev": "1077d16d7464a3e16dc339a01db15968b05203d6"
+			"Rev": "b6f8487352cae5045e20b1710911ca00da1790ca"
 		},
 		{
 			"ImportPath": "github.com/armon/gomdb",
@@ -34,8 +34,8 @@
 		},
 		{
 			"ImportPath": "github.com/codegangsta/negroni",
-			"Comment": "v0.1-27-g46bd821",
-			"Rev": "46bd821940d86fb9777f7f86e9ae428132e110da"
+			"Comment": "v0.1-30-g85fb09c",
+			"Rev": "85fb09cb1e4889ec4038ebd6f8d88fb8d3e86b3f"
 		},
 		{
 			"ImportPath": "github.com/imdario/mergo",
@@ -44,8 +44,8 @@
 		},
 		{
 			"ImportPath": "github.com/jessevdk/go-flags",
-			"Comment": "v1-211-g7dff25f",
-			"Rev": "7dff25ff3dc42258f880b5388ac9251bc54be0bb"
+			"Comment": "v1-243-g1f8fc78",
+			"Rev": "1f8fc78104c465b25629ed0fa9bbd4dffb39dd8e"
 		},
 		{
 			"ImportPath": "github.com/julienschmidt/httprouter",
@@ -53,7 +53,7 @@
 		},
 		{
 			"ImportPath": "github.com/op/go-logging",
-			"Rev": "06b24434bba6c80f1807aeb19d3cf62051c0a636"
+			"Rev": "3df864a88c7f005e676db4f026a4fe2f14929be3"
 		},
 		{
 			"ImportPath": "github.com/rcrowley/go-metrics",
@@ -61,20 +61,20 @@
 		},
 		{
 			"ImportPath": "github.com/reverb/go-mesos/mesos",
-			"Comment": "v0.19.0-rvb1-5-g65b9551",
-			"Rev": "65b9551d64f4bb00d47890d0c37acca04051247a"
+			"Comment": "v0.19.0-rvb1-6-g9cfd617",
+			"Rev": "9cfd617d653d9f336331620b47453c27f28e5634"
 		},
 		{
 			"ImportPath": "github.com/reverb/go-utils/convey/matchers",
-			"Rev": "3575c522f6f250de18aa598ec53ad222edd7a734"
+			"Rev": "d59f0cf9d3179fb0ce3e089fc5bee9eb43b2ddda"
 		},
 		{
 			"ImportPath": "github.com/reverb/go-utils/flake",
-			"Rev": "3575c522f6f250de18aa598ec53ad222edd7a734"
+			"Rev": "d59f0cf9d3179fb0ce3e089fc5bee9eb43b2ddda"
 		},
 		{
 			"ImportPath": "github.com/reverb/go-utils/rvb_zk",
-			"Rev": "3575c522f6f250de18aa598ec53ad222edd7a734"
+			"Rev": "d59f0cf9d3179fb0ce3e089fc5bee9eb43b2ddda"
 		},
 		{
 			"ImportPath": "github.com/robfig/cron",
@@ -92,7 +92,7 @@
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v1",
-			"Rev": "feb4ca79644e8e7e39c06095246ee54b1282c118"
+			"Rev": "9f9df34309c04878acc86042b16630b0f696e1de"
 		}
 	]
 }
